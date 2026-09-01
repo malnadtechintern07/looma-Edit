@@ -1,0 +1,7 @@
+abstract class RouteNames {
+  static const String home = 'home';
+  static const String editor = 'editor';
+  static const String store = 'store';
+  static const String cloud = 'cloud';
+  static const String export = 'export';
+}
