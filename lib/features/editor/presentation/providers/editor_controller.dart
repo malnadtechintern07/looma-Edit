@@ -14,6 +14,7 @@ import '../../../projects/presentation/providers/projects_provider.dart';
 import '../../../text_stickers/domain/entities/overlay_animation_type.dart';
 import '../../../text_stickers/domain/entities/sticker_overlay_entity.dart';
 import '../../../text_stickers/domain/entities/text_overlay_entity.dart';
+import '../../domain/entities/animation_clip_entity.dart';
 import '../../domain/entities/keyframe_entity.dart';
 import '../../domain/entities/clip_animation_type.dart';
 import '../../domain/entities/crop_rect_entity.dart';
@@ -1814,6 +1815,10 @@ class EditorController extends StateNotifier<TimelineState> {
         duplicateEffectClip(id);
         break;
 
+      case SelectionType.animationClip:
+        duplicateAnimationClip(id);
+        break;
+
       case SelectionType.subtitle:
         final sub = state.project.subtitles.firstWhere((s) => s.id == id, orElse: () => state.project.subtitles.first);
         final newId = IdGenerator.generate();
@@ -1895,6 +1900,10 @@ class EditorController extends StateNotifier<TimelineState> {
       case SelectionType.effectClip:
         final effects = updated.effectClips.where((e) => e.id != id).toList();
         updated = updated.copyWith(effectClips: effects);
+        break;
+      case SelectionType.animationClip:
+        final anims = updated.animationClips.where((a) => a.id != id).toList();
+        updated = updated.copyWith(animationClips: anims);
         break;
       case SelectionType.subtitle:
         final subs = updated.subtitles.where((s) => s.id != id).toList();
@@ -2089,6 +2098,236 @@ class EditorController extends StateNotifier<TimelineState> {
       project: updated,
       selectionType: SelectionType.none,
       selectedItemId: null,
+    );
+    _persistChanges();
+  }
+
+  // --- Independent Timeline Animation Clip Actions ---
+  void addAnimationClip({
+    required ClipAnimationCombo animationType,
+    int durationMs = 2000,
+    String? name,
+  }) {
+    _recordHistory();
+    final startMs = state.playheadPositionMs;
+    final dur = durationMs > 0 ? durationMs : 2000;
+
+    final newClip = AnimationClipEntity(
+      id: IdGenerator.generate(),
+      name: name ?? animationType.label,
+      animationType: animationType,
+      timelineStartMs: startMs,
+      durationMs: dur,
+    );
+
+    final updated = state.project.copyWith(
+      animationClips: [...state.project.animationClips, newClip],
+    );
+
+    state = state.copyWith(
+      project: updated,
+      selectionType: SelectionType.animationClip,
+      selectedItemId: newClip.id,
+    );
+    _persistChanges();
+  }
+
+  void replaceAnimationClip(String animationId, ClipAnimationCombo newAnimationType) {
+    _recordHistory();
+    final list = state.project.animationClips.map((a) {
+      if (a.id == animationId) {
+        return a.copyWith(
+          animationType: newAnimationType,
+          name: newAnimationType.label,
+        );
+      }
+      return a;
+    }).toList();
+
+    final updated = state.project.copyWith(animationClips: list);
+    state = state.copyWith(project: updated);
+    _persistChanges();
+  }
+
+  void updateAnimationClipDuration(String animationId, int newDurationMs, {bool isTrimStart = false}) {
+    final index = state.project.animationClips.indexWhere((a) => a.id == animationId);
+    if (index == -1) return;
+
+    final old = state.project.animationClips[index];
+    final dur = max(500, newDurationMs);
+
+    AnimationClipEntity updatedClip;
+    if (isTrimStart) {
+      final oldEnd = old.timelineEndMs;
+      final newStart = max(0, oldEnd - dur);
+      updatedClip = old.copyWith(
+        timelineStartMs: newStart,
+        durationMs: oldEnd - newStart,
+      );
+    } else {
+      updatedClip = old.copyWith(durationMs: dur);
+    }
+
+    final list = List<AnimationClipEntity>.from(state.project.animationClips);
+    list[index] = updatedClip;
+
+    final updated = state.project.copyWith(animationClips: list);
+    state = state.copyWith(project: updated);
+  }
+
+  void updateAnimationDurationByDrag({
+    required String animationId,
+    required double deltaPixels,
+    required double pixelsPerSecond,
+    required bool isLeftHandle,
+  }) {
+    final index = state.project.animationClips.indexWhere((a) => a.id == animationId);
+    if (index == -1) return;
+
+    final clip = state.project.animationClips[index];
+    final deltaMs = ((deltaPixels / pixelsPerSecond) * 1000).round();
+    if (deltaMs == 0) return;
+
+    AnimationClipEntity updatedClip;
+    if (isLeftHandle) {
+      final newStart = max(0, clip.timelineStartMs + deltaMs);
+      final newDur = max(500, clip.durationMs - deltaMs);
+      updatedClip = clip.copyWith(
+        timelineStartMs: newStart,
+        durationMs: newDur,
+      );
+    } else {
+      final newDur = max(500, clip.durationMs + deltaMs);
+      updatedClip = clip.copyWith(durationMs: newDur);
+    }
+
+    final list = List<AnimationClipEntity>.from(state.project.animationClips);
+    list[index] = updatedClip;
+
+    final updated = state.project.copyWith(animationClips: list);
+    state = state.copyWith(project: updated);
+    _persistChanges();
+  }
+
+  void moveAnimationPositionByDrag({
+    required String animationId,
+    required double deltaPixels,
+    required double pixelsPerSecond,
+  }) {
+    final deltaMs = ((deltaPixels / pixelsPerSecond) * 1000).round();
+    if (deltaMs == 0) return;
+
+    final index = state.project.animationClips.indexWhere((a) => a.id == animationId);
+    if (index == -1) return;
+
+    final clip = state.project.animationClips[index];
+    final newStart = max(0, clip.timelineStartMs + deltaMs);
+
+    final list = List<AnimationClipEntity>.from(state.project.animationClips);
+    list[index] = clip.copyWith(timelineStartMs: newStart);
+
+    final updated = state.project.copyWith(animationClips: list);
+    state = state.copyWith(project: updated);
+    _persistChanges();
+  }
+
+  void splitAnimationClipAtPlayhead(String animationId) {
+    final index = state.project.animationClips.indexWhere((a) => a.id == animationId);
+    if (index == -1) return;
+
+    final clip = state.project.animationClips[index];
+    final splitPos = state.playheadPositionMs;
+
+    if (splitPos <= clip.timelineStartMs + 300 || splitPos >= clip.timelineEndMs - 300) {
+      return;
+    }
+
+    _recordHistory();
+    final firstPartDur = splitPos - clip.timelineStartMs;
+    final secondPartDur = clip.timelineEndMs - splitPos;
+
+    final firstPart = clip.copyWith(durationMs: firstPartDur);
+    final secondPart = clip.copyWith(
+      id: IdGenerator.generate(),
+      timelineStartMs: splitPos,
+      durationMs: secondPartDur,
+    );
+
+    final list = List<AnimationClipEntity>.from(state.project.animationClips);
+    list[index] = firstPart;
+    list.insert(index + 1, secondPart);
+
+    final updated = state.project.copyWith(animationClips: list);
+    state = state.copyWith(
+      project: updated,
+      selectionType: SelectionType.animationClip,
+      selectedItemId: secondPart.id,
+    );
+    _persistChanges();
+  }
+
+  void duplicateAnimationClip(String animationId) {
+    final clip = state.project.animationClips.firstWhere((a) => a.id == animationId, orElse: () => state.project.animationClips.first);
+    _recordHistory();
+
+    final duplicated = clip.copyWith(
+      id: IdGenerator.generate(),
+      timelineStartMs: clip.timelineEndMs,
+    );
+
+    final updated = state.project.copyWith(animationClips: [...state.project.animationClips, duplicated]);
+    state = state.copyWith(
+      project: updated,
+      selectionType: SelectionType.animationClip,
+      selectedItemId: duplicated.id,
+    );
+    _persistChanges();
+  }
+
+  void deleteAnimationClip(String animationId) {
+    _recordHistory();
+    final list = state.project.animationClips.where((a) => a.id != animationId).toList();
+    final updated = state.project.copyWith(animationClips: list);
+    state = state.copyWith(
+      project: updated,
+      selectionType: SelectionType.none,
+      selectedItemId: null,
+    );
+    _persistChanges();
+  }
+
+  // --- Independent Photo Clip Management ---
+  void addPhotoClip({
+    required String name,
+    required String mediaPath,
+    int durationMs = 4000,
+    bool isOverlay = false,
+  }) {
+    _recordHistory();
+    final startMs = isOverlay ? state.playheadPositionMs : state.project.calculatedDurationMs;
+    final dur = durationMs > 0 ? durationMs : 4000;
+
+    final photoClip = VideoClipEntity(
+      id: IdGenerator.generate(),
+      mediaPath: mediaPath,
+      name: name,
+      sourceDurationMs: dur,
+      timelineStartMs: startMs,
+      timelineEndMs: startMs + dur,
+      trimStartMs: 0,
+      trimEndMs: dur,
+      isOverlay: isOverlay,
+      zoomScale: isOverlay ? 0.6 : 1.0,
+    );
+
+    final updated = state.project.copyWith(
+      videoClips: [...state.project.videoClips, photoClip],
+    );
+
+    state = state.copyWith(
+      project: updated,
+      selectionType: isOverlay ? SelectionType.overlayClip : SelectionType.videoClip,
+      selectedItemId: photoClip.id,
     );
     _persistChanges();
   }

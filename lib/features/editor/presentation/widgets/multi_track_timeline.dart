@@ -5,9 +5,12 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../audio/presentation/widgets/audio_track_item.dart';
+import '../../../filters_effects/presentation/widgets/effect_track_item.dart';
 import '../../../text_stickers/presentation/widgets/overlay_track_item.dart';
+import '../../domain/entities/clip_animation_type.dart';
 import '../../domain/entities/timeline_state.dart';
 import '../providers/editor_controller.dart';
+import 'animation_track_item.dart';
 import 'subtitle_track_item.dart';
 import 'timeline_ruler.dart';
 import 'video_track_item.dart';
@@ -427,10 +430,28 @@ class _MultiTrackTimelineState extends State<MultiTrackTimeline> {
                           alignment: Alignment.center,
                           child: const Icon(Icons.emoji_emotions, size: 14, color: AppColors.stickerTrack),
                         ),
+                      if (project.effectClips.isNotEmpty)
+                        Container(
+                          height: 32,
+                          alignment: Alignment.center,
+                          child: const Icon(Icons.auto_fix_high, size: 14, color: Color(0xFF00E5FF)),
+                        ),
+                      if (project.animationClips.isNotEmpty)
+                        Container(
+                          height: 32,
+                          alignment: Alignment.center,
+                          child: const Icon(Icons.animation, size: 14, color: Color(0xFFFF007A)),
+                        ),
                       Container(
                         height: AppConstants.timelineTrackHeight,
                         alignment: Alignment.center,
-                        child: const Icon(Icons.movie, size: 16, color: AppColors.videoTrack),
+                        child: Icon(
+                          project.videoClips.any((c) => !c.isOverlay && c.isPhoto) && !project.videoClips.any((c) => !c.isOverlay && !c.isPhoto)
+                              ? Icons.photo
+                              : Icons.movie,
+                          size: 16,
+                          color: AppColors.videoTrack,
+                        ),
                       ),
                       if (project.videoClips.any((c) => c.isOverlay))
                         Container(
@@ -736,6 +757,248 @@ class _MultiTrackTimelineState extends State<MultiTrackTimeline> {
                                                   onBodyDragUpdate: (deltaPixels) {
                                                     widget.controller.moveStickerTimelinePosition(
                                                       stickerId: sticker.id,
+                                                      deltaPixels: deltaPixels,
+                                                      pixelsPerSecond: pps,
+                                                    );
+                                                  },
+                                                ),
+                                              );
+                                            }).toList(),
+                                          ),
+                                        ),
+
+                                      // 4b. Effects Track Toolbar
+                                      if (state.selectionType == SelectionType.effectClip && state.selectedItemId != null) ...[
+                                        Builder(builder: (ctx) {
+                                          final selEff = project.effectClips.where((e) => e.id == state.selectedItemId).firstOrNull;
+                                          if (selEff == null) return const SizedBox.shrink();
+
+                                          return Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                            margin: const EdgeInsets.only(bottom: 4),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.surfaceElevated,
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(color: const Color(0xFF00E5FF).withValues(alpha: 0.5)),
+                                            ),
+                                            child: SingleChildScrollView(
+                                              scrollDirection: Axis.horizontal,
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(Icons.auto_fix_high, size: 14, color: Color(0xFF00E5FF)),
+                                                  const SizedBox(width: 6),
+                                                  Text(
+                                                    'Effect: ${selEff.effectType.label}',
+                                                    style: AppTypography.labelSmall.copyWith(
+                                                      color: Colors.white,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 12),
+                                                  InkWell(
+                                                    onTap: () => widget.controller.duplicateEffectClip(selEff.id),
+                                                    borderRadius: BorderRadius.circular(4),
+                                                    child: Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                      decoration: BoxDecoration(
+                                                        color: const Color(0xFF00E5FF).withValues(alpha: 0.2),
+                                                        borderRadius: BorderRadius.circular(4),
+                                                        border: Border.all(color: const Color(0xFF00E5FF), width: 1),
+                                                      ),
+                                                      child: const Row(
+                                                        children: [
+                                                          Icon(Icons.copy, size: 12, color: Color(0xFF00E5FF)),
+                                                          SizedBox(width: 4),
+                                                          Text('Duplicate', style: TextStyle(fontSize: 10, color: Color(0xFF00E5FF))),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  InkWell(
+                                                    onTap: () => widget.controller.deleteEffectClip(selEff.id),
+                                                    borderRadius: BorderRadius.circular(4),
+                                                    child: Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                      decoration: BoxDecoration(
+                                                        color: AppColors.error.withValues(alpha: 0.2),
+                                                        borderRadius: BorderRadius.circular(4),
+                                                        border: Border.all(color: AppColors.error, width: 1),
+                                                      ),
+                                                      child: const Row(
+                                                        children: [
+                                                          Icon(Icons.delete_outline, size: 12, color: AppColors.error),
+                                                          SizedBox(width: 4),
+                                                          Text('Delete', style: TextStyle(fontSize: 10, color: AppColors.error)),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 12),
+                                                  const Text(
+                                                    '↔ Drag handles to trim • Drag clip to reposition',
+                                                    style: TextStyle(fontSize: 10, color: Color(0xFF00E5FF)),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        }),
+                                      ],
+
+                                      // 4b. Effects Track
+                                      if (project.effectClips.isNotEmpty)
+                                        Container(
+                                          height: 32,
+                                          margin: const EdgeInsets.symmetric(vertical: 2),
+                                          child: Stack(
+                                            children: project.effectClips.map((eff) {
+                                              final left = (eff.timelineStartMs / 1000.0) * pps;
+                                              final isSelected = state.selectionType == SelectionType.effectClip &&
+                                                  state.selectedItemId == eff.id;
+                                              return Positioned(
+                                                left: left,
+                                                child: EffectTrackItem(
+                                                  item: eff,
+                                                  pixelsPerSecond: pps,
+                                                  isSelected: isSelected,
+                                                  onTap: () => widget.controller.setSelection(
+                                                    SelectionType.effectClip,
+                                                    eff.id,
+                                                  ),
+                                                  onHandleDragUpdate: (deltaPixels, isLeftHandle) {
+                                                    widget.controller.updateEffectDurationByDrag(
+                                                      effectId: eff.id,
+                                                      deltaPixels: deltaPixels,
+                                                      pixelsPerSecond: pps,
+                                                      isLeftHandle: isLeftHandle,
+                                                    );
+                                                  },
+                                                  onSlideDragUpdate: (deltaPixels) {
+                                                    widget.controller.moveEffectClipPosition(
+                                                      effectId: eff.id,
+                                                      deltaPixels: deltaPixels,
+                                                      pixelsPerSecond: pps,
+                                                    );
+                                                  },
+                                                ),
+                                              );
+                                            }).toList(),
+                                          ),
+                                        ),
+
+                                      // 4c. Animations Track Toolbar
+                                      if (state.selectionType == SelectionType.animationClip && state.selectedItemId != null) ...[
+                                        Builder(builder: (ctx) {
+                                          final selAnim = project.animationClips.where((a) => a.id == state.selectedItemId).firstOrNull;
+                                          if (selAnim == null) return const SizedBox.shrink();
+
+                                          return Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                            margin: const EdgeInsets.only(bottom: 4),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.surfaceElevated,
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(color: const Color(0xFFFF007A).withValues(alpha: 0.5)),
+                                            ),
+                                            child: SingleChildScrollView(
+                                              scrollDirection: Axis.horizontal,
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(Icons.animation, size: 14, color: Color(0xFFFF007A)),
+                                                  const SizedBox(width: 6),
+                                                  Text(
+                                                    'Animation: ${selAnim.animationType.label}',
+                                                    style: AppTypography.labelSmall.copyWith(
+                                                      color: Colors.white,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 12),
+                                                  InkWell(
+                                                    onTap: () => widget.controller.duplicateAnimationClip(selAnim.id),
+                                                    borderRadius: BorderRadius.circular(4),
+                                                    child: Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                      decoration: BoxDecoration(
+                                                        color: const Color(0xFFFF007A).withValues(alpha: 0.2),
+                                                        borderRadius: BorderRadius.circular(4),
+                                                        border: Border.all(color: const Color(0xFFFF007A), width: 1),
+                                                      ),
+                                                      child: const Row(
+                                                        children: [
+                                                          Icon(Icons.copy, size: 12, color: Color(0xFFFF007A)),
+                                                          SizedBox(width: 4),
+                                                          Text('Duplicate', style: TextStyle(fontSize: 10, color: Color(0xFFFF007A))),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  InkWell(
+                                                    onTap: () => widget.controller.deleteAnimationClip(selAnim.id),
+                                                    borderRadius: BorderRadius.circular(4),
+                                                    child: Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                      decoration: BoxDecoration(
+                                                        color: AppColors.error.withValues(alpha: 0.2),
+                                                        borderRadius: BorderRadius.circular(4),
+                                                        border: Border.all(color: AppColors.error, width: 1),
+                                                      ),
+                                                      child: const Row(
+                                                        children: [
+                                                          Icon(Icons.delete_outline, size: 12, color: AppColors.error),
+                                                          SizedBox(width: 4),
+                                                          Text('Delete', style: TextStyle(fontSize: 10, color: AppColors.error)),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 12),
+                                                  const Text(
+                                                    '↔ Drag handles to trim • Drag clip to reposition',
+                                                    style: TextStyle(fontSize: 10, color: Color(0xFFFF007A)),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        }),
+                                      ],
+
+                                      // 4c. Animations Track
+                                      if (project.animationClips.isNotEmpty)
+                                        Container(
+                                          height: 32,
+                                          margin: const EdgeInsets.symmetric(vertical: 2),
+                                          child: Stack(
+                                            children: project.animationClips.map((anim) {
+                                              final left = (anim.timelineStartMs / 1000.0) * pps;
+                                              final isSelected = state.selectionType == SelectionType.animationClip &&
+                                                  state.selectedItemId == anim.id;
+                                              return Positioned(
+                                                left: left,
+                                                child: AnimationTrackItem(
+                                                  item: anim,
+                                                  pixelsPerSecond: pps,
+                                                  isSelected: isSelected,
+                                                  onTap: () => widget.controller.setSelection(
+                                                    SelectionType.animationClip,
+                                                    anim.id,
+                                                  ),
+                                                  onHandleDragUpdate: (deltaPixels, isLeftHandle) {
+                                                    widget.controller.updateAnimationDurationByDrag(
+                                                      animationId: anim.id,
+                                                      deltaPixels: deltaPixels,
+                                                      pixelsPerSecond: pps,
+                                                      isLeftHandle: isLeftHandle,
+                                                    );
+                                                  },
+                                                  onSlideDragUpdate: (deltaPixels) {
+                                                    widget.controller.moveAnimationPositionByDrag(
+                                                      animationId: anim.id,
                                                       deltaPixels: deltaPixels,
                                                       pixelsPerSecond: pps,
                                                     );

@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:looma/features/audio/domain/entities/audio_clip_entity.dart';
+import 'package:looma/features/editor/domain/entities/animation_clip_entity.dart';
 import 'package:looma/features/editor/domain/entities/subtitle_entity.dart';
 import 'package:looma/features/editor/domain/entities/video_clip_entity.dart';
 import 'package:looma/features/filters_effects/domain/entities/effect_clip_entity.dart';
@@ -27,6 +28,7 @@ class ProjectEntity {
   final List<StickerOverlayEntity> stickerOverlays;
   final List<SubtitleEntity> subtitles;
   final List<EffectClipEntity> effectClips;
+  final List<AnimationClipEntity> animationClips;
   final SyncStatusType syncStatus;
   final int lastPlayheadPositionMs;
 
@@ -47,6 +49,7 @@ class ProjectEntity {
     this.stickerOverlays = const [],
     this.subtitles = const [],
     this.effectClips = const [],
+    this.animationClips = const [],
     this.syncStatus = SyncStatusType.localOnly,
     this.lastPlayheadPositionMs = 0,
   });
@@ -72,6 +75,9 @@ class ProjectEntity {
     for (final eff in effectClips) {
       maxEnd = max(maxEnd, eff.timelineEndMs);
     }
+    for (final anim in animationClips) {
+      maxEnd = max(maxEnd, anim.timelineEndMs);
+    }
     return maxEnd > 0 ? maxEnd : (durationMs > 0 ? durationMs : 5000);
   }
 
@@ -92,6 +98,7 @@ class ProjectEntity {
     List<StickerOverlayEntity>? stickerOverlays,
     List<SubtitleEntity>? subtitles,
     List<EffectClipEntity>? effectClips,
+    List<AnimationClipEntity>? animationClips,
     SyncStatusType? syncStatus,
     int? lastPlayheadPositionMs,
   }) {
@@ -112,6 +119,7 @@ class ProjectEntity {
       stickerOverlays: stickerOverlays ?? this.stickerOverlays,
       subtitles: subtitles ?? this.subtitles,
       effectClips: effectClips ?? this.effectClips,
+      animationClips: animationClips ?? this.animationClips,
       syncStatus: syncStatus ?? this.syncStatus,
       lastPlayheadPositionMs: lastPlayheadPositionMs ?? this.lastPlayheadPositionMs,
     );

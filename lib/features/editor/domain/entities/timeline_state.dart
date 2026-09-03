@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:looma/features/audio/domain/entities/audio_clip_entity.dart';
+import 'package:looma/features/editor/domain/entities/animation_clip_entity.dart';
 import 'package:looma/features/editor/domain/entities/subtitle_entity.dart';
 import 'package:looma/features/editor/domain/entities/video_clip_entity.dart';
 import 'package:looma/features/filters_effects/domain/entities/effect_clip_entity.dart';
@@ -7,7 +8,7 @@ import 'package:looma/features/projects/domain/entities/project_entity.dart';
 import 'package:looma/features/text_stickers/domain/entities/sticker_overlay_entity.dart';
 import 'package:looma/features/text_stickers/domain/entities/text_overlay_entity.dart';
 
-enum SelectionType { none, videoClip, overlayClip, audioClip, textOverlay, stickerOverlay, subtitle, effectClip }
+enum SelectionType { none, videoClip, overlayClip, audioClip, textOverlay, stickerOverlay, subtitle, effectClip, animationClip }
 
 @immutable
 class TimelineState {
@@ -62,6 +63,14 @@ class TimelineState {
     return project.effectClips.where((e) {
       return playheadPositionMs >= e.timelineStartMs &&
           playheadPositionMs <= e.timelineEndMs;
+    }).toList();
+  }
+
+  /// Currently active animation clips at playhead position
+  List<AnimationClipEntity> get activeAnimationClips {
+    return project.animationClips.where((a) {
+      return playheadPositionMs >= a.timelineStartMs &&
+          playheadPositionMs <= a.timelineEndMs;
     }).toList();
   }
 
@@ -122,6 +131,15 @@ class TimelineState {
     return null;
   }
 
+  /// Selected animation clip if any
+  AnimationClipEntity? get selectedAnimationClip {
+    if (selectionType != SelectionType.animationClip || selectedItemId == null) return null;
+    for (final anim in project.animationClips) {
+      if (anim.id == selectedItemId) return anim;
+    }
+    return null;
+  }
+
   TimelineState copyWith({
     ProjectEntity? project,
     int? playheadPositionMs,
@@ -131,13 +149,18 @@ class TimelineState {
     String? selectedItemId,
     bool? isLooping,
   }) {
+    final effectiveSelectionType = selectionType ?? this.selectionType;
+    final effectiveSelectedItemId = effectiveSelectionType == SelectionType.none
+        ? null
+        : (selectedItemId ?? (selectionType != null ? null : this.selectedItemId));
+
     return TimelineState(
       project: project ?? this.project,
       playheadPositionMs: playheadPositionMs ?? this.playheadPositionMs,
       isPlaying: isPlaying ?? this.isPlaying,
       pixelsPerSecond: pixelsPerSecond ?? this.pixelsPerSecond,
-      selectionType: selectionType ?? this.selectionType,
-      selectedItemId: selectedItemId,
+      selectionType: effectiveSelectionType,
+      selectedItemId: effectiveSelectedItemId,
       isLooping: isLooping ?? this.isLooping,
     );
   }

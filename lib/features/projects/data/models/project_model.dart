@@ -1,5 +1,6 @@
 import 'package:looma/core/utils/id_generator.dart';
 import 'package:looma/features/audio/domain/entities/audio_clip_entity.dart';
+import 'package:looma/features/editor/domain/entities/animation_clip_entity.dart';
 import 'package:looma/features/editor/domain/entities/chroma_key_config_entity.dart';
 import 'package:looma/features/editor/domain/entities/clip_animation_type.dart';
 import 'package:looma/features/editor/domain/entities/crop_rect_entity.dart';
@@ -41,6 +42,7 @@ class ProjectModel {
       'stickerOverlays': entity.stickerOverlays.map((s) => _stickerOverlayToJson(s)).toList(),
       'subtitles': entity.subtitles.map((sub) => _subtitleToJson(sub)).toList(),
       'effectClips': entity.effectClips.map((e) => e.toJson()).toList(),
+      'animationClips': entity.animationClips.map((a) => a.toJson()).toList(),
     };
   }
 
@@ -84,6 +86,10 @@ class ProjectModel {
           [],
       effectClips: (json['effectClips'] as List<dynamic>?)
               ?.map((e) => EffectClipEntity.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      animationClips: (json['animationClips'] as List<dynamic>?)
+              ?.map((a) => AnimationClipEntity.fromJson(a as Map<String, dynamic>))
               .toList() ??
           [],
     );

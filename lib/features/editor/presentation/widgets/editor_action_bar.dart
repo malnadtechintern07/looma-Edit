@@ -7,14 +7,16 @@ import '../../../filters_effects/domain/entities/video_effect_type.dart';
 import '../../../filters_effects/presentation/widgets/color_adjustment_sheet.dart';
 import '../../../filters_effects/presentation/widgets/effects_picker_sheet.dart';
 import '../../../filters_effects/presentation/widgets/filter_picker_sheet.dart';
+import '../../../media_picker/domain/entities/media_item_entity.dart';
 import '../../../media_picker/presentation/widgets/media_picker_modal.dart';
 import '../../../text_stickers/presentation/widgets/sticker_picker_sheet.dart';
 import '../../../text_stickers/presentation/widgets/text_editor_sheet.dart';
+import '../../domain/entities/clip_animation_type.dart';
 import '../../domain/entities/timeline_state.dart';
 import '../providers/editor_controller.dart';
+import 'animation_picker_sheet.dart';
 import 'caption_editor_sheet.dart';
 import 'chroma_key_sheet.dart';
-import 'clip_animation_sheet.dart';
 import 'clip_speed_sheet.dart';
 import 'clip_volume_sheet.dart';
 import 'crop_transform_sheet.dart';
@@ -177,19 +179,35 @@ class EditorActionBar extends StatelessWidget {
   }
 
   void _openAnimationSheet(BuildContext context) {
-    final active = state.selectedVideoClip ?? state.activeVideoClip;
-    if (active == null) return;
+    if (state.selectionType == SelectionType.animationClip && state.selectedAnimationClip != null) {
+      final animClip = state.selectedAnimationClip!;
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: const Color(0xFF161822),
+        builder: (ctx) => AnimationPickerSheet(
+          selectedAnimation: animClip.animationType,
+          initialDurationMs: animClip.durationMs,
+          onAnimationSelected: (anim, dur) {
+            controller.replaceAnimationClip(animClip.id, anim);
+            controller.updateAnimationClipDuration(animClip.id, dur);
+          },
+        ),
+      );
+      return;
+    }
+
+    // Add a new independent animation clip on the timeline at playhead
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: const Color(0xFF161822),
-      builder: (ctx) => ClipAnimationSheet(
-        clip: active,
-        onAnimationInChanged: (anim) => controller.setClipAnimationIn(active.id, anim),
-        onAnimationInDurationChanged: (dur) => controller.setClipAnimationInDuration(active.id, dur),
-        onAnimationOutChanged: (anim) => controller.setClipAnimationOut(active.id, anim),
-        onAnimationOutDurationChanged: (dur) => controller.setClipAnimationOutDuration(active.id, dur),
-        onAnimationComboChanged: (combo) => controller.setClipAnimationCombo(active.id, combo),
+      builder: (ctx) => AnimationPickerSheet(
+        selectedAnimation: ClipAnimationCombo.pulse,
+        initialDurationMs: 2000,
+        onAnimationSelected: (anim, dur) {
+          controller.addAnimationClip(animationType: anim, durationMs: dur);
+        },
       ),
     );
   }
@@ -373,11 +391,20 @@ class EditorActionBar extends StatelessWidget {
           actionLabel: 'Add',
           onMediaSelected: (selectedMedia) {
             for (final m in selectedMedia) {
-              controller.addVideoClip(
-                name: m.name,
-                mediaPath: m.path,
-                durationMs: m.durationMs,
-              );
+              if (m.type == MediaType.photo) {
+                controller.addPhotoClip(
+                  name: m.name,
+                  mediaPath: m.path,
+                  durationMs: m.durationMs > 0 ? m.durationMs : 4000,
+                  isOverlay: false,
+                );
+              } else {
+                controller.addVideoClip(
+                  name: m.name,
+                  mediaPath: m.path,
+                  durationMs: m.durationMs,
+                );
+              }
             }
           },
         ),
@@ -394,11 +421,20 @@ class EditorActionBar extends StatelessWidget {
           actionLabel: 'Add PIP',
           onMediaSelected: (selectedMedia) {
             for (final m in selectedMedia) {
-              controller.addOverlayClip(
-                name: m.name,
-                mediaPath: m.path,
-                durationMs: m.durationMs,
-              );
+              if (m.type == MediaType.photo) {
+                controller.addPhotoClip(
+                  name: m.name,
+                  mediaPath: m.path,
+                  durationMs: m.durationMs > 0 ? m.durationMs : 4000,
+                  isOverlay: true,
+                );
+              } else {
+                controller.addOverlayClip(
+                  name: m.name,
+                  mediaPath: m.path,
+                  durationMs: m.durationMs,
+                );
+              }
             }
           },
         ),
@@ -498,6 +534,14 @@ class EditorActionBar extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // 0. Add Media (Videos & Photos)
+              _buildActionButton(
+                icon: Icons.add_photo_alternate,
+                label: 'Add Media',
+                color: const Color(0xFF00FF88),
+                onTap: () => _openMediaPicker(context),
+              ),
+
               // 1. Split
               _buildActionButton(
                 icon: Icons.splitscreen,

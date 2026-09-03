@@ -973,6 +973,19 @@ class _CanvasPreviewState extends State<CanvasPreview> {
       offsetInClipMs: offsetInClip,
     );
 
+    // 10b. Apply Active Independent Timeline Animation Clips
+    for (final animClip in widget.timelineState.project.animationClips) {
+      if (currentPosMs >= animClip.timelineStartMs && currentPosMs <= animClip.timelineEndMs) {
+        final offsetInAnim = currentPosMs - animClip.timelineStartMs;
+        frameContent = _applyTimelineAnimation(
+          content: frameContent,
+          combo: animClip.animationType,
+          offsetInAnimMs: offsetInAnim,
+          intensity: animClip.intensity,
+        );
+      }
+    }
+
     // 11. Calculate Fade In / Fade Out Progress
     double fadeOpacity = keyValues.opacity;
 
@@ -1283,6 +1296,79 @@ class _CanvasPreviewState extends State<CanvasPreview> {
         case ClipAnimationCombo.none:
           break;
       }
+    }
+
+    return animated;
+  }
+
+  Widget _applyTimelineAnimation({
+    required Widget content,
+    required ClipAnimationCombo combo,
+    required int offsetInAnimMs,
+    required double intensity,
+  }) {
+    Widget animated = content;
+    final cycle = (offsetInAnimMs % 1000) / 1000.0;
+
+    switch (combo) {
+      case ClipAnimationCombo.pulse:
+        final pulse = 1.0 + (0.08 * sin(cycle * 6.28318) * intensity);
+        animated = Transform.scale(scale: pulse, child: animated);
+        break;
+      case ClipAnimationCombo.zoomRotate:
+        final zrScale = 1.0 + (0.06 * sin(cycle * 6.28318) * intensity);
+        final zrRot = 0.05 * sin(cycle * 6.28318) * intensity;
+        animated = Transform.rotate(
+          angle: zrRot,
+          child: Transform.scale(scale: zrScale, child: animated),
+        );
+        break;
+      case ClipAnimationCombo.shake:
+        final sx = 5.0 * sin(cycle * 25.0) * intensity;
+        animated = Transform.translate(offset: Offset(sx, 0), child: animated);
+        break;
+      case ClipAnimationCombo.bounce:
+        final sy = (sin(cycle * 6.28318).abs()) * -14.0 * intensity;
+        animated = Transform.translate(offset: Offset(0, sy), child: animated);
+        break;
+      case ClipAnimationCombo.floating:
+        final fy = sin(cycle * 6.28318) * 10.0 * intensity;
+        animated = Transform.translate(offset: Offset(0, fy), child: animated);
+        break;
+      case ClipAnimationCombo.heartbeat:
+        final hb = cycle < 0.3 ? (1.0 + 0.14 * sin(cycle * 10.0) * intensity) : 1.0;
+        animated = Transform.scale(scale: hb, child: animated);
+        break;
+      case ClipAnimationCombo.sway:
+        final swayRot = 0.05 * sin(cycle * 6.28318) * intensity;
+        animated = Transform.rotate(angle: swayRot, child: animated);
+        break;
+      case ClipAnimationCombo.pendulum:
+        final pend = 0.09 * sin(cycle * 6.28318) * intensity;
+        animated = Transform.rotate(alignment: Alignment.topCenter, angle: pend, child: animated);
+        break;
+      case ClipAnimationCombo.wobble:
+        final wob = 0.07 * sin(cycle * 12.0) * intensity;
+        animated = Transform.rotate(angle: wob, child: animated);
+        break;
+      case ClipAnimationCombo.flashBeat:
+        final fbScale = cycle < 0.2 ? (1.0 + 0.16 * sin(cycle * 15.0) * intensity) : 1.0;
+        animated = Transform.scale(scale: fbScale, child: animated);
+        break;
+      case ClipAnimationCombo.spin360:
+        animated = Transform.rotate(angle: cycle * 6.28318 * intensity, child: animated);
+        break;
+      case ClipAnimationCombo.rubberBand:
+        final rb = 1.0 + 0.12 * sin(cycle * 6.28318) * intensity;
+        animated = Transform.scale(scaleX: rb, scaleY: 1.0 / rb, child: animated);
+        break;
+      case ClipAnimationCombo.jiggle:
+        final jx = 3.5 * sin(cycle * 30.0) * intensity;
+        final jy = 3.5 * cos(cycle * 30.0) * intensity;
+        animated = Transform.translate(offset: Offset(jx, jy), child: animated);
+        break;
+      case ClipAnimationCombo.none:
+        break;
     }
 
     return animated;
