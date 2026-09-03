@@ -25,5 +25,7 @@ abstract class AppConstants {
   static const double timelineTrackHeight = 60.0;
   static const double timelineRulerHeight = 28.0;
   static const double playheadWidth = 2.0;
-  static const double defaultPixelsPerSecond = 50.0;
+  static const double defaultPixelsPerSecond = 60.0;
+  static const double minTimelinePixelsPerSecond = 8.0;
+  static const double maxTimelinePixelsPerSecond = 200.0;
 }

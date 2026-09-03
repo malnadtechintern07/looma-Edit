@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:looma/features/editor/domain/entities/video_clip_entity.dart';
 import 'package:looma/features/editor/domain/usecases/editor_usecases.dart';
+import 'package:looma/features/filters_effects/domain/entities/video_effect_type.dart';
 import 'package:looma/features/projects/domain/entities/aspect_ratio_type.dart';
 import 'package:looma/features/projects/domain/entities/project_entity.dart';
 
@@ -120,6 +121,44 @@ void main() {
       expect(updated.videoClips[1].timelineStartMs, 5000);
       expect(updated.videoClips[1].timelineEndMs, 11000);
       expect(updated.calculatedDurationMs, 11000);
+    });
+
+    test('Full clip size matches true video duration', () {
+      const fullDurationMs = 24500; // 24.5s video
+      const clip = VideoClipEntity(
+        id: 'clip-long',
+        mediaPath: 'long_video.mp4',
+        name: 'Long Video',
+        sourceDurationMs: fullDurationMs,
+        timelineStartMs: 0,
+        timelineEndMs: fullDurationMs,
+        trimStartMs: 0,
+        trimEndMs: fullDurationMs,
+      );
+
+      expect(clip.sourceDurationMs, fullDurationMs);
+      expect(clip.effectiveDurationMs, fullDurationMs);
+      expect(clip.trimmedSourceDurationMs, fullDurationMs);
+    });
+
+    test('VideoEffectType properly assigns and configures effect attributes', () {
+      const clipWithEffect = VideoClipEntity(
+        id: 'clip-effect-1',
+        mediaPath: 'video.mp4',
+        name: 'Explosion Clip',
+        sourceDurationMs: 5000,
+        timelineStartMs: 0,
+        timelineEndMs: 5000,
+        trimStartMs: 0,
+        trimEndMs: 5000,
+        effectType: VideoEffectType.explosion,
+        effectIntensity: 0.85,
+      );
+
+      expect(clipWithEffect.effectType, VideoEffectType.explosion);
+      expect(clipWithEffect.effectIntensity, 0.85);
+      expect(clipWithEffect.effectType.label, 'Explosion');
+      expect(clipWithEffect.effectType.category, VideoEffectCategory.trending);
     });
   });
 }

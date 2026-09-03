@@ -35,7 +35,8 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      useSafeArea: true,
+      backgroundColor: const Color(0xFF0C0D12),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),

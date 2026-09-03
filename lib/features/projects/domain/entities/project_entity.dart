@@ -1,7 +1,9 @@
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:looma/features/audio/domain/entities/audio_clip_entity.dart';
+import 'package:looma/features/editor/domain/entities/subtitle_entity.dart';
 import 'package:looma/features/editor/domain/entities/video_clip_entity.dart';
+import 'package:looma/features/filters_effects/domain/entities/effect_clip_entity.dart';
 import 'package:looma/features/text_stickers/domain/entities/sticker_overlay_entity.dart';
 import 'package:looma/features/text_stickers/domain/entities/text_overlay_entity.dart';
 import 'aspect_ratio_type.dart';
@@ -23,7 +25,10 @@ class ProjectEntity {
   final List<AudioClipEntity> audioClips;
   final List<TextOverlayEntity> textOverlays;
   final List<StickerOverlayEntity> stickerOverlays;
+  final List<SubtitleEntity> subtitles;
+  final List<EffectClipEntity> effectClips;
   final SyncStatusType syncStatus;
+  final int lastPlayheadPositionMs;
 
   const ProjectEntity({
     required this.id,
@@ -40,7 +45,10 @@ class ProjectEntity {
     this.audioClips = const [],
     this.textOverlays = const [],
     this.stickerOverlays = const [],
+    this.subtitles = const [],
+    this.effectClips = const [],
     this.syncStatus = SyncStatusType.localOnly,
+    this.lastPlayheadPositionMs = 0,
   });
 
   /// Computes the true project duration from all tracks
@@ -58,7 +66,13 @@ class ProjectEntity {
     for (final sticker in stickerOverlays) {
       maxEnd = max(maxEnd, sticker.timelineEndMs);
     }
-    return max(maxEnd, durationMs > 0 ? durationMs : 5000);
+    for (final sub in subtitles) {
+      maxEnd = max(maxEnd, sub.timelineEndMs);
+    }
+    for (final eff in effectClips) {
+      maxEnd = max(maxEnd, eff.timelineEndMs);
+    }
+    return maxEnd > 0 ? maxEnd : (durationMs > 0 ? durationMs : 5000);
   }
 
   ProjectEntity copyWith({
@@ -76,7 +90,10 @@ class ProjectEntity {
     List<AudioClipEntity>? audioClips,
     List<TextOverlayEntity>? textOverlays,
     List<StickerOverlayEntity>? stickerOverlays,
+    List<SubtitleEntity>? subtitles,
+    List<EffectClipEntity>? effectClips,
     SyncStatusType? syncStatus,
+    int? lastPlayheadPositionMs,
   }) {
     return ProjectEntity(
       id: id ?? this.id,
@@ -93,7 +110,10 @@ class ProjectEntity {
       audioClips: audioClips ?? this.audioClips,
       textOverlays: textOverlays ?? this.textOverlays,
       stickerOverlays: stickerOverlays ?? this.stickerOverlays,
+      subtitles: subtitles ?? this.subtitles,
+      effectClips: effectClips ?? this.effectClips,
       syncStatus: syncStatus ?? this.syncStatus,
+      lastPlayheadPositionMs: lastPlayheadPositionMs ?? this.lastPlayheadPositionMs,
     );
   }
 

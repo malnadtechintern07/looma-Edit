@@ -300,53 +300,57 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
             ),
             const SizedBox(height: 12),
 
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFECEEF5)),
-              ),
-              child: Column(
-                children: [
-                  SwitchListTile(
-                    title: const Text('Direct Save to Gallery', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                    subtitle: const Text('Auto-save exported videos directly to Camera Roll/DCIM', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
-                    value: _autoSaveToGallery,
-                    activeTrackColor: const Color(0xFF5B4DFB),
-                    onChanged: (v) => setState(() => _autoSaveToGallery = v),
-                  ),
-                  const Divider(height: 1, color: Color(0xFFF3F4F6)),
-                  SwitchListTile(
-                    title: const Text('Hardware GPU Acceleration', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                    subtitle: const Text('Ultra-fast multi-core video encoding (H.264 / HEVC)', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
-                    value: _hardwareAcceleration,
-                    activeTrackColor: const Color(0xFF5B4DFB),
-                    onChanged: (v) => setState(() => _hardwareAcceleration = v),
-                  ),
-                  const Divider(height: 1, color: Color(0xFFF3F4F6)),
-                  ListTile(
-                    title: const Text('Default Resolution', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                    subtitle: Text(_defaultResolution, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
-                    trailing: const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
-                    onTap: () {
-                      showDialog(
-                        context: context,
-                        builder: (ctx) => SimpleDialog(
-                          title: const Text('Select Default Resolution'),
-                          children: ['720p (HD)', '1080p (FHD)', '4K (Ultra HD)'].map((res) {
-                            return SimpleDialogOption(
-                              onPressed: () {
-                                setState(() => _defaultResolution = res);
-                                Navigator.of(ctx).pop();
-                              },
-                              child: Text(res, style: const TextStyle(fontSize: 14)),
-                            );
-                          }).toList(),
-                        ),
-                      );
-                    },
-                  ),
-                ],
+            Material(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              clipBehavior: Clip.antiAlias,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFECEEF5)),
+                ),
+                child: Column(
+                  children: [
+                    SwitchListTile(
+                      title: const Text('Direct Save to Gallery', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                      subtitle: const Text('Auto-save exported videos directly to Camera Roll/DCIM', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+                      value: _autoSaveToGallery,
+                      activeTrackColor: const Color(0xFF5B4DFB),
+                      onChanged: (v) => setState(() => _autoSaveToGallery = v),
+                    ),
+                    const Divider(height: 1, color: Color(0xFFF3F4F6)),
+                    SwitchListTile(
+                      title: const Text('Hardware GPU Acceleration', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                      subtitle: const Text('Ultra-fast multi-core video encoding (H.264 / HEVC)', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+                      value: _hardwareAcceleration,
+                      activeTrackColor: const Color(0xFF5B4DFB),
+                      onChanged: (v) => setState(() => _hardwareAcceleration = v),
+                    ),
+                    const Divider(height: 1, color: Color(0xFFF3F4F6)),
+                    ListTile(
+                      title: const Text('Default Resolution', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                      subtitle: Text(_defaultResolution, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+                      trailing: const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
+                      onTap: () {
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => SimpleDialog(
+                            title: const Text('Select Default Resolution'),
+                            children: ['720p (HD)', '1080p (FHD)', '4K (Ultra HD)'].map((res) {
+                              return SimpleDialogOption(
+                                onPressed: () {
+                                  setState(() => _defaultResolution = res);
+                                  Navigator.of(ctx).pop();
+                                },
+                                child: Text(res, style: const TextStyle(fontSize: 14)),
+                              );
+                            }).toList(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 24),
@@ -362,38 +366,42 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
             ),
             const SizedBox(height: 12),
 
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFECEEF5)),
-              ),
-              child: Column(
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.cleaning_services_outlined, color: Color(0xFF5B4DFB)),
-                    title: const Text('Clear Temporary Cache', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                    subtitle: const Text('Free storage from rendered video fragments', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
-                    trailing: TextButton(
-                      onPressed: _clearCache,
-                      child: const Text('Clean (42 MB)', style: TextStyle(color: Color(0xFF5B4DFB), fontSize: 12)),
+            Material(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              clipBehavior: Clip.antiAlias,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFECEEF5)),
+                ),
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.cleaning_services_outlined, color: Color(0xFF5B4DFB)),
+                      title: const Text('Clear Temporary Cache', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                      subtitle: const Text('Free storage from rendered video fragments', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+                      trailing: TextButton(
+                        onPressed: _clearCache,
+                        child: const Text('Clean (42 MB)', style: TextStyle(color: Color(0xFF5B4DFB), fontSize: 12)),
+                      ),
                     ),
-                  ),
-                  const Divider(height: 1, color: Color(0xFFF3F4F6)),
-                  ListTile(
-                    leading: const Icon(Icons.cloud_sync_outlined, color: Color(0xFF00C2CB)),
-                    title: const Text('Looma Cloud Backup', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                    subtitle: const Text('Sync projects across devices', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
-                    trailing: const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
-                    onTap: () => context.push(RoutePaths.cloud),
-                  ),
-                  const Divider(height: 1, color: Color(0xFFF3F4F6)),
-                  ListTile(
-                    leading: const Icon(Icons.info_outline, color: Color(0xFF6B7280)),
-                    title: const Text('About Looma Video Editor', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                    subtitle: const Text('Version 2.4.0 (Build 240) • Offline Pro Engine', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
-                  ),
-                ],
+                    const Divider(height: 1, color: Color(0xFFF3F4F6)),
+                    ListTile(
+                      leading: const Icon(Icons.cloud_sync_outlined, color: Color(0xFF00C2CB)),
+                      title: const Text('Looma Cloud Backup', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                      subtitle: const Text('Sync projects across devices', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+                      trailing: const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
+                      onTap: () => context.push(RoutePaths.cloud),
+                    ),
+                    const Divider(height: 1, color: Color(0xFFF3F4F6)),
+                    ListTile(
+                      leading: const Icon(Icons.info_outline, color: Color(0xFF6B7280)),
+                      title: const Text('About Looma Video Editor', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                      subtitle: const Text('Version 2.4.0 (Build 240) • Offline Pro Engine', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],

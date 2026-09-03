@@ -31,6 +31,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   final DeviceMediaService _mediaService = DeviceMediaService();
 
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      if (mounted) {
+        ref.read(projectsNotifierProvider.notifier).loadProjects();
+      }
+    });
+  }
+
   Future<void> _openPhotoEditor() async {
     final photos = await _mediaService.pickPhotosFromDevice();
     if (photos.isNotEmpty && mounted) {
@@ -57,58 +67,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
-  Future<void> _openDirectMediaPicker() async {
-    // 1. Directly open device gallery (Photos & Videos)
-    final selectedMedia = await _mediaService.pickVideosFromDevice();
-
-    if (selectedMedia.isNotEmpty && mounted) {
-      int offsetMs = 0;
-      final List<VideoClipEntity> clips = [];
-
-      for (final m in selectedMedia) {
-        final dur = m.durationMs;
-        clips.add(
-          VideoClipEntity(
-            id: IdGenerator.generate(),
-            mediaPath: m.path,
-            name: m.name,
-            sourceDurationMs: dur,
-            timelineStartMs: offsetMs,
-            timelineEndMs: offsetMs + dur,
-            trimStartMs: 0,
-            trimEndMs: dur,
-          ),
-        );
-        offsetMs += dur;
-      }
-
-      final projectTitle = selectedMedia.first.name.split('.').first;
-      final notifier = ref.read(projectsNotifierProvider.notifier);
-      final project = await notifier.createProject(
-        title: projectTitle,
-        aspectRatio: AspectRatioType.ratio9_16,
-        fps: 30,
-        initialClips: clips,
-      );
-
-      if (mounted) {
-        context.push(RoutePaths.editorPath(project.id));
-      }
-      return;
-    }
-
-    // 2. Fallback to clean media picker if user cancelled direct intent
-    if (mounted) {
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.white,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
+  void _openDirectMediaPicker() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
         builder: (ctx) => MediaPickerModal(
           title: 'Select Photos & Videos for Project',
-          actionLabel: 'Create Project & Open Editor',
+          actionLabel: 'Add',
           onMediaSelected: (pickedList) async {
             if (pickedList.isEmpty) return;
             int offsetMs = 0;
@@ -141,41 +106,41 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             );
 
             if (mounted) {
-              context.push(RoutePaths.editorPath(project.id));
+              await context.push(RoutePaths.editorPath(project.id));
+              if (mounted) {
+                ref.read(projectsNotifierProvider.notifier).loadProjects();
+              }
             }
           },
         ),
-      );
-    }
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // 1. Projects Only Tab View
-    if (_currentNavIndex == 1) {
-      return Scaffold(
-        body: const ProjectsOnlyScreen(),
-        bottomNavigationBar: _buildBottomNavigationBar(),
-      );
+    Widget currentBody;
+    switch (_currentNavIndex) {
+      case 1:
+        currentBody = const ProjectsOnlyScreen();
+        break;
+      case 2:
+        currentBody = const TemplateFeedScreen();
+        break;
+      case 3:
+        currentBody = const ProfileMeScreen();
+        break;
+      default:
+        currentBody = _buildHomeDashboardTab();
     }
 
-    // 2. Templates Tab View
-    if (_currentNavIndex == 2) {
-      return Scaffold(
-        body: const TemplateFeedScreen(),
-        bottomNavigationBar: _buildBottomNavigationBar(),
-      );
-    }
+    return Scaffold(
+      body: currentBody,
+      bottomNavigationBar: _buildBottomNavigationBar(),
+    );
+  }
 
-    // 3. Me (User Identity & Profile) Tab View
-    if (_currentNavIndex == 3) {
-      return Scaffold(
-        body: const ProfileMeScreen(),
-        bottomNavigationBar: _buildBottomNavigationBar(),
-      );
-    }
-
-    // 4. Default Home Tab View (Index 0)
+  Widget _buildHomeDashboardTab() {
     final state = ref.watch(projectsNotifierProvider);
     final projects = ref.watch(filteredProjectsProvider);
     final selectedRatio = ref.watch(projectFilterRatioProvider);
@@ -289,7 +254,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           final project = projects[index];
                           return ProjectCard(
                             project: project,
-                            onTap: () => context.push(RoutePaths.editorPath(project.id)),
+                            onTap: () async {
+                              await context.push(RoutePaths.editorPath(project.id));
+                              if (mounted) {
+                                ref.read(projectsNotifierProvider.notifier).loadProjects();
+                              }
+                            },
                             onDuplicate: () => ref
                                 .read(projectsNotifierProvider.notifier)
                                 .duplicateProject(project.id),
@@ -344,7 +314,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
             ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 

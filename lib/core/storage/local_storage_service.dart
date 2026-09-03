@@ -2,62 +2,136 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
-import '../errors/exceptions.dart';
 
 /// Service responsible for raw file-system I/O and persistent JSON storage.
 class LocalStorageService {
+  static final LocalStorageService _instance = LocalStorageService._internal();
+  factory LocalStorageService() => _instance;
+  LocalStorageService._internal();
+
   Directory? _documentsDirectory;
+  SharedPreferences? _prefs;
   final Map<String, String> _inMemoryFallback = {};
 
-  /// Initialize local storage directory
+  /// Initialize local storage directory and shared preferences
   Future<void> init() async {
+    try {
+      _prefs = await SharedPreferences.getInstance();
+    } catch (e) {
+      debugPrint('SharedPreferences init error: $e');
+    }
+
     if (kIsWeb) return;
+
     try {
       _documentsDirectory = await getApplicationDocumentsDirectory();
-      final projectDir = Directory('${_documentsDirectory!.path}/${AppConstants.projectsDirectory}');
-      if (!await projectDir.exists()) {
-        await projectDir.create(recursive: true);
-      }
-      final exportDir = Directory('${_documentsDirectory!.path}/${AppConstants.exportDirectory}');
-      if (!await exportDir.exists()) {
-        await exportDir.create(recursive: true);
-      }
     } catch (e) {
-      debugPrint('LocalStorageService init fallback to in-memory: $e');
+      try {
+        _documentsDirectory = await getApplicationSupportDirectory();
+      } catch (_) {
+        try {
+          final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+          if (home != null && home.isNotEmpty) {
+            _documentsDirectory = Directory('$home/.looma_data');
+          }
+        } catch (_) {}
+      }
+    }
+
+    if (_documentsDirectory != null) {
+      try {
+        final projectDir = Directory('${_documentsDirectory!.path}/${AppConstants.projectsDirectory}');
+        if (!await projectDir.exists()) {
+          await projectDir.create(recursive: true);
+        }
+        final exportDir = Directory('${_documentsDirectory!.path}/${AppConstants.exportDirectory}');
+        if (!await exportDir.exists()) {
+          await exportDir.create(recursive: true);
+        }
+      } catch (e) {
+        debugPrint('LocalStorageService create directory error: $e');
+      }
     }
   }
 
-  /// Write string content to a file path or in-memory key
+  final Map<String, Future<void>> _fileWriteQueues = {};
+
+  /// Write string content to a file path and shared preferences atomically
   Future<void> writeString(String relativePath, String content) async {
-    if (kIsWeb || _documentsDirectory == null) {
-      _inMemoryFallback[relativePath] = content;
-      return;
-    }
-    try {
-      final file = File('${_documentsDirectory!.path}/$relativePath');
-      await file.parent.create(recursive: true);
-      await file.writeAsString(content, flush: true);
-    } catch (e) {
-      _inMemoryFallback[relativePath] = content;
-      throw StorageException('Failed to write file at $relativePath: $e');
-    }
+    _inMemoryFallback[relativePath] = content;
+
+    final previousWrite = _fileWriteQueues[relativePath] ?? Future.value();
+    final currentWrite = previousWrite.then((_) async {
+      // 1. Persist to SharedPreferences
+      try {
+        _prefs ??= await SharedPreferences.getInstance();
+        await _prefs?.setString('looma_$relativePath', content);
+      } catch (e) {
+        debugPrint('SharedPreferences write error: $e');
+      }
+
+      // 2. Persist to physical disk file
+      if (!kIsWeb) {
+        if (_documentsDirectory == null) {
+          await init();
+        }
+        if (_documentsDirectory != null) {
+          try {
+            final file = File('${_documentsDirectory!.path}/$relativePath');
+            await file.parent.create(recursive: true);
+            await file.writeAsString(content, flush: true);
+          } catch (e) {
+            debugPrint('LocalStorageService writeString error: $e');
+          }
+        }
+      }
+    });
+
+    _fileWriteQueues[relativePath] = currentWrite;
+    await currentWrite;
   }
 
-  /// Read string content from a file path or in-memory key
+  /// Read string content from shared preferences, in-memory, or physical disk
   Future<String?> readString(String relativePath) async {
-    if (kIsWeb || _documentsDirectory == null) {
+    // 1. Check in-memory cache
+    if (_inMemoryFallback.containsKey(relativePath)) {
       return _inMemoryFallback[relativePath];
     }
+
+    // 2. Check SharedPreferences
     try {
-      final file = File('${_documentsDirectory!.path}/$relativePath');
-      if (await file.exists()) {
-        return await file.readAsString();
+      _prefs ??= await SharedPreferences.getInstance();
+      final prefVal = _prefs?.getString('looma_$relativePath');
+      if (prefVal != null && prefVal.isNotEmpty) {
+        _inMemoryFallback[relativePath] = prefVal;
+        return prefVal;
       }
-      return _inMemoryFallback[relativePath];
     } catch (e) {
-      return _inMemoryFallback[relativePath];
+      debugPrint('SharedPreferences read error: $e');
     }
+
+    // 3. Check physical disk file
+    if (!kIsWeb) {
+      if (_documentsDirectory == null) {
+        await init();
+      }
+      if (!kIsWeb && _documentsDirectory != null) {
+        try {
+          final file = File('${_documentsDirectory!.path}/$relativePath');
+          if (await file.exists()) {
+            final content = await file.readAsString();
+            _inMemoryFallback[relativePath] = content;
+            return content;
+          }
+        } catch (e) {
+          debugPrint('LocalStorageService readString error: $e');
+        }
+      }
+    }
+
+    return null;
   }
 
   /// Write JSON serializable Map
@@ -66,7 +140,7 @@ class LocalStorageService {
     await writeString(relativePath, encoded);
   }
 
-  /// Read JSON Map
+  /// Read JSON Map with automatic corruption fallback
   Future<Map<String, dynamic>?> readJson(String relativePath) async {
     final raw = await readString(relativePath);
     if (raw == null || raw.isEmpty) return null;
@@ -77,42 +151,117 @@ class LocalStorageService {
       }
       return null;
     } catch (e) {
-      throw StorageException('Failed to decode JSON from $relativePath: $e');
+      // Fallback: Check SharedPreferences directly if file was corrupted
+      try {
+        _prefs ??= await SharedPreferences.getInstance();
+        final prefVal = _prefs?.getString('looma_$relativePath');
+        if (prefVal != null && prefVal.isNotEmpty) {
+          final decoded = jsonDecode(prefVal);
+          if (decoded is Map<String, dynamic>) {
+            return decoded;
+          }
+        }
+      } catch (_) {}
+      debugPrint('LocalStorageService decode error from $relativePath: $e');
+      return null;
+    }
+  }
+
+  /// Clear all cache and storage (primarily for tests)
+  Future<void> clearAll() async {
+    _inMemoryFallback.clear();
+    _fileWriteQueues.clear();
+    try {
+      _prefs ??= await SharedPreferences.getInstance();
+      await _prefs?.clear();
+    } catch (_) {}
+    if (!kIsWeb) {
+      if (_documentsDirectory == null) {
+        await init();
+      }
+      if (_documentsDirectory != null) {
+        try {
+          if (await _documentsDirectory!.exists()) {
+            final entries = await _documentsDirectory!.list().toList();
+            for (final entry in entries) {
+              try {
+                await entry.delete(recursive: true);
+              } catch (_) {}
+            }
+          }
+        } catch (_) {}
+      }
     }
   }
 
   /// Delete a file
   Future<bool> deleteFile(String relativePath) async {
     _inMemoryFallback.remove(relativePath);
-    if (kIsWeb || _documentsDirectory == null) return true;
+
+    // Remove from SharedPreferences
     try {
-      final file = File('${_documentsDirectory!.path}/$relativePath');
-      if (await file.exists()) {
-        await file.delete();
-        return true;
+      _prefs ??= await SharedPreferences.getInstance();
+      await _prefs?.remove('looma_$relativePath');
+    } catch (_) {}
+
+    // Remove physical disk file
+    if (!kIsWeb) {
+      if (_documentsDirectory == null) {
+        await init();
       }
-      return false;
-    } catch (e) {
-      return false;
+      if (_documentsDirectory != null) {
+        try {
+          final file = File('${_documentsDirectory!.path}/$relativePath');
+          if (await file.exists()) {
+            await file.delete();
+            return true;
+          }
+        } catch (_) {}
+      }
     }
+    return true;
   }
 
   /// List all files matching a prefix in the projects directory
   Future<List<String>> listProjectFiles() async {
-    if (kIsWeb || _documentsDirectory == null) {
-      return _inMemoryFallback.keys
-          .where((k) => k.startsWith(AppConstants.projectsDirectory))
-          .toList();
-    }
+    final Set<String> allFiles = {};
+
+    // 1. Check SharedPreferences keys
     try {
-      final projectDir = Directory('${_documentsDirectory!.path}/${AppConstants.projectsDirectory}');
-      if (!await projectDir.exists()) {
-        return [];
+      _prefs ??= await SharedPreferences.getInstance();
+      final keys = _prefs?.getKeys() ?? {};
+      for (final key in keys) {
+        if (key.startsWith('looma_${AppConstants.projectsDirectory}/')) {
+          allFiles.add(key.replaceFirst('looma_', ''));
+        }
       }
-      final files = await projectDir.list().toList();
-      return files.map((f) => f.path.replaceFirst('${_documentsDirectory!.path}/', '')).toList();
-    } catch (e) {
-      return [];
+    } catch (_) {}
+
+    // 2. Check in-memory fallback
+    allFiles.addAll(
+      _inMemoryFallback.keys.where((k) => k.startsWith(AppConstants.projectsDirectory)),
+    );
+
+    // 3. Check physical disk directory
+    if (!kIsWeb) {
+      if (_documentsDirectory == null) {
+        await init();
+      }
+      if (_documentsDirectory != null) {
+        try {
+          final projectDir = Directory('${_documentsDirectory!.path}/${AppConstants.projectsDirectory}');
+          if (await projectDir.exists()) {
+            final files = await projectDir.list().toList();
+            for (final f in files) {
+              allFiles.add(f.path.replaceFirst('${_documentsDirectory!.path}/', ''));
+            }
+          }
+        } catch (e) {
+          debugPrint('LocalStorageService listProjectFiles error: $e');
+        }
+      }
     }
+
+    return allFiles.toList();
   }
 }

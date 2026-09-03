@@ -1,4 +1,5 @@
 import 'package:looma/core/utils/id_generator.dart';
+import 'package:looma/features/editor/domain/entities/speed_curve_type.dart';
 import 'package:looma/features/editor/domain/entities/video_clip_entity.dart';
 import 'package:looma/features/projects/domain/entities/project_entity.dart';
 
@@ -12,9 +13,9 @@ class SplitClipUseCase {
     if (clipIndex == -1) return project;
 
     final clip = project.videoClips[clipIndex];
-    // Split position must be strictly inside the clip bounds
-    if (splitPositionMs <= clip.timelineStartMs + 200 ||
-        splitPositionMs >= clip.timelineEndMs - 200) {
+    // Split position must be strictly inside the clip bounds (50ms minimum margin)
+    if (splitPositionMs <= clip.timelineStartMs + 50 ||
+        splitPositionMs >= clip.timelineEndMs - 50) {
       return project;
     }
 
@@ -87,16 +88,21 @@ class UpdateClipSpeedUseCase {
   ProjectEntity call({
     required ProjectEntity project,
     required String clipId,
-    required double newSpeed,
+    double? newSpeed,
+    SpeedCurveType? newSpeedCurve,
   }) {
     final clipIndex = project.videoClips.indexWhere((c) => c.id == clipId);
     if (clipIndex == -1) return project;
 
     final clip = project.videoClips[clipIndex];
-    final newDurationMs = (clip.trimmedSourceDurationMs / newSpeed).round();
+    final speed = (newSpeed != null && newSpeed > 0) ? newSpeed : clip.speed;
+    final curve = newSpeedCurve ?? clip.speedCurve;
+    final effectiveMultiplier = speed * curve.averageSpeedMultiplier;
+    final newDurationMs = (clip.trimmedSourceDurationMs / effectiveMultiplier).round().clamp(100, 100000000);
 
     final updatedClip = clip.copyWith(
-      speed: newSpeed,
+      speed: speed,
+      speedCurve: curve,
       timelineEndMs: clip.timelineStartMs + newDurationMs,
     );
 

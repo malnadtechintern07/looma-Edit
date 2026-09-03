@@ -46,49 +46,64 @@ class QuickActionBanner extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // Left Column: + New Project
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.add, color: Colors.white, size: 24),
-                        const SizedBox(width: 6),
-                        Text(
-                          'New Project',
-                          style: AppTypography.displayMedium.copyWith(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.add, color: Colors.white, size: 22),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'New Project',
+                                style: AppTypography.displayMedium.copyWith(
+                                  color: Colors.white,
+                                  fontSize: 21,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        const Icon(Icons.blur_on, color: Colors.white70, size: 14),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Create a new video',
-                          style: AppTypography.bodySmall.copyWith(
-                            color: Colors.white70,
-                            fontSize: 13,
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.blur_on, color: Colors.white70, size: 13),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              'Create a new video',
+                              style: AppTypography.bodySmall.copyWith(
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 10),
 
                 // Right Side: Floating Clapperboard Icon Card
                 Container(
-                  width: 80,
-                  height: 80,
-                  padding: const EdgeInsets.all(12),
+                  width: 72,
+                  height: 72,
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: Colors.white30, width: 1.5),
                   ),
                   child: Stack(
@@ -97,7 +112,7 @@ class QuickActionBanner extends StatelessWidget {
                       Icon(
                         Icons.movie_creation,
                         color: Colors.white.withValues(alpha: 0.9),
-                        size: 40,
+                        size: 36,
                       ),
                       const Positioned(
                         bottom: 0,
@@ -105,7 +120,7 @@ class QuickActionBanner extends StatelessWidget {
                         child: Icon(
                           Icons.auto_awesome,
                           color: AppColors.accent,
-                          size: 18,
+                          size: 16,
                         ),
                       ),
                     ],

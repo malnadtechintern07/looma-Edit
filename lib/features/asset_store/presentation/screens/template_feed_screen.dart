@@ -110,7 +110,10 @@ class _TemplateFeedScreenState extends ConsumerState<TemplateFeedScreen>
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Created video from "${tmpl.title}"!')),
             );
-            context.push(RoutePaths.editorPath(proj.id));
+            await context.push(RoutePaths.editorPath(proj.id));
+            if (mounted) {
+              ref.read(projectsNotifierProvider.notifier).loadProjects();
+            }
           }
         },
       ),
@@ -317,10 +320,12 @@ class _TemplateFeedScreenState extends ConsumerState<TemplateFeedScreen>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 1.5),
-                      image: const DecorationImage(
-                        image: AssetImage('assets/demo/coffee_art.jpg'),
-                        fit: BoxFit.cover,
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF5B4DFB), Color(0xFF00D2D3)],
                       ),
+                    ),
+                    child: const Center(
+                      child: Icon(Icons.person, color: Colors.white, size: 26),
                     ),
                   ),
                   Positioned(

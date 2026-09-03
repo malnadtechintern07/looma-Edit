@@ -32,14 +32,19 @@ class EditorTopBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Back Button
+          // Back Button (Auto-Saves Draft)
           IconButton(
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
             visualDensity: VisualDensity.compact,
             icon: const Icon(Icons.arrow_back_ios_new, size: 18),
-            tooltip: 'Back to Projects',
-            onPressed: () => context.pop(),
+            tooltip: 'Save Draft & Exit',
+            onPressed: () async {
+              await controller.saveDraft();
+              if (context.mounted) {
+                context.pop();
+              }
+            },
           ),
           const SizedBox(width: 4),
 
@@ -130,7 +135,42 @@ class EditorTopBar extends StatelessWidget {
             onPressed: controller.canRedo ? controller.redo : null,
           ),
 
-          const SizedBox(width: 6),
+          // Save Draft Button
+          IconButton(
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            visualDensity: VisualDensity.compact,
+            icon: const Icon(
+              Icons.save_outlined,
+              size: 20,
+              color: AppColors.primary,
+            ),
+            tooltip: 'Save Draft',
+            onPressed: () async {
+              await controller.saveDraft();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Color(0xFF10B981), size: 18),
+                        SizedBox(width: 8),
+                        Text(
+                          'Draft saved successfully!',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                    duration: const Duration(seconds: 2),
+                    backgroundColor: const Color(0xFF1F2937),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                );
+              }
+            },
+          ),
+          const SizedBox(width: 4),
 
           // Export Button CTA
           LoomaButton(

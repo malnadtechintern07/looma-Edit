@@ -101,7 +101,7 @@ class PhotoDrawSheet extends StatelessWidget {
             ],
           ),
           Slider(
-            value: state.currentBrushSize,
+            value: state.currentBrushSize.clamp(2.0, 20.0),
             min: 2,
             max: 20,
             activeColor: AppColors.primaryLight,

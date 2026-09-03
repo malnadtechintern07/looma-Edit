@@ -82,7 +82,7 @@ class PhotoLayoutSheet extends StatelessWidget {
             ],
           ),
           Slider(
-            value: project.gapSpacing,
+            value: project.gapSpacing.clamp(0.0, 20.0),
             min: 0,
             max: 20,
             activeColor: AppColors.primaryLight,
@@ -98,7 +98,7 @@ class PhotoLayoutSheet extends StatelessWidget {
             ],
           ),
           Slider(
-            value: project.borderRadius,
+            value: project.borderRadius.clamp(0.0, 24.0),
             min: 0,
             max: 24,
             activeColor: AppColors.primaryLight,

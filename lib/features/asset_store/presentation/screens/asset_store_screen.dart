@@ -89,7 +89,10 @@ class AssetStoreScreen extends ConsumerWidget {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('Imported "${track.title}" into new project!')),
                         );
-                        context.push(RoutePaths.editorPath(proj.id));
+                        await context.push(RoutePaths.editorPath(proj.id));
+                        if (context.mounted) {
+                          ref.read(projectsNotifierProvider.notifier).loadProjects();
+                        }
                       }
                     },
                   );

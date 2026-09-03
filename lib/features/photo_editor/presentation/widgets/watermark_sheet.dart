@@ -136,7 +136,7 @@ class _WatermarkSheetState extends State<WatermarkSheet> {
               ],
             ),
             Slider(
-              value: _opacity,
+              value: _opacity.clamp(0.2, 1.0),
               min: 0.2,
               max: 1.0,
               activeColor: AppColors.primaryLight,
@@ -152,7 +152,7 @@ class _WatermarkSheetState extends State<WatermarkSheet> {
               ],
             ),
             Slider(
-              value: _scale,
+              value: _scale.clamp(0.5, 2.0),
               min: 0.5,
               max: 2.0,
               activeColor: AppColors.primaryLight,

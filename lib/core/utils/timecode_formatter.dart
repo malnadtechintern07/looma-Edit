@@ -46,4 +46,30 @@ class TimecodeFormatter {
     }
     return '${minutes}m ${remainingSec}s';
   }
+
+  /// Format milliseconds into precise decimal seconds (e.g. "2.4s", "0.5s")
+  static String formatSecondsPrecise(int milliseconds) {
+    if (milliseconds < 0) milliseconds = 0;
+    final double secs = milliseconds / 1000.0;
+    return '${secs.toStringAsFixed(1)}s';
+  }
+
+  /// Format milliseconds into high-precision decimal seconds (e.g. "2.48s", "0.52s")
+  static String formatSecondsDetailed(int milliseconds) {
+    if (milliseconds < 0) milliseconds = 0;
+    final double secs = milliseconds / 1000.0;
+    return '${secs.toStringAsFixed(2)}s';
+  }
+
+  /// Format milliseconds into MM:SS.hundredths (e.g. 01:23.45)
+  static String formatMmSsHundredths(int milliseconds) {
+    if (milliseconds < 0) milliseconds = 0;
+    final int minutes = (milliseconds ~/ 60000);
+    final int seconds = (milliseconds % 60000) ~/ 1000;
+    final int hundredths = (milliseconds % 1000) ~/ 10;
+    final String mm = minutes.toString().padLeft(2, '0');
+    final String ss = seconds.toString().padLeft(2, '0');
+    final String hh = hundredths.toString().padLeft(2, '0');
+    return '$mm:$ss.$hh';
+  }
 }

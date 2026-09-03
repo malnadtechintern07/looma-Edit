@@ -24,6 +24,16 @@ class _ProjectsOnlyScreenState extends ConsumerState<ProjectsOnlyScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      if (mounted) {
+        ref.read(projectsNotifierProvider.notifier).loadProjects();
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -65,7 +75,10 @@ class _ProjectsOnlyScreenState extends ConsumerState<ProjectsOnlyScreen> {
       );
 
       if (mounted) {
-        context.push(RoutePaths.editorPath(project.id));
+        await context.push(RoutePaths.editorPath(project.id));
+        if (mounted) {
+          ref.read(projectsNotifierProvider.notifier).loadProjects();
+        }
       }
       return;
     }
@@ -74,9 +87,10 @@ class _ProjectsOnlyScreenState extends ConsumerState<ProjectsOnlyScreen> {
       showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        backgroundColor: Colors.white,
+        useSafeArea: true,
+        backgroundColor: const Color(0xFF0C0D12),
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         builder: (ctx) => MediaPickerModal(
           title: 'Select Photos & Videos for Project',
@@ -113,7 +127,10 @@ class _ProjectsOnlyScreenState extends ConsumerState<ProjectsOnlyScreen> {
             );
 
             if (mounted) {
-              context.push(RoutePaths.editorPath(project.id));
+              await context.push(RoutePaths.editorPath(project.id));
+              if (mounted) {
+                ref.read(projectsNotifierProvider.notifier).loadProjects();
+              }
             }
           },
         ),
@@ -264,7 +281,12 @@ class _ProjectsOnlyScreenState extends ConsumerState<ProjectsOnlyScreen> {
                       final project = filteredProjects[index];
                       return ProjectCard(
                         project: project,
-                        onTap: () => context.push(RoutePaths.editorPath(project.id)),
+                        onTap: () async {
+                          await context.push(RoutePaths.editorPath(project.id));
+                          if (mounted) {
+                            ref.read(projectsNotifierProvider.notifier).loadProjects();
+                          }
+                        },
                         onDuplicate: () =>
                             ref.read(projectsNotifierProvider.notifier).duplicateProject(project.id),
                         onDelete: () => _confirmDelete(project.id, project.title),

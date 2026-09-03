@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
@@ -9,6 +10,8 @@ class AudioTrackItem extends StatelessWidget {
   final double pixelsPerSecond;
   final bool isSelected;
   final VoidCallback onTap;
+  final Function(double deltaPixels, bool isLeftHandle)? onHandleDragUpdate;
+  final Function(double deltaPixels)? onBodyDragUpdate;
 
   const AudioTrackItem({
     super.key,
@@ -16,16 +19,26 @@ class AudioTrackItem extends StatelessWidget {
     required this.pixelsPerSecond,
     required this.isSelected,
     required this.onTap,
+    this.onHandleDragUpdate,
+    this.onBodyDragUpdate,
   });
 
   @override
   Widget build(BuildContext context) {
-    final width = (clip.effectiveDurationMs / 1000) * pixelsPerSecond;
+    final rawWidth = (clip.effectiveDurationMs / 1000) * pixelsPerSecond;
+    final minWidth = isSelected ? 52.0 : 24.0;
+    final width = max(minWidth, rawWidth);
     final isVoiceover = clip.category == AudioCategory.voiceover;
     final trackColor = isVoiceover ? AppColors.voiceoverTrack : AppColors.audioTrack;
 
+    final horizontalPadding = isSelected ? 16.0 : 6.0;
+    final innerContentWidth = max(0.0, width - (horizontalPadding * 2));
+
     return GestureDetector(
       onTap: onTap,
+      onHorizontalDragUpdate: onBodyDragUpdate != null
+          ? (details) => onBodyDragUpdate!(details.delta.dx)
+          : null,
       child: Container(
         width: width,
         height: 38,
@@ -35,8 +48,17 @@ class AudioTrackItem extends StatelessWidget {
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
             color: isSelected ? Colors.white : trackColor.withValues(alpha: 0.5),
-            width: isSelected ? 1.5 : 1.0,
+            width: isSelected ? 2.0 : 1.0,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: trackColor.withValues(alpha: 0.4),
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  ),
+                ]
+              : null,
         ),
         clipBehavior: Clip.antiAlias,
         child: Stack(
@@ -58,40 +80,99 @@ class AudioTrackItem extends StatelessWidget {
 
             // Track info
             Positioned(
-              left: 6,
+              left: horizontalPadding,
               top: 4,
-              right: 6,
-              child: Row(
-                children: [
-                  Icon(
-                    isVoiceover ? Icons.mic : Icons.music_note,
-                    size: 12,
-                    color: trackColor,
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      clip.title,
-                      style: AppTypography.labelSmall.copyWith(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
+              right: horizontalPadding,
+              child: innerContentWidth < 30.0
+                  ? Center(
+                      child: Icon(
+                        isVoiceover ? Icons.mic : Icons.music_note,
+                        size: 12,
+                        color: trackColor,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    )
+                  : Row(
+                      children: [
+                        Icon(
+                          isVoiceover ? Icons.mic : Icons.music_note,
+                          size: 12,
+                          color: trackColor,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            clip.title,
+                            style: AppTypography.labelSmall.copyWith(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (innerContentWidth >= 60.0) ...[
+                          const SizedBox(width: 4),
+                          Text(
+                            '${(clip.volume * 100).toInt()}%',
+                            style: AppTypography.labelSmall.copyWith(
+                              color: Colors.white70,
+                              fontSize: 9,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    '${(clip.volume * 100).toInt()}%',
-                    style: AppTypography.labelSmall.copyWith(
-                      color: Colors.white70,
-                      fontSize: 9,
-                    ),
-                  ),
-                ],
-              ),
             ),
+
+            // Selection Trim Handles
+            if (isSelected && onHandleDragUpdate != null && width >= 40.0) ...[
+              // Left Trim Handle (◀)
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onHorizontalDragUpdate: (details) {
+                    onHandleDragUpdate!(details.delta.dx, true);
+                  },
+                  child: Container(
+                    width: 14,
+                    decoration: BoxDecoration(
+                      color: trackColor,
+                      borderRadius: const BorderRadius.horizontal(left: Radius.circular(5)),
+                    ),
+                    child: const Center(
+                      child: Icon(Icons.arrow_left, size: 14, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Right Trim Handle (▶)
+              Positioned(
+                right: 0,
+                top: 0,
+                bottom: 0,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onHorizontalDragUpdate: (details) {
+                    onHandleDragUpdate!(details.delta.dx, false);
+                  },
+                  child: Container(
+                    width: 14,
+                    decoration: BoxDecoration(
+                      color: trackColor,
+                      borderRadius: const BorderRadius.horizontal(right: Radius.circular(5)),
+                    ),
+                    child: const Center(
+                      child: Icon(Icons.arrow_right, size: 14, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

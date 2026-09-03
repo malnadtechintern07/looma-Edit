@@ -33,9 +33,10 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      useSafeArea: true,
+      backgroundColor: const Color(0xFF0C0D12),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) => MediaPickerModal(
         title: 'Select Videos & Photos for Project',

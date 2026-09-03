@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
+import '../../../../core/utils/font_helper.dart';
 import '../../../../core/utils/id_generator.dart';
 import '../../../media_picker/domain/services/device_media_service.dart';
 import '../../domain/entities/photo_text_overlay_entity.dart';
@@ -45,23 +46,7 @@ class _PhotoTextSheetState extends State<PhotoTextSheet> {
     'Decorative',
   ];
 
-  final List<String> fontFamilies = [
-    'Roboto',
-    'Inter',
-    'Outfit',
-    'SpaceMono',
-    'Pacifico',
-    'Montserrat',
-    'Poppins',
-    'Playfair Display',
-    'DancingScript',
-    'Bebas Neue',
-    'Caveat',
-    'Anton',
-    'Cinzel',
-    'Lobster',
-    'Oswald',
-  ];
+  late List<String> fontFamilies;
 
   static const List<int> colorPalette = [
     0xFFFFFFFF, // White
@@ -81,11 +66,12 @@ class _PhotoTextSheetState extends State<PhotoTextSheet> {
   @override
   void initState() {
     super.initState();
+    fontFamilies = List.from(FontHelper.availableFonts);
     _textController = TextEditingController(text: widget.existingText?.text ?? 'LOOMA CREATIVE');
     _fontSize = widget.existingText?.fontSize ?? 28.0;
     _colorHex = widget.existingText?.colorHex ?? 0xFFFFFFFF;
     _presetStyle = widget.existingText?.presetStyle ?? 'Neon';
-    _fontFamily = widget.existingText?.fontFamily ?? 'Roboto';
+    _fontFamily = FontHelper.normalizeFontName(widget.existingText?.fontFamily ?? 'Roboto');
   }
 
   @override
@@ -261,15 +247,19 @@ class _PhotoTextSheetState extends State<PhotoTextSheet> {
                   return Padding(
                     padding: const EdgeInsets.only(right: 6),
                     child: ChoiceChip(
-                      label: Text(font),
+                      label: Text(
+                        font,
+                        style: FontHelper.getTextStyle(
+                          font,
+                          fontSize: 12,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          color: isSelected ? Colors.black : Colors.white,
+                        ),
+                      ),
                       selected: isSelected,
                       onSelected: (_) => setState(() => _fontFamily = font),
                       selectedColor: AppColors.secondary,
                       backgroundColor: AppColors.surfaceElevated,
-                      labelStyle: TextStyle(
-                        color: isSelected ? Colors.white : AppColors.textSecondary,
-                        fontSize: 11,
-                      ),
                     ),
                   );
                 }).toList(),
@@ -285,7 +275,7 @@ class _PhotoTextSheetState extends State<PhotoTextSheet> {
               ],
             ),
             Slider(
-              value: _fontSize,
+              value: _fontSize.clamp(14.0, 72.0),
               min: 14,
               max: 72,
               activeColor: AppColors.primaryLight,

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/font_helper.dart';
 import '../../../filters_effects/domain/entities/filter_preset.dart';
 import '../../domain/entities/drawing_stroke_entity.dart';
 import '../../domain/entities/photo_frame_entity.dart';
@@ -340,13 +341,15 @@ class _PhotoCanvasState extends State<PhotoCanvas> {
   Widget _buildTextOverlayItem(PhotoTextOverlayEntity item) {
     final isSelected = widget.state.selectedTextId == item.id;
 
-    TextStyle baseStyle = TextStyle(
+    TextStyle baseStyle = FontHelper.getTextStyle(
+      item.fontFamily,
       fontSize: item.fontSize,
       color: Color(item.colorHex),
-      fontFamily: item.fontFamily,
       fontWeight: item.presetStyle == 'Bold' ? FontWeight.bold : FontWeight.normal,
-      fontStyle: item.presetStyle == 'Italic' ? FontStyle.italic : FontStyle.normal,
     );
+    if (item.presetStyle == 'Italic') {
+      baseStyle = baseStyle.copyWith(fontStyle: FontStyle.italic);
+    }
 
     if (item.presetStyle == 'Glow' || item.presetStyle == 'Neon') {
       baseStyle = baseStyle.copyWith(

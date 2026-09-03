@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../projects/domain/entities/project_entity.dart';
@@ -43,53 +44,137 @@ class EditorScreen extends ConsumerWidget {
   }
 }
 
-class _EditorScreenBody extends ConsumerWidget {
+class _EditorScreenBody extends ConsumerStatefulWidget {
   final ProjectEntity project;
 
   const _EditorScreenBody({required this.project});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final timelineState = ref.watch(editorControllerProvider(project));
-    final controller = ref.read(editorControllerProvider(project).notifier);
+  ConsumerState<_EditorScreenBody> createState() => _EditorScreenBodyState();
+}
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // 1. Top Bar
-            EditorTopBar(
-              controller: controller,
-              currentRatio: timelineState.project.aspectRatio,
-              projectTitle: timelineState.project.title,
-              projectId: timelineState.project.id,
-            ),
+class _EditorScreenBodyState extends ConsumerState<_EditorScreenBody> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
 
-            // 2. Real-Time Canvas Preview Monitor
-            Expanded(
-              flex: 5,
-              child: CanvasPreview(
-                timelineState: timelineState,
-                controller: controller,
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      ref.read(editorControllerProvider(widget.project).notifier).saveDraft();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final timelineState = ref.watch(editorControllerProvider(widget.project));
+    final controller = ref.read(editorControllerProvider(widget.project).notifier);
+
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.space): () {
+          if (timelineState.isPlaying) {
+            controller.pause();
+          } else {
+            controller.play();
+          }
+        },
+        const SingleActivator(LogicalKeyboardKey.keyS): () {
+          controller.splitActiveClip();
+        },
+        const SingleActivator(LogicalKeyboardKey.delete): () {
+          controller.deleteSelected();
+        },
+        const SingleActivator(LogicalKeyboardKey.backspace): () {
+          controller.deleteSelected();
+        },
+        const SingleActivator(LogicalKeyboardKey.keyZ, meta: true): () {
+          controller.undo();
+        },
+        const SingleActivator(LogicalKeyboardKey.keyZ, control: true): () {
+          controller.undo();
+        },
+        const SingleActivator(LogicalKeyboardKey.keyZ, meta: true, shift: true): () {
+          controller.redo();
+        },
+        const SingleActivator(LogicalKeyboardKey.keyZ, control: true, shift: true): () {
+          controller.redo();
+        },
+        const SingleActivator(LogicalKeyboardKey.arrowLeft): () {
+          controller.seekTo(timelineState.playheadPositionMs - 33);
+        },
+        const SingleActivator(LogicalKeyboardKey.arrowRight): () {
+          controller.seekTo(timelineState.playheadPositionMs + 33);
+        },
+        const SingleActivator(LogicalKeyboardKey.arrowLeft, shift: true): () {
+          controller.seekTo(timelineState.playheadPositionMs - 5000);
+        },
+        const SingleActivator(LogicalKeyboardKey.arrowRight, shift: true): () {
+          controller.seekTo(timelineState.playheadPositionMs + 5000);
+        },
+      },
+      child: PopScope(
+        canPop: true,
+        onPopInvokedWithResult: (didPop, result) {
+          controller.saveDraft();
+        },
+        child: Focus(
+          autofocus: true,
+          child: Scaffold(
+            backgroundColor: AppColors.background,
+            body: SafeArea(
+              child: Column(
+                children: [
+                  // 1. Top Bar
+                  EditorTopBar(
+                    controller: controller,
+                    currentRatio: timelineState.project.aspectRatio,
+                    projectTitle: timelineState.project.title,
+                    projectId: timelineState.project.id,
+                  ),
+
+                  // 2. Real-Time Canvas Preview Monitor
+                  Expanded(
+                    flex: 5,
+                    child: RepaintBoundary(
+                      child: CanvasPreview(
+                        timelineState: timelineState,
+                        controller: controller,
+                      ),
+                    ),
+                  ),
+
+                  // 3. Multi-Track Timeline Scrubber
+                  Expanded(
+                    flex: 4,
+                    child: RepaintBoundary(
+                      child: MultiTrackTimeline(
+                        state: timelineState,
+                        controller: controller,
+                      ),
+                    ),
+                  ),
+
+                  // 4. Bottom Action Bar Toolbar
+                  EditorActionBar(
+                    state: timelineState,
+                    controller: controller,
+                  ),
+                ],
               ),
             ),
-
-            // 3. Multi-Track Timeline Scrubber
-            Expanded(
-              flex: 4,
-              child: MultiTrackTimeline(
-                state: timelineState,
-                controller: controller,
-              ),
-            ),
-
-            // 4. Bottom Action Bar Toolbar
-            EditorActionBar(
-              state: timelineState,
-              controller: controller,
-            ),
-          ],
+          ),
         ),
       ),
     );

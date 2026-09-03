@@ -27,16 +27,39 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   ExportQuality _selectedQuality = ExportQuality.normal;
   String? _autoSavedGalleryPath;
   bool _isAutoSaving = false;
+  ProjectEntity? _project;
+  bool _isLoadingProject = true;
 
-  void _listenExportCompletion(ProjectEntity project) {
+  @override
+  void initState() {
+    super.initState();
+    _loadProject();
+  }
+
+  Future<void> _loadProject() async {
+    final proj = await ref.read(getProjectByIdUseCaseProvider)(widget.projectId);
+    if (mounted) {
+      setState(() {
+        _project = proj;
+        _isLoadingProject = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // 1. Riverpod listener must be placed directly at the top of build()
     ref.listen<RenderProgressEntity>(exportControllerProvider, (prev, next) async {
-      if (next.status == RenderStatus.completed && _autoSavedGalleryPath == null && !_isAutoSaving) {
+      if (next.status == RenderStatus.completed &&
+          _autoSavedGalleryPath == null &&
+          !_isAutoSaving &&
+          _project != null) {
         setState(() => _isAutoSaving = true);
 
-        final sourcePath = project.videoClips.isNotEmpty
-            ? project.videoClips.first.mediaPath
+        final sourcePath = _project!.videoClips.isNotEmpty
+            ? _project!.videoClips.first.mediaPath
             : 'assets/demo/alps_sunrise.mp4';
-        final fileName = 'looma_${project.title.replaceAll(' ', '_').toLowerCase()}';
+        final fileName = 'looma_${_project!.title.replaceAll(' ', '_').toLowerCase()}';
 
         final savedPath = await GallerySaverService.saveVideoToDeviceGallery(
           sourceFilePath: sourcePath,
@@ -51,247 +74,237 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
         }
       }
     });
-  }
 
-  @override
-  Widget build(BuildContext context) {
     final renderProgress = ref.watch(exportControllerProvider);
     final isRendering = renderProgress.status == RenderStatus.rendering;
     final isCompleted = renderProgress.status == RenderStatus.completed;
 
-    return FutureBuilder<ProjectEntity?>(
-      future: ref.read(getProjectByIdUseCaseProvider)(widget.projectId),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Scaffold(
-            backgroundColor: AppColors.background,
-            body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
-          );
-        }
+    if (_isLoadingProject || _project == null) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+      );
+    }
 
-        final project = snapshot.data!;
-        _listenExportCompletion(project);
+    final project = _project!;
+    final config = ExportConfigEntity(
+      projectId: project.id,
+      resolution: _selectedResolution,
+      fps: _selectedFps,
+      aspectRatio: project.aspectRatio,
+      quality: _selectedQuality,
+    );
 
-        final config = ExportConfigEntity(
-          projectId: project.id,
-          resolution: _selectedResolution,
-          fps: _selectedFps,
-          aspectRatio: project.aspectRatio,
-          quality: _selectedQuality,
-        );
+    final estimatedSize = config.getEstimatedSizeMb(project.calculatedDurationMs);
 
-        final estimatedSize = config.getEstimatedSizeMb(project.calculatedDurationMs);
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: Row(
+          children: [
+            const Icon(Icons.ios_share, color: AppColors.secondary, size: 20),
+            const SizedBox(width: 8),
+            Text('Export Video', style: AppTypography.titleLarge),
+          ],
+        ),
+      ),
+      body: isRendering || isCompleted
+          ? _buildRenderStatusView(project, renderProgress)
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Project Summary Card
+                  LoomaCard(
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.movie, color: AppColors.primaryLight, size: 28),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(project.title, style: AppTypography.titleMedium),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${project.aspectRatio.label} • ${project.videoClips.length} clips • ${(project.calculatedDurationMs / 1000).toStringAsFixed(1)}s',
+                                style: AppTypography.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
 
-        return Scaffold(
-          backgroundColor: AppColors.background,
-          appBar: AppBar(
-            title: Row(
-              children: [
-                const Icon(Icons.ios_share, color: AppColors.secondary, size: 20),
-                const SizedBox(width: 8),
-                Text('Export Video', style: AppTypography.titleLarge),
-              ],
-            ),
-          ),
-          body: isRendering || isCompleted
-              ? _buildRenderStatusView(project, renderProgress)
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Project Summary Card
-                      LoomaCard(
+                  // Resolution Selection
+                  Text('Resolution', style: AppTypography.titleSmall),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: ExportResolution.values.map((res) {
+                      final isSelected = _selectedResolution == res;
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 6.0),
+                          child: InkWell(
+                            onTap: () => setState(() => _selectedResolution = res),
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: isSelected ? AppColors.primary : AppColors.surface,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: isSelected ? AppColors.primaryLight : AppColors.surfaceBorder,
+                                ),
+                              ),
+                              child: Text(
+                                res.label.split(' ').first,
+                                style: AppTypography.labelLarge.copyWith(
+                                  color: isSelected ? Colors.white : AppColors.textSecondary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Frame Rate
+                  Text('Frame Rate (FPS)', style: AppTypography.titleSmall),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [24, 30, 60].map((fps) {
+                      final isSelected = _selectedFps == fps;
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: InkWell(
+                            onTap: () => setState(() => _selectedFps = fps),
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: isSelected ? AppColors.secondary : AppColors.surface,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: isSelected ? AppColors.secondaryLight : AppColors.surfaceBorder,
+                                ),
+                              ),
+                              child: Text(
+                                '$fps FPS',
+                                style: AppTypography.labelLarge.copyWith(
+                                  color: isSelected ? Colors.black : AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Quality Profile
+                  Text('Quality Profile & Bitrate', style: AppTypography.titleSmall),
+                  const SizedBox(height: 10),
+                  ...ExportQuality.values.map((q) {
+                    final isSelected = _selectedQuality == q;
+                    return InkWell(
+                      onTap: () => setState(() => _selectedQuality = q),
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppColors.primary.withValues(alpha: 0.15)
+                              : AppColors.surface,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: isSelected ? AppColors.primary : AppColors.surfaceBorder,
+                          ),
+                        ),
                         child: Row(
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(Icons.movie, color: AppColors.primaryLight, size: 28),
+                            Icon(
+                              isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+                              color: isSelected ? AppColors.primary : AppColors.textMuted,
+                              size: 20,
                             ),
-                            const SizedBox(width: 16),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(project.title, style: AppTypography.titleMedium),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '${project.aspectRatio.label} • ${project.videoClips.length} clips • ${(project.calculatedDurationMs / 1000).toStringAsFixed(1)}s',
-                                    style: AppTypography.bodySmall,
-                                  ),
+                                  Text(q.label, style: AppTypography.titleSmall),
+                                  Text('${(q.bitrateKbps / 1000).toInt()} Mbps Bitrate', style: AppTypography.bodySmall),
                                 ],
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 24),
+                    );
+                  }),
+                  const SizedBox(height: 16),
 
-                      // Resolution Selection
-                      Text('Resolution', style: AppTypography.titleSmall),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: ExportResolution.values.map((res) {
-                          final isSelected = _selectedResolution == res;
-                          return Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.only(right: 6.0),
-                              child: InkWell(
-                                onTap: () => setState(() => _selectedResolution = res),
-                                borderRadius: BorderRadius.circular(10),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    color: isSelected ? AppColors.primary : AppColors.surface,
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: isSelected ? AppColors.primaryLight : AppColors.surfaceBorder,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    res.label.split(' ').first,
-                                    style: AppTypography.labelLarge.copyWith(
-                                      color: isSelected ? Colors.white : AppColors.textSecondary,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Frame Rate
-                      Text('Frame Rate (FPS)', style: AppTypography.titleSmall),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [24, 30, 60].map((fps) {
-                          final isSelected = _selectedFps == fps;
-                          return Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.only(right: 8.0),
-                              child: InkWell(
-                                onTap: () => setState(() => _selectedFps = fps),
-                                borderRadius: BorderRadius.circular(10),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 10),
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    color: isSelected ? AppColors.secondary : AppColors.surface,
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: isSelected ? AppColors.secondaryLight : AppColors.surfaceBorder,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    '$fps FPS',
-                                    style: AppTypography.labelLarge.copyWith(
-                                      color: isSelected ? Colors.black : AppColors.textPrimary,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Quality Profile
-                      Text('Quality Profile & Bitrate', style: AppTypography.titleSmall),
-                      const SizedBox(height: 10),
-                      ...ExportQuality.values.map((q) {
-                        final isSelected = _selectedQuality == q;
-                        return InkWell(
-                          onTap: () => setState(() => _selectedQuality = q),
-                          borderRadius: BorderRadius.circular(10),
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? AppColors.primary.withValues(alpha: 0.15)
-                                  : AppColors.surface,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: isSelected ? AppColors.primary : AppColors.surfaceBorder,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-                                  color: isSelected ? AppColors.primary : AppColors.textMuted,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(q.label, style: AppTypography.titleSmall),
-                                      Text('${(q.bitrateKbps / 1000).toInt()} Mbps Bitrate', style: AppTypography.bodySmall),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }),
-                      const SizedBox(height: 16),
-
-                      // Estimated Size Banner
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceElevated,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.surfaceBorder),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  // Estimated Size Banner
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceElevated,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.surfaceBorder),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
                           children: [
-                            Row(
-                              children: [
-                                const Icon(Icons.sd_storage_outlined, size: 20, color: AppColors.textSecondary),
-                                const SizedBox(width: 8),
-                                Text('Estimated Size', style: AppTypography.bodyMedium),
-                              ],
-                            ),
-                            Text(
-                              '~${estimatedSize.toStringAsFixed(1)} MB',
-                              style: AppTypography.titleMedium.copyWith(color: AppColors.primaryLight),
-                            ),
+                            const Icon(Icons.sd_storage_outlined, size: 20, color: AppColors.textSecondary),
+                            const SizedBox(width: 8),
+                            Text('Estimated Size', style: AppTypography.bodyMedium),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 32),
-
-                      // Render Button CTA
-                      LoomaButton(
-                        label: 'Render Video Now',
-                        icon: Icons.movie_creation,
-                        isFullWidth: true,
-                        height: 52,
-                        onPressed: () {
-                          ref.read(exportControllerProvider.notifier).startExport(
-                                project: project,
-                                config: config,
-                              );
-                        },
-                      ),
-                    ],
+                        Text(
+                          '~${estimatedSize.toStringAsFixed(1)} MB',
+                          style: AppTypography.titleMedium.copyWith(color: AppColors.primaryLight),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-        );
-      },
+                  const SizedBox(height: 32),
+
+                  // Render Button CTA
+                  LoomaButton(
+                    label: 'Render Video Now',
+                    icon: Icons.movie_creation,
+                    isFullWidth: true,
+                    height: 52,
+                    onPressed: () {
+                      ref.read(exportControllerProvider.notifier).startExport(
+                            project: project,
+                            config: config,
+                          );
+                    },
+                  ),
+                ],
+              ),
+            ),
     );
   }
 

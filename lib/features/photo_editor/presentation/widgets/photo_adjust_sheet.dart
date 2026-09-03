@@ -80,7 +80,7 @@ class _PhotoAdjustSheetState extends State<PhotoAdjustSheet> {
             ],
           ),
           Slider(
-            value: frame.brightness,
+            value: frame.brightness.clamp(-0.5, 0.5),
             min: -0.5,
             max: 0.5,
             activeColor: AppColors.primaryLight,
@@ -101,7 +101,7 @@ class _PhotoAdjustSheetState extends State<PhotoAdjustSheet> {
             ],
           ),
           Slider(
-            value: frame.contrast,
+            value: frame.contrast.clamp(0.5, 1.8),
             min: 0.5,
             max: 1.8,
             activeColor: AppColors.primaryLight,
@@ -122,7 +122,7 @@ class _PhotoAdjustSheetState extends State<PhotoAdjustSheet> {
             ],
           ),
           Slider(
-            value: frame.saturation,
+            value: frame.saturation.clamp(0.0, 2.0),
             min: 0.0,
             max: 2.0,
             activeColor: AppColors.primaryLight,

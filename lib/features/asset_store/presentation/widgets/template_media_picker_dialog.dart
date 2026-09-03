@@ -45,9 +45,13 @@ class _TemplateMediaPickerDialogState extends State<TemplateMediaPickerDialog> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surfaceElevated,
+      useSafeArea: true,
+      backgroundColor: const Color(0xFF0C0D12),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (ctx) => MediaPickerModal(
-        title: 'Select Photo or Video for Slot #${slotIndex + 1}',
+        title: 'Select for Slot #${slotIndex + 1}',
         actionLabel: 'Use for Slot #${slotIndex + 1}',
         onMediaSelected: (selectedList) {
           if (selectedList.isNotEmpty) {
@@ -64,9 +68,13 @@ class _TemplateMediaPickerDialogState extends State<TemplateMediaPickerDialog> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surfaceElevated,
+      useSafeArea: true,
+      backgroundColor: const Color(0xFF0C0D12),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (ctx) => MediaPickerModal(
-        title: 'Select ${widget.template.clipsCount} Photos & Videos for Template',
+        title: 'Select ${widget.template.clipsCount} Media Items',
         actionLabel: 'Apply Selected Media',
         onMediaSelected: (selectedList) {
           if (selectedList.isNotEmpty) {

@@ -6,6 +6,7 @@ import '../../../../core/utils/timecode_formatter.dart';
 import '../../../../core/widgets/looma_slider.dart';
 import '../../../media_picker/domain/services/device_media_service.dart';
 import '../../domain/entities/audio_clip_entity.dart';
+import '../../domain/services/audio_extraction_service.dart';
 
 class AudioMixerSheet extends StatefulWidget {
   final List<AudioClipEntity> audioClips;
@@ -77,17 +78,11 @@ class _AudioMixerSheetState extends State<AudioMixerSheet> {
       if (videos.isNotEmpty) {
         final video = videos.first;
 
-        final extractedAudio = AudioClipEntity(
-          id: IdGenerator.generate(),
-          mediaPath: video.path,
-          title: 'Extracted (${video.name})',
-          category: AudioCategory.extracted,
+        final extractedAudio = await AudioExtractionService.extractAudioFromVideo(
+          videoPath: video.path,
+          videoTitle: video.name,
           timelineStartMs: 0,
-          timelineEndMs: video.durationMs > 0 ? video.durationMs : 10000,
-          trimStartMs: 0,
-          trimEndMs: video.durationMs > 0 ? video.durationMs : 10000,
-          volume: 1.0,
-          isMuted: false,
+          durationMs: video.durationMs > 0 ? video.durationMs : 10000,
         );
 
         widget.onAddAudioTrack(extractedAudio);

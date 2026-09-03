@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../app/theme/app_colors.dart';
-import '../../../../app/theme/app_typography.dart';
+import '../../../../core/utils/font_helper.dart';
 import '../../../../core/widgets/looma_button.dart';
 import '../../../../core/widgets/looma_slider.dart';
 import '../../../media_picker/domain/services/device_media_service.dart';
@@ -41,35 +41,14 @@ class _TextEditorSheetState extends State<TextEditorSheet> {
   int _backgroundColor = 0xCC000000;
   OverlayAnimationType _selectedAnimation = OverlayAnimationType.none;
 
-  // Professional Built-in Fonts + Custom User Installed Fonts
-  final List<String> _availableFonts = [
-    'Inter',
-    'Roboto',
-    'Outfit',
-    'SpaceMono',
-    'Pacifico',
-    'Montserrat',
-    'Poppins',
-    'PlayfairDisplay',
-    'DancingScript',
-    'BebasNeue',
-    'Caveat',
-    'Anton',
-    'Cinzel',
-    'Lobster',
-    'Oswald',
-    'Raleway',
-    'Satisfy',
-    'Righteous',
-    'Monoton',
-    'PermanentMarker',
-  ];
+  late List<String> _availableFonts;
 
   // Rich Text Color Palette
   final List<int> _colorPalette = [
     0xFFFFFFFF, // Pure White
     0xFF111827, // Dark Charcoal
     0xFFFF3B5C, // Neon Rose
+    0xFF00FF88, // Neon Green
     0xFF00C2CB, // Electric Cyan
     0xFFFFB800, // Gold Amber
     0xFF8B5CF6, // Vibrant Purple
@@ -88,9 +67,10 @@ class _TextEditorSheetState extends State<TextEditorSheet> {
   @override
   void initState() {
     super.initState();
+    _availableFonts = List.from(FontHelper.availableFonts);
     _textController = TextEditingController(text: widget.initialText?.text ?? 'NEW CAPTION');
     if (widget.initialText != null) {
-      _selectedFont = widget.initialText!.fontFamily;
+      _selectedFont = FontHelper.normalizeFontName(widget.initialText!.fontFamily);
       _fontSize = widget.initialText!.fontSize;
       _selectedColor = widget.initialText!.colorHex;
       _hasBackground = widget.initialText!.backgroundColorHex != null;
@@ -143,7 +123,6 @@ class _TextEditorSheetState extends State<TextEditorSheet> {
       debugPrint('Font installation error: $e');
     }
 
-    // Fallback: Custom font simulator for demo TTF
     final fontName = 'CustomFont_${DateTime.now().second}';
     setState(() {
       _availableFonts.insert(0, fontName);
@@ -162,6 +141,10 @@ class _TextEditorSheetState extends State<TextEditorSheet> {
     return Container(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.9,
+      ),
+      decoration: const BoxDecoration(
+        color: Color(0xFF161822),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       child: SingleChildScrollView(
@@ -182,17 +165,21 @@ class _TextEditorSheetState extends State<TextEditorSheet> {
                         color: AppColors.primary.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.title, color: AppColors.primary, size: 20),
+                      child: const Icon(Icons.title, color: AppColors.secondary, size: 20),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       widget.initialText != null ? 'Edit Text Overlay' : 'Add Text Overlay',
-                      style: AppTypography.titleMedium.copyWith(color: const Color(0xFF111827)),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, color: Color(0xFF6B7280)),
+                  icon: const Icon(Icons.close, color: Colors.white70),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
@@ -220,8 +207,8 @@ class _TextEditorSheetState extends State<TextEditorSheet> {
                 child: Text(
                   _textController.text.isEmpty ? 'Your Text Here' : _textController.text,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: _selectedFont,
+                  style: FontHelper.getTextStyle(
+                    _selectedFont,
                     fontSize: _fontSize,
                     fontWeight: FontWeight.bold,
                     color: Color(_selectedColor),
@@ -238,20 +225,24 @@ class _TextEditorSheetState extends State<TextEditorSheet> {
             TextField(
               controller: _textController,
               onChanged: (_) => setState(() {}),
-              style: AppTypography.bodyLarge.copyWith(color: const Color(0xFF111827)),
+              style: const TextStyle(color: Colors.white, fontSize: 16),
               decoration: InputDecoration(
                 hintText: 'Enter caption text...',
-                hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+                hintStyle: const TextStyle(color: Color(0xFF6B7280)),
                 filled: true,
-                fillColor: const Color(0xFFF8F9FE),
+                fillColor: const Color(0xFF222634),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFECEEF5)),
+                  borderSide: const BorderSide(color: Color(0xFF383D52)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFECEEF5)),
+                  borderSide: const BorderSide(color: Color(0xFF383D52)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.secondary, width: 1.5),
                 ),
               ),
             ),
@@ -263,7 +254,11 @@ class _TextEditorSheetState extends State<TextEditorSheet> {
               children: [
                 Text(
                   'Typography Font (${_availableFonts.length})',
-                  style: AppTypography.titleSmall.copyWith(color: const Color(0xFF111827)),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 InkWell(
                   onTap: _installCustomFont,
@@ -271,19 +266,19 @@ class _TextEditorSheetState extends State<TextEditorSheet> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.15),
+                      color: AppColors.secondary.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+                      border: Border.all(color: AppColors.secondary.withValues(alpha: 0.4)),
                     ),
                     child: const Row(
                       children: [
-                        Icon(Icons.add, size: 14, color: AppColors.primary),
+                        Icon(Icons.add, size: 14, color: AppColors.secondary),
                         SizedBox(width: 4),
                         Text(
-                          'Install Custom Font',
+                          'Custom Font',
                           style: TextStyle(
                             fontSize: 11,
-                            color: AppColors.primary,
+                            color: AppColors.secondary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -293,9 +288,9 @@ class _TextEditorSheetState extends State<TextEditorSheet> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
 
-            // Horizontal Fonts Selector Carousel
+            // Horizontal Fonts Selector Carousel with Live Font Typography
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -303,21 +298,27 @@ class _TextEditorSheetState extends State<TextEditorSheet> {
                   final isSelected = _selectedFont == fontName;
                   return Padding(
                     padding: const EdgeInsets.only(right: 8.0),
-                    child: ChoiceChip(
-                      label: Text(
-                        fontName,
-                        style: TextStyle(
-                          fontFamily: fontName,
-                          fontSize: 13,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    child: GestureDetector(
+                      onTap: () => setState(() => _selectedFont = fontName),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: isSelected ? AppColors.secondary : const Color(0xFF222634),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: isSelected ? AppColors.secondary : const Color(0xFF383D52),
+                            width: isSelected ? 1.5 : 1.0,
+                          ),
                         ),
-                      ),
-                      selected: isSelected,
-                      onSelected: (_) => setState(() => _selectedFont = fontName),
-                      selectedColor: AppColors.primary,
-                      backgroundColor: const Color(0xFFF3F4F8),
-                      labelStyle: TextStyle(
-                        color: isSelected ? Colors.white : const Color(0xFF111827),
+                        child: Text(
+                          fontName,
+                          style: FontHelper.getTextStyle(
+                            fontName,
+                            fontSize: 13,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            color: isSelected ? Colors.black : Colors.white,
+                          ),
+                        ),
                       ),
                     ),
                   );
@@ -339,9 +340,13 @@ class _TextEditorSheetState extends State<TextEditorSheet> {
             const SizedBox(height: 16),
 
             // Text Color Options
-            Text(
+            const Text(
               'Text Color',
-              style: AppTypography.titleSmall.copyWith(color: const Color(0xFF111827)),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             SingleChildScrollView(
@@ -360,13 +365,13 @@ class _TextEditorSheetState extends State<TextEditorSheet> {
                           color: Color(colorHex),
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: isSelected ? AppColors.primary : const Color(0xFFD1D5DB),
+                            color: isSelected ? AppColors.secondary : const Color(0xFF4B5563),
                             width: isSelected ? 3 : 1,
                           ),
                           boxShadow: [
                             if (isSelected)
                               BoxShadow(
-                                color: AppColors.primary.withValues(alpha: 0.3),
+                                color: AppColors.secondary.withValues(alpha: 0.4),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
@@ -391,13 +396,18 @@ class _TextEditorSheetState extends State<TextEditorSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
+                const Text(
                   'Text Background Highlight',
-                  style: AppTypography.titleSmall.copyWith(color: const Color(0xFF111827)),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 Switch(
                   value: _hasBackground,
-                  activeThumbColor: AppColors.primary,
+                  activeTrackColor: AppColors.primary,
+                  activeThumbColor: Colors.white,
                   onChanged: (val) => setState(() => _hasBackground = val),
                 ),
               ],
@@ -405,24 +415,30 @@ class _TextEditorSheetState extends State<TextEditorSheet> {
             const SizedBox(height: 14),
 
             // Animation Presets
-            Text(
+            const Text(
               'Entry Animation',
-              style: AppTypography.titleSmall.copyWith(color: const Color(0xFF111827)),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
+              runSpacing: 8,
               children: OverlayAnimationType.values.map((anim) {
                 final isSelected = _selectedAnimation == anim;
                 return ChoiceChip(
                   label: Text(anim.label),
                   selected: isSelected,
                   onSelected: (_) => setState(() => _selectedAnimation = anim),
-                  selectedColor: AppColors.primary,
-                  backgroundColor: const Color(0xFFF3F4F8),
+                  selectedColor: AppColors.secondary,
+                  backgroundColor: const Color(0xFF222634),
                   labelStyle: TextStyle(
-                    color: isSelected ? Colors.white : const Color(0xFF6B7280),
+                    color: isSelected ? Colors.black : const Color(0xFFA0A6B8),
                     fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   ),
                 );
               }).toList(),

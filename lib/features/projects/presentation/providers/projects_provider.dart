@@ -95,11 +95,14 @@ class ProjectsNotifier extends StateNotifier<ProjectsState> {
   }
 
   Future<void> loadProjects() async {
+    if (!mounted) return;
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       final list = await getProjectsUseCase();
+      if (!mounted) return;
       state = state.copyWith(isLoading: false, projects: list);
     } catch (e) {
+      if (!mounted) return;
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
   }
@@ -148,12 +151,12 @@ class ProjectsNotifier extends StateNotifier<ProjectsState> {
     int currentOffset = 0;
 
     final sampleAssets = [
-      'assets/demo/tokyo_shinjuku.mp4',
-      'assets/demo/alps_sunrise.mp4',
-      'assets/demo/cyberpunk_arcade.mp4',
-      'assets/demo/sunset_beach.jpg',
-      'assets/demo/coffee_art.jpg',
-      'assets/demo/urban_skate.mp4',
+      'assets/branding/demo_vid1.mp4',
+      'assets/branding/demo_vid2.mp4',
+      'assets/branding/demo_vid3.mp4',
+      'assets/branding/demo_vid4.mp4',
+      'assets/branding/demo_photo1.jpg',
+      'assets/branding/demo_photo2.jpg',
     ];
 
     final filters = FilterType.values;
@@ -246,11 +249,34 @@ class ProjectsNotifier extends StateNotifier<ProjectsState> {
     return newProject;
   }
 
+  Future<void> updateProject(ProjectEntity project) async {
+    try {
+      final updated = project.copyWith(updatedAt: DateTime.now());
+      await saveProjectUseCase(updated);
+      if (!mounted) return;
+      final index = state.projects.indexWhere((p) => p.id == updated.id);
+      List<ProjectEntity> updatedList;
+      if (index != -1) {
+        updatedList = List.from(state.projects);
+        updatedList[index] = updated;
+      } else {
+        updatedList = [updated, ...state.projects];
+      }
+      updatedList.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      state = state.copyWith(projects: updatedList);
+    } catch (e) {
+      if (!mounted) return;
+      state = state.copyWith(errorMessage: 'Failed to update project: $e');
+    }
+  }
+
   Future<void> duplicateProject(String id) async {
     try {
       await duplicateProjectUseCase(id);
+      if (!mounted) return;
       await loadProjects();
     } catch (e) {
+      if (!mounted) return;
       state = state.copyWith(errorMessage: 'Failed to duplicate project: $e');
     }
   }
@@ -258,8 +284,10 @@ class ProjectsNotifier extends StateNotifier<ProjectsState> {
   Future<void> deleteProject(String id) async {
     try {
       await deleteProjectUseCase(id);
+      if (!mounted) return;
       await loadProjects();
     } catch (e) {
+      if (!mounted) return;
       state = state.copyWith(errorMessage: 'Failed to delete project: $e');
     }
   }

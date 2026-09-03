@@ -33,17 +33,35 @@ class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
   @override
   Future<List<ProjectEntity>> getProjects() async {
     final catalogRaw = await storageService.readString(AppConstants.projectsCatalogFile);
-    List<String> projectIds = [];
+    final Set<String> projectIds = {};
 
     if (catalogRaw != null && catalogRaw.isNotEmpty) {
       try {
         final decoded = jsonDecode(catalogRaw) as List<dynamic>;
-        projectIds = decoded.map((e) => e.toString()).toList();
+        for (final item in decoded) {
+          if (item != null && item.toString().trim().isNotEmpty) {
+            projectIds.add(item.toString().trim());
+          }
+        }
       } catch (_) {}
     }
 
-    // Seed default starter projects if first run
-    if (projectIds.isEmpty) {
+    // Auto-discover all project files stored in the projects directory on disk
+    final diskFiles = await storageService.listProjectFiles();
+    for (final filePath in diskFiles) {
+      final fileName = filePath.split('/').last;
+      if (fileName.startsWith('project_') && fileName.endsWith('.json')) {
+        final id = fileName.substring('project_'.length, fileName.length - '.json'.length);
+        if (id.isNotEmpty) {
+          projectIds.add(id);
+        }
+      }
+    }
+
+    // Seed default starter projects ONLY on very first install when nothing exists
+    final seededFlag = await storageService.readString('app_seeded.flag');
+    if (projectIds.isEmpty && seededFlag == null) {
+      await storageService.writeString('app_seeded.flag', 'true');
       final initialProjects = _getSampleInitialProjects();
       for (final p in initialProjects) {
         await saveProject(p);
@@ -51,12 +69,24 @@ class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
       return initialProjects;
     }
 
+    if (seededFlag == null) {
+      await storageService.writeString('app_seeded.flag', 'true');
+    }
+
     final List<ProjectEntity> results = [];
+    final List<String> validIds = [];
+
     for (final id in projectIds) {
       final p = await getProjectById(id);
       if (p != null) {
         results.add(p);
+        validIds.add(id);
       }
+    }
+
+    // Keep catalog in sync with valid project files
+    if (validIds.length != projectIds.length) {
+      await storageService.writeString(AppConstants.projectsCatalogFile, jsonEncode(validIds));
     }
 
     results.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
@@ -81,13 +111,13 @@ class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
     if (catalogRaw != null && catalogRaw.isNotEmpty) {
       try {
         final decoded = jsonDecode(catalogRaw) as List<dynamic>;
-        projectIds = decoded.map((e) => e.toString()).toList();
+        projectIds = decoded.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList();
       } catch (_) {}
     }
-    if (!projectIds.contains(project.id)) {
-      projectIds.insert(0, project.id);
-      await storageService.writeString(AppConstants.projectsCatalogFile, jsonEncode(projectIds));
-    }
+    projectIds.remove(project.id);
+    projectIds.insert(0, project.id);
+    await storageService.writeString(AppConstants.projectsCatalogFile, jsonEncode(projectIds));
+    await storageService.writeString('app_seeded.flag', 'true');
   }
 
   @override
@@ -124,7 +154,7 @@ class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
     if (catalogRaw != null && catalogRaw.isNotEmpty) {
       try {
         final decoded = jsonDecode(catalogRaw) as List<dynamic>;
-        final projectIds = decoded.map((e) => e.toString()).toList();
+        final projectIds = decoded.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList();
         projectIds.remove(id);
         await storageService.writeString(AppConstants.projectsCatalogFile, jsonEncode(projectIds));
       } catch (_) {}

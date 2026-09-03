@@ -5,6 +5,8 @@ import 'package:looma/features/projects/data/repositories/project_repository_imp
 import 'package:looma/features/projects/domain/entities/aspect_ratio_type.dart';
 import 'package:looma/features/projects/domain/entities/project_entity.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -13,7 +15,9 @@ void main() {
   late ProjectRepositoryImpl repository;
 
   setUp(() async {
+    SharedPreferences.setMockInitialValues({});
     storageService = LocalStorageService();
+    await storageService.clearAll();
     dataSource = ProjectLocalDataSourceImpl(storageService: storageService);
     repository = ProjectRepositoryImpl(localDataSource: dataSource);
     // Initialize seed catalog
