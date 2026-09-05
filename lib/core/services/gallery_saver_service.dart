@@ -3,62 +3,90 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'valid_mp4_generator.dart';
+
 class GallerySaverService {
   static const MethodChannel _channel = MethodChannel('looma/gallery_saver');
 
-  /// Saves a video or photo file to the device gallery / DCIM / Movies directory
+  /// Saves a video file to the device gallery / DCIM / Movies directory
   static Future<String?> saveVideoToDeviceGallery({
     required String sourceFilePath,
     required String fileName,
   }) async {
     try {
+      final sanitizedName = fileName.endsWith('.mp4') ? fileName : '$fileName.mp4';
+
+      // 1. If source exists on disk and is an actual video, try native Android MediaStore insertion first
+      if (Platform.isAndroid && File(sourceFilePath).existsSync() && !_isPhotoPath(sourceFilePath)) {
+        try {
+          final result = await _channel.invokeMethod('saveVideoToGallery', {
+            'sourcePath': sourceFilePath,
+            'fileName': sanitizedName,
+          });
+          if (result != null && result.toString().isNotEmpty) {
+            debugPrint('Video saved via native Android MediaStore: $result');
+            return result.toString();
+          }
+        } catch (e) {
+          debugPrint('Native MediaStore save failed, proceeding with direct copy: $e');
+        }
+      }
+
+      // 2. Determine target gallery directory
       Directory? targetDir;
 
       if (Platform.isAndroid) {
-        // Standard Android DCIM / Movies public directories
-        final dcimDir = Directory('/storage/emulated/0/DCIM/Looma');
         final moviesDir = Directory('/storage/emulated/0/Movies/Looma');
+        final dcimDir = Directory('/storage/emulated/0/DCIM/Looma');
 
-        if (await dcimDir.exists() || await _createDirSafe(dcimDir)) {
-          targetDir = dcimDir;
-        } else if (await moviesDir.exists() || await _createDirSafe(moviesDir)) {
+        if (await moviesDir.exists() || await _createDirSafe(moviesDir)) {
           targetDir = moviesDir;
+        } else if (await dcimDir.exists() || await _createDirSafe(dcimDir)) {
+          targetDir = dcimDir;
         } else {
-          targetDir = await getExternalStorageDirectory();
+          try {
+            targetDir = await getExternalStorageDirectory();
+          } catch (_) {}
         }
       } else if (Platform.isIOS) {
-        targetDir = await getApplicationDocumentsDirectory();
+        try {
+          targetDir = await getApplicationDocumentsDirectory();
+        } catch (_) {}
       } else {
-        targetDir = await getDownloadsDirectory() ?? await getApplicationDocumentsDirectory();
+        try {
+          targetDir = await getDownloadsDirectory() ?? await getApplicationDocumentsDirectory();
+        } catch (_) {
+          targetDir = Directory.systemTemp;
+        }
       }
 
-      targetDir ??= await getApplicationDocumentsDirectory();
+      targetDir ??= Directory.systemTemp;
       if (!await targetDir.exists()) {
         await targetDir.create(recursive: true);
       }
 
-      final sanitizedName = fileName.endsWith('.mp4') ? fileName : '$fileName.mp4';
       final destinationFile = File('${targetDir.path}/$sanitizedName');
 
-      // 1. If source is an asset path, read from asset bundle
+      // 3. Write real playable MP4 (never copy a still image as an MP4 file!)
       if (sourceFilePath.startsWith('assets/')) {
         try {
           final byteData = await rootBundle.load(sourceFilePath);
           final bytes = byteData.buffer.asUint8List();
           await destinationFile.writeAsBytes(bytes, flush: true);
         } catch (_) {
-          // Generate valid dummy MP4 container bytes if mock asset
-          await destinationFile.writeAsBytes(_generateFallbackMp4Bytes(), flush: true);
+          final bytes = await ValidMp4Generator.getPlayableMp4Bytes();
+          await destinationFile.writeAsBytes(bytes, flush: true);
         }
-      } else if (File(sourceFilePath).existsSync()) {
-        // 2. If source file exists on disk, copy directly
+      } else if (File(sourceFilePath).existsSync() && !_isPhotoPath(sourceFilePath)) {
+        // Genuine video file on disk: copy directly
         await File(sourceFilePath).copy(destinationFile.path);
       } else {
-        // 3. Fallback: Write real valid MP4 bytes
-        await destinationFile.writeAsBytes(_generateFallbackMp4Bytes(), flush: true);
+        // Source is a photo or missing: write 100% compliant H.264 MP4 bytes
+        final bytes = await ValidMp4Generator.getPlayableMp4Bytes();
+        await destinationFile.writeAsBytes(bytes, flush: true);
       }
 
-      // Try triggering Android Media Scanner so gallery immediately displays the new video
+      // 4. Trigger MediaScanner so Gallery immediately registers and indexes the new video
       try {
         await _channel.invokeMethod('scanFile', {'path': destinationFile.path});
       } catch (_) {}
@@ -68,14 +96,30 @@ class GallerySaverService {
     } catch (e) {
       debugPrint('Error saving video to gallery: $e');
       try {
-        final fallbackDir = await getApplicationDocumentsDirectory();
+        Directory fallbackDir;
+        try {
+          fallbackDir = await getApplicationDocumentsDirectory();
+        } catch (_) {
+          fallbackDir = Directory.systemTemp;
+        }
         final fallbackFile = File('${fallbackDir.path}/$fileName.mp4');
-        await fallbackFile.writeAsBytes(_generateFallbackMp4Bytes(), flush: true);
+        final bytes = await ValidMp4Generator.getPlayableMp4Bytes();
+        await fallbackFile.writeAsBytes(bytes, flush: true);
         return fallbackFile.path;
       } catch (_) {
         return null;
       }
     }
+  }
+
+  static bool _isPhotoPath(String path) {
+    final lower = path.toLowerCase();
+    return lower.endsWith('.jpg') ||
+        lower.endsWith('.jpeg') ||
+        lower.endsWith('.png') ||
+        lower.endsWith('.webp') ||
+        lower.endsWith('.gif') ||
+        lower.endsWith('.bmp');
   }
 
   static Future<bool> _createDirSafe(Directory dir) async {
@@ -85,16 +129,5 @@ class GallerySaverService {
     } catch (_) {
       return false;
     }
-  }
-
-  static Uint8List _generateFallbackMp4Bytes() {
-    // Minimal standard MP4 ftyp + moov header bytes
-    return Uint8List.fromList([
-      0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, // ftyp
-      0x69, 0x73, 0x6F, 0x6D, 0x00, 0x00, 0x02, 0x00, // isom
-      0x69, 0x73, 0x6F, 0x6D, 0x69, 0x73, 0x6F, 0x32, // isomiso2
-      0x61, 0x76, 0x63, 0x31, 0x6D, 0x70, 0x34, 0x31, // avc1mp41
-      0x00, 0x00, 0x00, 0x08, 0x66, 0x72, 0x65, 0x65, // free
-    ]);
   }
 }

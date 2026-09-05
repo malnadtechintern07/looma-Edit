@@ -92,10 +92,8 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
   void _openFilterSheet(PhotoProjectEntity proj, PhotoEditorState state, PhotoEditorController controller) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (_) => PhotoFilterSheet(
         project: proj,
         selectedFrameId: state.selectedFrameId,

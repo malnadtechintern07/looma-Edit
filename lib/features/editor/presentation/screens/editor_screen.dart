@@ -6,6 +6,7 @@ import '../../../projects/domain/entities/project_entity.dart';
 import '../../../projects/presentation/providers/projects_provider.dart';
 import '../providers/editor_controller.dart';
 import '../widgets/canvas_preview.dart';
+import '../widgets/chroma_key_sheet.dart';
 import '../widgets/editor_action_bar.dart';
 import '../widgets/editor_top_bar.dart';
 import '../widgets/multi_track_timeline.dart';
@@ -155,22 +156,46 @@ class _EditorScreenBodyState extends ConsumerState<_EditorScreenBody> with Widge
                     ),
                   ),
 
-                  // 3. Multi-Track Timeline Scrubber
-                  Expanded(
-                    flex: 4,
-                    child: RepaintBoundary(
-                      child: MultiTrackTimeline(
-                        state: timelineState,
-                        controller: controller,
+                  if (timelineState.chromaKeyTargetClipId != null) ...[
+                    // Dedicated Chroma Key Controls Panel docked at bottom
+                    ChromaKeySheet(
+                      currentConfig: (timelineState.project.videoClips
+                              .where((c) => c.id == timelineState.chromaKeyTargetClipId)
+                              .firstOrNull ??
+                          timelineState.selectedVideoClip ??
+                          timelineState.activeVideoClip)?.chromaKey,
+                      isPickingMode: timelineState.isChromaKeyPickingMode,
+                      onTogglePickingMode: () {
+                        controller.toggleChromaKeyPickingMode();
+                      },
+                      onConfigChanged: (cfg) {
+                        controller.setClipChromaKey(timelineState.chromaKeyTargetClipId!, cfg);
+                      },
+                      onReset: () {
+                        controller.resetChromaKey(timelineState.chromaKeyTargetClipId!);
+                      },
+                      onClose: () {
+                        controller.closeChromaKeyMode();
+                      },
+                    ),
+                  ] else ...[
+                    // 3. Multi-Track Timeline Scrubber
+                    Expanded(
+                      flex: 4,
+                      child: RepaintBoundary(
+                        child: MultiTrackTimeline(
+                          state: timelineState,
+                          controller: controller,
+                        ),
                       ),
                     ),
-                  ),
 
-                  // 4. Bottom Action Bar Toolbar
-                  EditorActionBar(
-                    state: timelineState,
-                    controller: controller,
-                  ),
+                    // 4. Bottom Action Bar Toolbar
+                    EditorActionBar(
+                      state: timelineState,
+                      controller: controller,
+                    ),
+                  ],
                 ],
               ),
             ),

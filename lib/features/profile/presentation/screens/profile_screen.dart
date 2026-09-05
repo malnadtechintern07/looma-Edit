@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/router/route_paths.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../projects/presentation/providers/projects_provider.dart';
 
 class ProfileMeScreen extends ConsumerStatefulWidget {
@@ -103,6 +104,14 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authNotifierProvider);
+    final user = authState.user;
+    final isAuthenticated = authState.isAuthenticated;
+    final currentDisplayName = user != null
+        ? (user.displayName.isNotEmpty ? user.displayName : user.email.split('@').first)
+        : 'Looma Creator (Guest)';
+    final currentHandle = user != null ? user.email : 'Not signed in';
+
     final projects = ref.watch(projectsNotifierProvider).projects;
     final totalClips = projects.fold<int>(0, (sum, p) => sum + p.videoClips.length);
 
@@ -201,7 +210,7 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
                               children: [
                                 Flexible(
                                   child: Text(
-                                    _displayName,
+                                    currentDisplayName,
                                     style: AppTypography.titleMedium.copyWith(
                                       color: const Color(0xFF111827),
                                       fontWeight: FontWeight.bold,
@@ -218,10 +227,10 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
                                     color: const Color(0xFF111827),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: const Text(
-                                    'PRO',
+                                  child: Text(
+                                    isAuthenticated ? 'ACCOUNT' : 'GUEST',
                                     style: TextStyle(
-                                      color: Color(0xFFFFB800),
+                                      color: isAuthenticated ? const Color(0xFFFFB800) : const Color(0xFF9CA3AF),
                                       fontSize: 9,
                                       fontWeight: FontWeight.w900,
                                     ),
@@ -231,7 +240,7 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              _username,
+                              currentHandle,
                               style: const TextStyle(
                                 color: Color(0xFF6B7280),
                                 fontSize: 13,
@@ -287,7 +296,84 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
+
+            // Banner CTA when not signed in
+            if (!isAuthenticated) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 20),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF2E266D), Color(0xFF1E1B4B)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFF5B4DFB).withValues(alpha: 0.5)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF5B4DFB).withValues(alpha: 0.25),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF5B4DFB), Color(0xFF8644FF)],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.account_circle_outlined, color: Colors.white, size: 24),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'Sign In or Register Account',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          SizedBox(height: 3),
+                          Text(
+                            'Secure projects to your cloud account and access them across devices.',
+                            style: TextStyle(
+                              color: Color(0xFFC7D2FE),
+                              fontSize: 11,
+                              height: 1.25,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      key: const Key('me_tab_signin_register_btn'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF5B4DFB),
+                        foregroundColor: Colors.white,
+                        elevation: 3,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      onPressed: () => context.push(RoutePaths.auth),
+                      child: const Text('Sign In / Register', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
 
             // 2. Editor & Gallery Preferences
             Text(
@@ -404,8 +490,107 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 24),
+
+            // 4. Account & Security
+            Text(
+              'Account & Cloud Security',
+              style: AppTypography.titleMedium.copyWith(
+                color: const Color(0xFF111827),
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            Material(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              clipBehavior: Clip.antiAlias,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFECEEF5)),
+                ),
+                child: Column(
+                  children: [
+                    if (!isAuthenticated)
+                      ListTile(
+                        key: const Key('me_account_signin_list_tile'),
+                        leading: const Icon(Icons.login, color: Color(0xFF5B4DFB)),
+                        title: const Text('Sign In or Register Account', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                        subtitle: const Text('Enable private cloud project backup & multi-device sync', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+                        trailing: const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
+                        onTap: () => context.push(RoutePaths.auth),
+                      )
+                    else ...[
+                      ListTile(
+                        key: const Key('me_account_status_list_tile'),
+                        leading: const Icon(Icons.verified_user_outlined, color: Color(0xFF10B981)),
+                        title: const Text('Looma Cloud Account', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                        subtitle: Text('Signed in as ${user?.email}', style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+                        trailing: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text('ACTIVE', style: TextStyle(color: Color(0xFF10B981), fontSize: 10, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                      const Divider(height: 1, color: Color(0xFFF3F4F6)),
+                      ListTile(
+                        key: const Key('me_account_signout_list_tile'),
+                        leading: const Icon(Icons.logout, color: Color(0xFFEF4444)),
+                        title: const Text('Sign Out', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFFEF4444))),
+                        subtitle: const Text('Local projects will remain safely on this device', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+                        onTap: _confirmSignOut,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _confirmSignOut() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Sign Out?', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text(
+          'Your local projects will remain safe on this device. You can sign back in anytime to access your cloud backups.',
+          style: TextStyle(fontSize: 13, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              await ref.read(authNotifierProvider.notifier).logout();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Signed out successfully')),
+                );
+              }
+            },
+            child: const Text('Sign Out'),
+          ),
+        ],
       ),
     );
   }

@@ -110,6 +110,7 @@ class ProjectModel {
       'volume': entity.volume,
       'isMuted': entity.isMuted,
       'filterType': entity.filterType.name,
+      'filterIntensity': entity.filterIntensity,
       'effectType': entity.effectType.name,
       'effectIntensity': entity.effectIntensity,
       'brightness': entity.brightness,
@@ -156,6 +157,7 @@ class ProjectModel {
       volume: (json['volume'] as num?)?.toDouble() ?? 1.0,
       isMuted: json['isMuted'] as bool? ?? false,
       filterType: FilterType.fromString(json['filterType'] as String?),
+      filterIntensity: (json['filterIntensity'] as num?)?.toDouble() ?? 1.0,
       effectType: VideoEffectType.fromString(json['effectType'] as String?),
       effectIntensity: (json['effectIntensity'] as num?)?.toDouble() ?? 1.0,
       brightness: (json['brightness'] as num?)?.toDouble() ?? 0.0,
@@ -282,6 +284,8 @@ class ProjectModel {
       'isEnabled': entity.isEnabled,
       'keyColorHex': entity.keyColorHex,
       'intensity': entity.intensity,
+      'edgeSoftness': entity.edgeSoftness,
+      'spillSuppression': entity.spillSuppression,
       'shadow': entity.shadow,
       'edgeSmoothing': entity.edgeSmoothing,
     };
@@ -291,9 +295,13 @@ class ProjectModel {
     return ChromaKeyConfigEntity(
       isEnabled: json['isEnabled'] as bool? ?? false,
       keyColorHex: json['keyColorHex'] as int? ?? 0xFF00FF00,
-      intensity: (json['intensity'] as num?)?.toDouble() ?? 0.45,
-      shadow: (json['shadow'] as num?)?.toDouble() ?? 0.2,
-      edgeSmoothing: (json['edgeSmoothing'] as num?)?.toDouble() ?? 0.1,
+      intensity: (json['intensity'] as num?)?.toDouble() ?? 0.50,
+      edgeSoftness: (json['edgeSoftness'] as num?)?.toDouble() ??
+          (json['shadow'] as num?)?.toDouble() ??
+          0.15,
+      spillSuppression: (json['spillSuppression'] as num?)?.toDouble() ?? 0.30,
+      shadow: (json['shadow'] as num?)?.toDouble() ?? 0.15,
+      edgeSmoothing: (json['edgeSmoothing'] as num?)?.toDouble() ?? 0.15,
     );
   }
 

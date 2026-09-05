@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/asset_store/presentation/screens/asset_store_screen.dart';
+import '../../features/auth/presentation/screens/auth_screen.dart';
 import '../../features/cloud_sync/presentation/screens/cloud_sync_screen.dart';
 import '../../features/editor/presentation/screens/editor_screen.dart';
 import '../../features/photo_editor/presentation/screens/photo_editor_screen.dart';
@@ -19,6 +20,11 @@ final GoRouter appRouter = GoRouter(
       path: RoutePaths.home,
       name: RouteNames.home,
       builder: (context, state) => const HomeScreen(),
+    ),
+    GoRoute(
+      path: RoutePaths.auth,
+      name: RouteNames.auth,
+      builder: (context, state) => const AuthScreen(),
     ),
     GoRoute(
       path: RoutePaths.editor,

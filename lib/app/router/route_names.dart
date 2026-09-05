@@ -4,4 +4,5 @@ abstract class RouteNames {
   static const String store = 'store';
   static const String cloud = 'cloud';
   static const String export = 'export';
+  static const String auth = 'auth';
 }

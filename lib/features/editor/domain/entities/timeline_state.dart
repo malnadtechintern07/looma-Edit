@@ -19,6 +19,10 @@ class TimelineState {
   final SelectionType selectionType;
   final String? selectedItemId;
   final bool isLooping;
+  final bool isChromaKeyPickingMode;
+  final String? chromaKeyTargetClipId;
+  final double chromaKeyCrosshairX; // normalized 0..1
+  final double chromaKeyCrosshairY; // normalized 0..1
 
   const TimelineState({
     required this.project,
@@ -28,6 +32,10 @@ class TimelineState {
     this.selectionType = SelectionType.none,
     this.selectedItemId,
     this.isLooping = false,
+    this.isChromaKeyPickingMode = false,
+    this.chromaKeyTargetClipId,
+    this.chromaKeyCrosshairX = 0.5,
+    this.chromaKeyCrosshairY = 0.5,
   });
 
   /// Currently active video clip at playhead position (main track)
@@ -148,11 +156,21 @@ class TimelineState {
     SelectionType? selectionType,
     String? selectedItemId,
     bool? isLooping,
+    bool? isChromaKeyPickingMode,
+    String? chromaKeyTargetClipId,
+    bool clearChromaKeyTarget = false,
+    double? chromaKeyCrosshairX,
+    double? chromaKeyCrosshairY,
   }) {
     final effectiveSelectionType = selectionType ?? this.selectionType;
     final effectiveSelectedItemId = effectiveSelectionType == SelectionType.none
         ? null
         : (selectedItemId ?? (selectionType != null ? null : this.selectedItemId));
+
+    final effectivePickingMode = isChromaKeyPickingMode ?? this.isChromaKeyPickingMode;
+    final effectiveChromaKeyTargetClipId = clearChromaKeyTarget
+        ? null
+        : (chromaKeyTargetClipId ?? this.chromaKeyTargetClipId);
 
     return TimelineState(
       project: project ?? this.project,
@@ -162,6 +180,10 @@ class TimelineState {
       selectionType: effectiveSelectionType,
       selectedItemId: effectiveSelectedItemId,
       isLooping: isLooping ?? this.isLooping,
+      isChromaKeyPickingMode: effectivePickingMode,
+      chromaKeyTargetClipId: effectiveChromaKeyTargetClipId,
+      chromaKeyCrosshairX: chromaKeyCrosshairX ?? this.chromaKeyCrosshairX,
+      chromaKeyCrosshairY: chromaKeyCrosshairY ?? this.chromaKeyCrosshairY,
     );
   }
 }

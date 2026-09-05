@@ -84,11 +84,14 @@ class _PhotoCanvasState extends State<PhotoCanvas> {
       child: imageWidget,
     );
 
-    if (frame.filterType != FilterType.none && frame.filterType.matrix.isNotEmpty) {
-      imageWidget = ColorFiltered(
-        colorFilter: ColorFilter.matrix(frame.filterType.matrix),
-        child: imageWidget,
-      );
+    if (frame.filterType != FilterType.none) {
+      final colorFilter = frame.filterType.getColorFilter(frame.filterIntensity);
+      if (colorFilter != null) {
+        imageWidget = ColorFiltered(
+          colorFilter: colorFilter,
+          child: imageWidget,
+        );
+      }
     }
 
     return GestureDetector(

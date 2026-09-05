@@ -45,6 +45,7 @@ dependencies:
   audioplayers: ^6.8.1
   video_player: ^2.14.0
   shared_preferences: ^2.5.5
+  crypto: ^3.0.7
 
 dev_dependencies:
   flutter_test:
@@ -71,6 +72,7 @@ flutter:
   assets:
     - assets/icon/
     - assets/branding/
+    - assets/sample/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

@@ -41,9 +41,13 @@ class LoomaButton extends StatelessWidget {
           Icon(icon, size: 18, color: _getTextColor()),
           const SizedBox(width: 8),
         ],
-        Text(
-          label,
-          style: AppTypography.labelLarge.copyWith(color: _getTextColor()),
+        Flexible(
+          child: Text(
+            label,
+            style: AppTypography.labelLarge.copyWith(color: _getTextColor()),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ],
     );

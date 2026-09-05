@@ -5,10 +5,14 @@ import '../../../../app/router/route_paths.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/utils/id_generator.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../cloud_sync/presentation/providers/cloud_sync_provider.dart';
 import '../../../editor/domain/entities/video_clip_entity.dart';
 import '../../../media_picker/domain/services/device_media_service.dart';
 import '../../../media_picker/presentation/widgets/media_picker_modal.dart';
 import '../../domain/entities/aspect_ratio_type.dart';
+import '../../domain/entities/project_entity.dart';
+import '../../domain/entities/sync_status_type.dart';
 import '../providers/projects_provider.dart';
 import '../widgets/empty_projects_view.dart';
 import '../widgets/project_card.dart';
@@ -26,9 +30,12 @@ class _ProjectsOnlyScreenState extends ConsumerState<ProjectsOnlyScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
+    Future.microtask(() async {
       if (mounted) {
-        ref.read(projectsNotifierProvider.notifier).loadProjects();
+        await ref.read(projectsNotifierProvider.notifier).loadProjects();
+        if (ref.read(authNotifierProvider).isAuthenticated) {
+          ref.read(syncNotifierProvider.notifier).triggerSync();
+        }
       }
     });
   }
@@ -244,7 +251,7 @@ class _ProjectsOnlyScreenState extends ConsumerState<ProjectsOnlyScreen> {
                   child: Row(
                     children: [
                       _buildRatioFilterChip(
-                        label: 'All',
+                        label: 'All Ratios',
                         isSelected: selectedRatio == null,
                         onTap: () => ref.read(projectFilterRatioProvider.notifier).state = null,
                       ),
@@ -263,6 +270,40 @@ class _ProjectsOnlyScreenState extends ConsumerState<ProjectsOnlyScreen> {
                       }),
                     ],
                   ),
+                ),
+                const SizedBox(height: 8),
+
+                // Storage & Sync Filter Pills
+                Consumer(
+                  builder: (context, ref, _) {
+                    final syncFilter = ref.watch(projectSyncFilterProvider);
+                    return SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _buildRatioFilterChip(
+                            label: 'All Projects',
+                            isSelected: syncFilter == null,
+                            onTap: () => ref.read(projectSyncFilterProvider.notifier).state = null,
+                          ),
+                          const SizedBox(width: 8),
+                          _buildRatioFilterChip(
+                            label: '☁️ Cloud Synced',
+                            isSelected: syncFilter == SyncStatusType.synced,
+                            onTap: () => ref.read(projectSyncFilterProvider.notifier).state =
+                                syncFilter == SyncStatusType.synced ? null : SyncStatusType.synced,
+                          ),
+                          const SizedBox(width: 8),
+                          _buildRatioFilterChip(
+                            label: '📱 Device Only',
+                            isSelected: syncFilter == SyncStatusType.localOnly,
+                            onTap: () => ref.read(projectSyncFilterProvider.notifier).state =
+                                syncFilter == SyncStatusType.localOnly ? null : SyncStatusType.localOnly,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -287,9 +328,11 @@ class _ProjectsOnlyScreenState extends ConsumerState<ProjectsOnlyScreen> {
                             ref.read(projectsNotifierProvider.notifier).loadProjects();
                           }
                         },
+                        onRename: () => _showRenameDialog(project),
+                        onSync: () => _handleSync(project),
                         onDuplicate: () =>
                             ref.read(projectsNotifierProvider.notifier).duplicateProject(project.id),
-                        onDelete: () => _confirmDelete(project.id, project.title),
+                        onDelete: () => _confirmDelete(project),
                         onExport: () => context.push(RoutePaths.exportPath(project.id)),
                       );
                     },
@@ -329,23 +372,154 @@ class _ProjectsOnlyScreenState extends ConsumerState<ProjectsOnlyScreen> {
     );
   }
 
-  void _confirmDelete(String id, String title) {
+  void _showRenameDialog(ProjectEntity project) {
+    final controller = TextEditingController(text: project.title);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Project?'),
-        content: Text('Are you sure you want to permanently delete "$title"? This action cannot be undone.'),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Rename Project', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          style: const TextStyle(fontSize: 14, color: Color(0xFF111827)),
+          decoration: const InputDecoration(
+            labelText: 'Project Name',
+            border: OutlineInputBorder(),
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF5B4DFB),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
             onPressed: () {
-              Navigator.of(ctx).pop();
-              ref.read(projectsNotifierProvider.notifier).deleteProject(id);
+              final newTitle = controller.text.trim();
+              if (newTitle.isNotEmpty) {
+                ref.read(projectsNotifierProvider.notifier).renameProject(project.id, newTitle);
+                Navigator.of(ctx).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Project renamed successfully')),
+                );
+              }
             },
-            child: const Text('Delete', style: TextStyle(color: AppColors.error)),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleSync(ProjectEntity project) async {
+    final isAuthenticated = ref.read(authNotifierProvider).isAuthenticated;
+    if (!isAuthenticated) {
+      final shouldLogin = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Sign In Required', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: const Text(
+            'To back up and synchronize projects across devices with Looma Cloud, please sign in or create an account.',
+            style: TextStyle(fontSize: 13, height: 1.4),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF5B4DFB),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Sign In'),
+            ),
+          ],
+        ),
+      );
+      if (shouldLogin == true && mounted) {
+        context.push(RoutePaths.auth);
+      }
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Syncing "${project.title}" to Looma Cloud...')),
+    );
+    final ok = await ref.read(syncNotifierProvider.notifier).syncSingleProject(project.id);
+    if (mounted) {
+      if (ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.success,
+            content: Text('"${project.title}" successfully synced to cloud!'),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.error,
+            content: Text('Failed to sync "${project.title}" to cloud.'),
+          ),
+        );
+      }
+    }
+  }
+
+  void _confirmDelete(ProjectEntity project) {
+    final isCloudSynced = project.syncStatus == SyncStatusType.synced ||
+        project.syncStatus == SyncStatusType.syncing;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: AppColors.error),
+            const SizedBox(width: 8),
+            Text(isCloudSynced ? 'Delete Cloud & Local?' : 'Delete Project?'),
+          ],
+        ),
+        content: Text(
+          isCloudSynced
+              ? 'Are you sure you want to permanently delete "${project.title}"? This project has a cloud backup. Deleting it will permanently remove both the local copy and the cloud backup.'
+              : 'Are you sure you want to permanently delete "${project.title}"? This action cannot be undone.',
+          style: const TextStyle(fontSize: 13, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              if (isCloudSynced) {
+                await ref.read(syncNotifierProvider.notifier).deleteCloudBackup(project.id);
+              }
+              await ref.read(projectsNotifierProvider.notifier).deleteProject(project.id);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Deleted "${project.title}"')),
+                );
+              }
+            },
+            child: const Text('Delete Permanently'),
           ),
         ],
       ),

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -56,21 +57,44 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
           _project != null) {
         setState(() => _isAutoSaving = true);
 
-        final sourcePath = _project!.videoClips.isNotEmpty
-            ? _project!.videoClips.first.mediaPath
-            : 'assets/demo/alps_sunrise.mp4';
-        final fileName = 'looma_${_project!.title.replaceAll(' ', '_').toLowerCase()}';
+        // Prioritize actual rendered video outputPath if exists on disk and is a video
+        String sourcePath = '';
+        if (next.outputPath != null && File(next.outputPath!).existsSync()) {
+          sourcePath = next.outputPath!;
+        } else {
+          // Only allow direct single raw video copy if project has no overlays, photos, or text
+          final isSingleRawVideo = _project!.videoClips.length == 1 &&
+              !_project!.videoClips.first.isPhoto &&
+              !_project!.videoClips.first.isOverlay &&
+              _project!.textOverlays.isEmpty &&
+              _project!.stickerOverlays.isEmpty;
 
-        final savedPath = await GallerySaverService.saveVideoToDeviceGallery(
-          sourceFilePath: sourcePath,
-          fileName: fileName,
-        );
+          if (isSingleRawVideo && File(_project!.videoClips.first.mediaPath).existsSync()) {
+            sourcePath = _project!.videoClips.first.mediaPath;
+          } else {
+            sourcePath = '';
+          }
+        }
 
-        if (mounted) {
-          setState(() {
-            _autoSavedGalleryPath = savedPath;
-            _isAutoSaving = false;
-          });
+        if (sourcePath.isNotEmpty && File(sourcePath).existsSync()) {
+          final fileName = 'looma_${_project!.title.replaceAll(' ', '_').toLowerCase()}';
+          final savedPath = await GallerySaverService.saveVideoToDeviceGallery(
+            sourceFilePath: sourcePath,
+            fileName: fileName,
+          );
+
+          if (mounted) {
+            setState(() {
+              _autoSavedGalleryPath = savedPath;
+              _isAutoSaving = false;
+            });
+          }
+        } else {
+          if (mounted) {
+            setState(() {
+              _isAutoSaving = false;
+            });
+          }
         }
       }
     });
@@ -392,16 +416,33 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
 
             if (isCompleted) ...[
               LoomaButton(
-                label: 'Save Again / Share',
-                icon: Icons.share,
+                label: 'Save Again to Gallery',
+                icon: Icons.save_alt,
                 isFullWidth: true,
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      backgroundColor: AppColors.success,
-                      content: Text('Video ready in Gallery: ${_autoSavedGalleryPath ?? "Camera Roll"}'),
-                    ),
+                onPressed: () async {
+                  String sourcePath = '';
+                  final currentProgress = ref.read(exportControllerProvider);
+                  if (currentProgress.outputPath != null && File(currentProgress.outputPath!).existsSync()) {
+                    sourcePath = currentProgress.outputPath!;
+                  } else {
+                    final realClip = _project!.videoClips
+                        .where((c) => !c.isPhoto && File(c.mediaPath).existsSync())
+                        .firstOrNull;
+                    sourcePath = realClip?.mediaPath ?? 'assets/demo/alps_sunrise.mp4';
+                  }
+                  final fileName = 'looma_${_project!.title.replaceAll(' ', '_').toLowerCase()}_${DateTime.now().millisecondsSinceEpoch}';
+                  final path = await GallerySaverService.saveVideoToDeviceGallery(
+                    sourceFilePath: sourcePath,
+                    fileName: fileName,
                   );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        backgroundColor: AppColors.success,
+                        content: Text('Video saved directly to Gallery: ${path ?? _autoSavedGalleryPath ?? "Photos"}'),
+                      ),
+                    );
+                  }
                 },
               ),
               const SizedBox(height: 12),

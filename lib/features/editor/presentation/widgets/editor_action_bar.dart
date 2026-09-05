@@ -3,12 +3,14 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../audio/presentation/widgets/audio_mixer_sheet.dart';
 import '../../../audio/presentation/widgets/voiceover_modal.dart';
+import '../../../filters_effects/domain/entities/filter_preset.dart';
 import '../../../filters_effects/domain/entities/video_effect_type.dart';
 import '../../../filters_effects/presentation/widgets/color_adjustment_sheet.dart';
 import '../../../filters_effects/presentation/widgets/effects_picker_sheet.dart';
 import '../../../filters_effects/presentation/widgets/filter_picker_sheet.dart';
 import '../../../media_picker/domain/entities/media_item_entity.dart';
 import '../../../media_picker/presentation/widgets/media_picker_modal.dart';
+import '../../../text_stickers/domain/entities/text_overlay_entity.dart';
 import '../../../text_stickers/presentation/widgets/sticker_picker_sheet.dart';
 import '../../../text_stickers/presentation/widgets/text_editor_sheet.dart';
 import '../../domain/entities/clip_animation_type.dart';
@@ -16,7 +18,6 @@ import '../../domain/entities/timeline_state.dart';
 import '../providers/editor_controller.dart';
 import 'animation_picker_sheet.dart';
 import 'caption_editor_sheet.dart';
-import 'chroma_key_sheet.dart';
 import 'clip_speed_sheet.dart';
 import 'clip_volume_sheet.dart';
 import 'crop_transform_sheet.dart';
@@ -37,13 +38,37 @@ class EditorActionBar extends StatelessWidget {
   void _openFilterPicker(BuildContext context) {
     final active = state.selectedVideoClip ?? state.activeVideoClip;
     if (active == null) return;
+    FilterType savedFilter = active.filterType;
+    double savedIntensity = active.filterIntensity;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF161822),
+      backgroundColor: Colors.transparent,
       builder: (ctx) => FilterPickerSheet(
         selectedFilter: active.filterType,
-        onFilterSelected: (f) => controller.setClipFilter(active.id, f),
+        filterIntensity: active.filterIntensity,
+        mediaPath: active.mediaPath,
+        onFilterSelected: (f) {
+          savedFilter = f;
+          controller.setClipFilter(active.id, f);
+        },
+        onIntensityChanged: (val) {
+          savedIntensity = val;
+          controller.setClipFilterIntensity(active.id, val);
+        },
+        onFilterRemoved: () {
+          savedFilter = FilterType.none;
+          savedIntensity = 1.0;
+          controller.removeClipFilter(active.id);
+        },
+        onHoldToCompare: (comparing) {
+          if (comparing) {
+            controller.setClipFilter(active.id, FilterType.none);
+          } else {
+            controller.setClipFilter(active.id, savedFilter, intensity: savedIntensity);
+          }
+        },
       ),
     );
   }
@@ -229,15 +254,7 @@ class EditorActionBar extends StatelessWidget {
   void _openChromaKeySheet(BuildContext context) {
     final active = state.selectedVideoClip ?? state.activeVideoClip;
     if (active == null) return;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xFF161822),
-      builder: (ctx) => ChromaKeySheet(
-        currentConfig: active.chromaKey,
-        onConfigChanged: (cfg) => controller.setClipChromaKey(active.id, cfg),
-      ),
-    );
+    controller.openChromaKeyMode(active.id);
   }
 
   void _openVolumeSheet(BuildContext context) {
@@ -304,12 +321,16 @@ class EditorActionBar extends StatelessWidget {
     );
   }
 
-  void _openTextEditor(BuildContext context) {
+  void _openTextEditor(BuildContext context, {TextOverlayEntity? initialText}) {
+    final selectedText = initialText ??
+        (state.selectionType == SelectionType.textOverlay ? state.selectedTextOverlay : null);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: const Color(0xFF161822),
       builder: (ctx) => TextEditorSheet(
+        initialText: selectedText,
         onSave: ({
           required text,
           required fontFamily,
@@ -318,14 +339,27 @@ class EditorActionBar extends StatelessWidget {
           backgroundColorHex,
           required animationType,
         }) {
-          controller.addTextOverlay(
-            text: text,
-            fontFamily: fontFamily,
-            fontSize: fontSize,
-            colorHex: colorHex,
-            backgroundColorHex: backgroundColorHex,
-            animationType: animationType,
-          );
+          if (selectedText != null) {
+            controller.updateTextOverlay(
+              selectedText.copyWith(
+                text: text,
+                fontFamily: fontFamily,
+                fontSize: fontSize,
+                colorHex: colorHex,
+                backgroundColorHex: backgroundColorHex,
+                animationType: animationType,
+              ),
+            );
+          } else {
+            controller.addTextOverlay(
+              text: text,
+              fontFamily: fontFamily,
+              fontSize: fontSize,
+              colorHex: colorHex,
+              backgroundColorHex: backgroundColorHex,
+              animationType: animationType,
+            );
+          }
         },
       ),
     );

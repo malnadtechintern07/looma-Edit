@@ -6,6 +6,8 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/utils/id_generator.dart';
 import '../../../asset_store/presentation/screens/template_feed_screen.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../cloud_sync/presentation/providers/cloud_sync_provider.dart';
 import '../../../editor/domain/entities/video_clip_entity.dart';
 import '../../../media_picker/domain/services/device_media_service.dart';
 import '../../../media_picker/presentation/widgets/media_picker_modal.dart';
@@ -13,6 +15,8 @@ import '../../../photo_editor/domain/entities/photo_frame_entity.dart';
 import '../../../photo_editor/domain/entities/photo_project_entity.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
 import '../../domain/entities/aspect_ratio_type.dart';
+import '../../domain/entities/project_entity.dart';
+import '../../domain/entities/sync_status_type.dart';
 import '../providers/projects_provider.dart';
 import '../widgets/empty_projects_view.dart';
 import '../widgets/project_card.dart';
@@ -34,9 +38,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
+    Future.microtask(() async {
       if (mounted) {
-        ref.read(projectsNotifierProvider.notifier).loadProjects();
+        await ref.read(projectsNotifierProvider.notifier).loadProjects();
+        if (ref.read(authNotifierProvider).isAuthenticated) {
+          ref.read(syncNotifierProvider.notifier).triggerSync();
+        }
       }
     });
   }
@@ -144,49 +151,69 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final state = ref.watch(projectsNotifierProvider);
     final projects = ref.watch(filteredProjectsProvider);
     final selectedRatio = ref.watch(projectFilterRatioProvider);
+    final authState = ref.watch(authNotifierProvider);
+    final isAuthenticated = authState.isAuthenticated;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
       appBar: AppBar(
         backgroundColor: const Color(0xFFF8F9FE),
         elevation: 0,
-        centerTitle: false,
-        title: Row(
-          children: [
-            Text(
-              'LOOMA',
-              style: AppTypography.titleLarge.copyWith(
-                color: const Color(0xFF111827),
-                fontWeight: FontWeight.w900,
-                fontSize: 22,
-                letterSpacing: 0.5,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: const Color(0xFF111827),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Text(
-                'PRO',
-                style: TextStyle(
-                  color: Color(0xFFFFB800),
-                  fontSize: 10,
+        titleSpacing: 16,
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'LOOMA',
+                style: AppTypography.titleLarge.copyWith(
+                  color: const Color(0xFF111827),
                   fontWeight: FontWeight.w900,
+                  fontSize: 22,
                   letterSpacing: 0.5,
                 ),
               ),
-            ),
-          ],
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF111827),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'PRO',
+                  style: TextStyle(
+                    color: Color(0xFFFFB800),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
-          IconButton(
-            tooltip: 'My Identity',
-            icon: const Icon(Icons.person_outline, color: Color(0xFF111827), size: 24),
-            onPressed: () => setState(() => _currentNavIndex = 3),
-          ),
+          if (!isAuthenticated)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+              child: ElevatedButton.icon(
+                key: const Key('home_signin_register_button'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF5B4DFB),
+                  foregroundColor: Colors.white,
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                  visualDensity: VisualDensity.compact,
+                ),
+                icon: const Icon(Icons.login, size: 14),
+                label: const Text('Sign In / Register', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                onPressed: () => context.push(RoutePaths.auth),
+              ),
+            ),
           IconButton(
             tooltip: 'Cloud Backup',
             icon: const Icon(Icons.cloud_done_outlined, color: Color(0xFF5B4DFB), size: 22),
@@ -198,7 +225,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : RefreshIndicator(
-              onRefresh: () => ref.read(projectsNotifierProvider.notifier).loadProjects(),
+              onRefresh: () async {
+                await ref.read(projectsNotifierProvider.notifier).loadProjects();
+                if (ref.read(authNotifierProvider).isAuthenticated) {
+                  await ref.read(syncNotifierProvider.notifier).triggerSync();
+                }
+              },
               color: AppColors.primary,
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
@@ -206,6 +238,102 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // 0. Sign In or Register CTA Banner (Only shown on Home page when NOT signed in)
+                    if (!isAuthenticated) ...[
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF2E266D), Color(0xFF1E1B4B)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: const Color(0xFF5B4DFB).withValues(alpha: 0.5),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF5B4DFB).withValues(alpha: 0.25),
+                              blurRadius: 16,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [Color(0xFF5B4DFB), Color(0xFF8644FF)],
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(Icons.cloud_sync, color: Colors.white, size: 24),
+                                ),
+                                const SizedBox(width: 14),
+                                const Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Cloud Backup & Sync',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14.5,
+                                        ),
+                                      ),
+                                      SizedBox(height: 3),
+                                      Text(
+                                        'Sign in or register to secure your timeline projects in the cloud.',
+                                        style: TextStyle(
+                                          color: Color(0xFFC7D2FE),
+                                          fontSize: 11.5,
+                                          height: 1.25,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                key: const Key('home_banner_signin_register_btn'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF5B4DFB),
+                                  foregroundColor: Colors.white,
+                                  elevation: 3,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                                ),
+                                icon: const Icon(Icons.login, size: 16),
+                                label: const Text(
+                                  'Sign In / Register Account',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                onPressed: () => context.push(RoutePaths.auth),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
                     // 1. Hero Banner Card (+ New Project) & Quick Action Tools Cards
                     QuickActionBanner(
                       onNewProject: _openDirectMediaPicker,
@@ -219,12 +347,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Recent Projects',
-                          style: AppTypography.titleMedium.copyWith(
-                            color: const Color(0xFF111827),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
+                        Expanded(
+                          child: Text(
+                            'Recent Projects',
+                            style: AppTypography.titleMedium.copyWith(
+                              color: const Color(0xFF111827),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         TextButton(
@@ -260,10 +392,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 ref.read(projectsNotifierProvider.notifier).loadProjects();
                               }
                             },
+                            onRename: () => _showRenameDialog(project),
+                            onSync: () => _handleSync(project),
                             onDuplicate: () => ref
                                 .read(projectsNotifierProvider.notifier)
                                 .duplicateProject(project.id),
-                            onDelete: () => _confirmDelete(project.id, project.title),
+                            onDelete: () => _confirmDelete(project),
                             onExport: () => context.push(RoutePaths.exportPath(project.id)),
                           );
                         },
@@ -487,23 +621,155 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  void _confirmDelete(String id, String title) {
+  void _showRenameDialog(ProjectEntity project) {
+    final controller = TextEditingController(text: project.title);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Project?'),
-        content: Text('Are you sure you want to permanently delete "$title"? This action cannot be undone.'),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Rename Project', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          style: const TextStyle(fontSize: 14, color: Color(0xFF111827)),
+          decoration: const InputDecoration(
+            labelText: 'Project Name',
+            border: OutlineInputBorder(),
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF5B4DFB),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
             onPressed: () {
-              Navigator.of(ctx).pop();
-              ref.read(projectsNotifierProvider.notifier).deleteProject(id);
+              final newTitle = controller.text.trim();
+              if (newTitle.isNotEmpty) {
+                ref.read(projectsNotifierProvider.notifier).renameProject(project.id, newTitle);
+                Navigator.of(ctx).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Project renamed successfully')),
+                );
+              }
             },
-            child: const Text('Delete', style: TextStyle(color: AppColors.error)),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleSync(ProjectEntity project) async {
+    final isAuthenticated = ref.read(authNotifierProvider).isAuthenticated;
+    if (!isAuthenticated) {
+      final shouldLogin = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Sign In Required', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: const Text(
+            'To back up and synchronize projects across devices with Looma Cloud, please sign in or create an account.',
+            style: TextStyle(fontSize: 13, height: 1.4),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF5B4DFB),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Sign In'),
+            ),
+          ],
+        ),
+      );
+      if (shouldLogin == true && mounted) {
+        context.push(RoutePaths.auth);
+      }
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Syncing "${project.title}" to Looma Cloud...')),
+    );
+    final ok = await ref.read(syncNotifierProvider.notifier).syncSingleProject(project.id);
+    if (mounted) {
+      if (ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.success,
+            content: Text('"${project.title}" successfully synced to cloud!'),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.error,
+            content: Text('Failed to sync "${project.title}" to cloud.'),
+          ),
+        );
+      }
+    }
+  }
+
+  void _confirmDelete(ProjectEntity project) {
+    final isCloudSynced = project.syncStatus == SyncStatusType.synced ||
+        project.syncStatus == SyncStatusType.syncing;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: AppColors.error),
+            const SizedBox(width: 8),
+            Text(isCloudSynced ? 'Delete Cloud & Local?' : 'Delete Project?'),
+          ],
+        ),
+        content: Text(
+          isCloudSynced
+              ? 'Are you sure you want to permanently delete "${project.title}"? This project has a cloud backup. Deleting it will permanently remove both the local copy and the cloud backup.'
+              : 'Are you sure you want to permanently delete "${project.title}"? This action cannot be undone.',
+          style: const TextStyle(fontSize: 13, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              if (isCloudSynced) {
+                await ref.read(syncNotifierProvider.notifier).deleteCloudBackup(project.id);
+              }
+              await ref.read(projectsNotifierProvider.notifier).deleteProject(project.id);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Deleted "${project.title}"')),
+                );
+              }
+            },
+            child: const Text('Delete Permanently'),
           ),
         ],
       ),

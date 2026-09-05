@@ -56,62 +56,68 @@ class _ReorderClipsSheetState extends State<ReorderClipsSheet> {
   @override
   Widget build(BuildContext context) {
     final totalDurationMs = _clips.fold<int>(0, (sum, c) => sum + c.effectiveDurationMs);
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isNarrow = screenWidth < 360;
+    final horizontalPadding = isNarrow ? 12.0 : 20.0;
 
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.75,
-      decoration: const BoxDecoration(
-        color: Color(0xFF161822),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: SafeArea(
-        top: false,
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.75,
+        color: const Color(0xFF141724),
         child: Column(
           children: [
-            // Drag Handle Bar
-            Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.white24,
-                borderRadius: BorderRadius.circular(2),
+            // Top Grab Handle
+            Center(
+              child: Container(
+                margin: const EdgeInsets.symmetric(vertical: 10),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
 
             // Header Row
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(7),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(8),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.reorder, color: AppColors.primary, size: 20),
                         ),
-                        child: const Icon(Icons.reorder, color: AppColors.primary, size: 20),
-                      ),
-                      const SizedBox(width: 10),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Reorder Clips',
-                            style: AppTypography.titleMedium.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Reorder Clips',
+                                style: AppTypography.titleMedium.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                '${_clips.length} clips • ${TimecodeFormatter.formatMmSsMs(totalDurationMs)}',
+                                style: const TextStyle(color: Colors.white54, fontSize: 11),
+                              ),
+                            ],
                           ),
-                          Text(
-                            '${_clips.length} clips • ${TimecodeFormatter.formatMmSsMs(totalDurationMs)}',
-                            style: const TextStyle(color: Colors.white54, fontSize: 11),
-                          ),
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.check_circle, color: Color(0xFF00E5FF), size: 28),
@@ -125,7 +131,7 @@ class _ReorderClipsSheetState extends State<ReorderClipsSheet> {
 
             // Reorder Instructions Banner
             Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
+              margin: EdgeInsets.symmetric(horizontal: horizontalPadding),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: const Color(0xFF1E2130),
@@ -150,7 +156,7 @@ class _ReorderClipsSheetState extends State<ReorderClipsSheet> {
             // Reorderable Clip List
             Expanded(
               child: ReorderableListView.builder(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                padding: EdgeInsets.fromLTRB(horizontalPadding, 0, horizontalPadding, 20),
                 itemCount: _clips.length,
                 onReorderItem: _onReorderItem,
                 proxyDecorator: (child, index, animation) {
@@ -193,50 +199,53 @@ class _ReorderClipsSheetState extends State<ReorderClipsSheet> {
                       ),
                     ),
                     child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      contentPadding: EdgeInsets.symmetric(horizontal: isNarrow ? 6 : 8, vertical: 2),
+                      minLeadingWidth: 0,
+                      horizontalTitleGap: isNarrow ? 6 : 8,
                       // 1. Position Number & Thumbnail
                       leading: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            width: 24,
-                            height: 24,
+                            width: 22,
+                            height: 22,
                             decoration: BoxDecoration(
-                              color: isSelected
-                                  ? AppColors.primary
-                                  : const Color(0xFF2E3248),
+                              color: isSelected ? AppColors.primary : const Color(0xFF2B3148),
                               borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: isSelected ? const Color(0xFF00E5FF) : Colors.white24,
+                                width: 1,
+                              ),
                             ),
-                            child: Center(
-                              child: Text(
-                                '#${index + 1}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              '#${index + 1}',
+                              style: TextStyle(
+                                color: isSelected ? Colors.black : Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 9,
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          // Clip Media Thumbnail Box
+                          SizedBox(width: isNarrow ? 5 : 8),
+                          // Thumbnail box
                           ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: Container(
-                              width: 44,
-                              height: 44,
+                              width: 40,
+                              height: 40,
                               color: const Color(0xFF273147),
                               child: Stack(
                                 fit: StackFit.expand,
                                 children: [
                                   if (clip.mediaPath.startsWith('assets/'))
-                                    Image.asset(clip.mediaPath, fit: BoxFit.cover, errorBuilder: (_, _, _) => const Icon(Icons.movie, size: 20, color: Colors.white30))
+                                    Image.asset(clip.mediaPath, fit: BoxFit.cover, errorBuilder: (_, _, _) => const Icon(Icons.movie, size: 18, color: Colors.white30))
                                   else if (File(clip.mediaPath).existsSync())
-                                    Image.file(File(clip.mediaPath), fit: BoxFit.cover, errorBuilder: (_, _, _) => const Icon(Icons.movie, size: 20, color: Colors.white30))
+                                    Image.file(File(clip.mediaPath), fit: BoxFit.cover, errorBuilder: (_, _, _) => const Icon(Icons.movie, size: 18, color: Colors.white30))
                                   else
                                     Icon(
                                       _isImage(clip.mediaPath) ? Icons.photo : Icons.videocam,
-                                      size: 20,
+                                      size: 18,
                                       color: Colors.white38,
                                     ),
                                 ],
@@ -256,35 +265,40 @@ class _ReorderClipsSheetState extends State<ReorderClipsSheet> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      subtitle: Row(
-                        children: [
-                          Text(
-                            TimecodeFormatter.formatMmSsMs(clip.effectiveDurationMs),
-                            style: const TextStyle(
-                              color: Color(0xFF00E5FF),
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          if (clip.speed != 1.0) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                              decoration: BoxDecoration(
-                                color: AppColors.accent,
-                                borderRadius: BorderRadius.circular(3),
+                      subtitle: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              TimecodeFormatter.formatMmSsMs(clip.effectiveDurationMs),
+                              style: const TextStyle(
+                                color: Color(0xFF00E5FF),
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
                               ),
-                              child: Text(
-                                '${clip.speed}x',
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
+                            ),
+                            if (clip.speed != 1.0) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: AppColors.accent,
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                                child: Text(
+                                  '${clip.speed}x',
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
-                            ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
                       // 3. Quick Move Action Arrows & Reorder Drag Handle
                       trailing: Row(
@@ -297,8 +311,8 @@ class _ReorderClipsSheetState extends State<ReorderClipsSheet> {
                               onTap: () => _moveClip(index, 0),
                               borderRadius: BorderRadius.circular(4),
                               child: const Padding(
-                                padding: EdgeInsets.all(4.0),
-                                child: Icon(Icons.first_page, size: 20, color: Colors.white70),
+                                padding: EdgeInsets.symmetric(horizontal: 2.0, vertical: 4.0),
+                                child: Icon(Icons.first_page, size: 19, color: Colors.white70),
                               ),
                             ),
                           // Move Earlier / Left (▲ / ◀)
@@ -307,10 +321,10 @@ class _ReorderClipsSheetState extends State<ReorderClipsSheet> {
                             onTap: isFirst ? null : () => _moveClip(index, index - 1),
                             borderRadius: BorderRadius.circular(4),
                             child: Padding(
-                              padding: const EdgeInsets.all(4.0),
+                              padding: const EdgeInsets.symmetric(horizontal: 2.0, vertical: 4.0),
                               child: Icon(
                                 Icons.keyboard_arrow_up,
-                                size: 22,
+                                size: 20,
                                 color: isFirst ? Colors.white24 : Colors.white,
                               ),
                             ),
@@ -321,10 +335,10 @@ class _ReorderClipsSheetState extends State<ReorderClipsSheet> {
                             onTap: isLast ? null : () => _moveClip(index, index + 1),
                             borderRadius: BorderRadius.circular(4),
                             child: Padding(
-                              padding: const EdgeInsets.all(4.0),
+                              padding: const EdgeInsets.symmetric(horizontal: 2.0, vertical: 4.0),
                               child: Icon(
                                 Icons.keyboard_arrow_down,
-                                size: 22,
+                                size: 20,
                                 color: isLast ? Colors.white24 : Colors.white,
                               ),
                             ),
@@ -336,21 +350,21 @@ class _ReorderClipsSheetState extends State<ReorderClipsSheet> {
                               onTap: () => _moveClip(index, _clips.length - 1),
                               borderRadius: BorderRadius.circular(4),
                               child: const Padding(
-                                padding: EdgeInsets.all(4.0),
-                                child: Icon(Icons.last_page, size: 20, color: Colors.white70),
+                                padding: EdgeInsets.symmetric(horizontal: 2.0, vertical: 4.0),
+                                child: Icon(Icons.last_page, size: 19, color: Colors.white70),
                               ),
                             ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 3),
                           // Reorder Drag Handle Icon
                           ReorderableDragStartListener(
                             index: index,
                             child: Container(
-                              padding: const EdgeInsets.all(8),
+                              padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
                                 color: Colors.white.withValues(alpha: 0.08),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(6),
                               ),
-                              child: const Icon(Icons.drag_handle, color: Colors.white70, size: 20),
+                              child: const Icon(Icons.drag_handle, color: Colors.white70, size: 18),
                             ),
                           ),
                         ],

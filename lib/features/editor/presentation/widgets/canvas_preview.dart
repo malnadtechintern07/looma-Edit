@@ -1,10 +1,13 @@
 import 'dart:io';
 import 'dart:math';
+import 'dart:ui' as ui;
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:video_player/video_player.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
+import '../../../../core/rendering/chroma_key_filter.dart';
 import '../../../../core/utils/font_helper.dart';
 import '../../../../core/utils/timecode_formatter.dart';
 import '../../../editor/domain/entities/transition_type.dart';
@@ -40,14 +43,13 @@ class CanvasPreview extends StatefulWidget {
 
 class _CanvasPreviewState extends State<CanvasPreview> {
   bool _showSafeMargins = false;
+  final GlobalKey _chromaPreviewBoundaryKey = GlobalKey();
+  Color? _liveSampledColor;
 
   // Single Active Video Player Controller & Preload Cache (max 2 entries to prevent GPU exhaustion)
   final Map<String, VideoPlayerController> _videoControllers = {};
   String? _currentPlayingPath;
   bool _wasPlaying = false;
-  int _lastSeekTargetMs = -1;
-  double _lastAppliedSpeed = -1.0;
-  double _lastAppliedVolume = -1.0;
 
   // Unified Continuous Gesture State for All Elements (Video, Photo, Overlay PIP, Text, Sticker)
   bool _isGestureActive = false;
@@ -316,8 +318,12 @@ class _CanvasPreviewState extends State<CanvasPreview> {
           widget.controller.syncClipRealDuration(clipId, realDurMs);
         }
         final curPos = widget.timelineState.playheadPositionMs;
-        final activeClip = widget.timelineState.activeVideoClip;
-        final offsetMs = (curPos - (activeClip?.timelineStartMs ?? 0) + (activeClip?.trimStartMs ?? 0))
+        final matchingClip = clipId != null
+            ? widget.timelineState.project.videoClips.where((c) => c.id == clipId).firstOrNull
+            : widget.timelineState.activeVideoClip;
+        final startMs = matchingClip?.timelineStartMs ?? 0;
+        final trimStart = matchingClip?.trimStartMs ?? 0;
+        final offsetMs = (curPos - startMs + trimStart)
             .clamp(0, realDurMs > 0 ? realDurMs : 100000);
         controller.seekTo(Duration(milliseconds: offsetMs));
         if (widget.timelineState.isPlaying) {
@@ -336,95 +342,96 @@ class _CanvasPreviewState extends State<CanvasPreview> {
     }
   }
 
-  void _syncActiveVideoController() {
-    final activeClip = widget.timelineState.activeVideoClip;
-    final isPlaying = widget.timelineState.isPlaying;
-    final currentPosMs = widget.timelineState.playheadPositionMs;
+  void _syncActiveVideoController([TimelineState? stateOverride]) {
+    final state = stateOverride ?? widget.controller.currentState;
+    final isPlaying = state.isPlaying;
+    final currentPosMs = state.playheadPositionMs;
+    final hasPlayStateChanged = _wasPlaying != isPlaying;
+    _wasPlaying = isPlaying;
 
-    if (activeClip == null || !_isVideoFile(activeClip.mediaPath)) {
-      for (final c in _videoControllers.values) {
-        if (c.value.isPlaying) c.pause();
+    // 1. Gather all video clips that are active at the current playhead:
+    // Both the main track clip AND any active Picture-in-Picture (PIP) overlay clips
+    final activeVideoClips = <VideoClipEntity>[];
+    final mainClip = state.activeVideoClip;
+    if (mainClip != null && _isVideoFile(mainClip.mediaPath)) {
+      activeVideoClips.add(mainClip);
+    }
+    for (final overlayClip in state.activeOverlayClips) {
+      if (_isVideoFile(overlayClip.mediaPath)) {
+        activeVideoClips.add(overlayClip);
       }
-      _currentPlayingPath = null;
-      _wasPlaying = isPlaying;
-      _lastAppliedSpeed = -1.0;
-      return;
     }
 
-    final path = activeClip.mediaPath;
-    final controller = _getVideoController(path, clipId: activeClip.id);
-    if (controller == null || !controller.value.isInitialized) {
-      _wasPlaying = isPlaying;
-      return;
-    }
+    final activePaths = activeVideoClips.map((c) => c.mediaPath).toSet();
 
-    // Pause any non-active background controller
+    // 2. Pause any controllers that are no longer on active tracks or not at the current playhead
     for (final entry in _videoControllers.entries) {
-      if (entry.key != path && entry.value.value.isPlaying) {
+      if (!activePaths.contains(entry.key) && entry.value.value.isPlaying) {
         entry.value.pause();
       }
     }
 
-    final maxDur = (activeClip.sourceDurationMs > 0)
-        ? activeClip.sourceDurationMs
-        : (controller.value.duration.inMilliseconds > 0 ? controller.value.duration.inMilliseconds : 10000000);
+    if (activeVideoClips.isEmpty) {
+      _currentPlayingPath = null;
+      return;
+    }
 
-    final effectiveDur = activeClip.effectiveDurationMs;
-    final timelineOffsetMs = (currentPosMs - activeClip.timelineStartMs).clamp(0, effectiveDur);
-    final timelineProgress = effectiveDur > 0 ? (timelineOffsetMs / effectiveDur).clamp(0.0, 1.0) : 0.0;
+    // 3. Synchronize playback, position seeking, speed curves, and volume for all active clips
+    for (final clip in activeVideoClips) {
+      final path = clip.mediaPath;
+      final controller = _getVideoController(path, clipId: clip.id);
+      if (controller == null || !controller.value.isInitialized) {
+        continue;
+      }
 
-    // Exact mapping from timeline timestamp to source video timestamp taking speed & speed curves into account
-    final sourceProgress = activeClip.speedCurve != SpeedCurveType.none
-        ? activeClip.speedCurve.getSourceProgressAtTimelineProgress(timelineProgress)
-        : timelineProgress;
+      final maxDur = (clip.sourceDurationMs > 0)
+          ? clip.sourceDurationMs
+          : (controller.value.duration.inMilliseconds > 0 ? controller.value.duration.inMilliseconds : 10000000);
 
-    final trimmedDuration = activeClip.trimmedSourceDurationMs;
-    final offsetInClipMs = (activeClip.trimStartMs + (sourceProgress * trimmedDuration).round())
-        .clamp(0, maxDur)
-        .toInt();
-    final targetDuration = Duration(milliseconds: offsetInClipMs);
-    final currentVideoMs = controller.value.position.inMilliseconds;
-    final hasSwitchedClip = _currentPlayingPath != path;
-    final hasPlayStateChanged = _wasPlaying != isPlaying;
+      final effectiveDur = clip.effectiveDurationMs;
+      final timelineOffsetMs = (currentPosMs - clip.timelineStartMs).clamp(0, effectiveDur);
+      final timelineProgress = effectiveDur > 0 ? (timelineOffsetMs / effectiveDur).clamp(0.0, 1.0) : 0.0;
 
-    _currentPlayingPath = path;
-    _wasPlaying = isPlaying;
+      // Exact mapping from timeline timestamp to source video timestamp taking speed & speed curves into account
+      final sourceProgress = clip.speedCurve != SpeedCurveType.none
+          ? clip.speedCurve.getSourceProgressAtTimelineProgress(timelineProgress)
+          : timelineProgress;
 
-    // Instantaneous speed multiplier at current position
-    final curveSpeed = activeClip.speedCurve.getSpeedAtProgress(timelineProgress);
-    final targetSpeed = (activeClip.speed * curveSpeed).clamp(0.25, 4.0);
+      final trimmedDuration = clip.trimmedSourceDurationMs;
+      final offsetInClipMs = (clip.trimStartMs + (sourceProgress * trimmedDuration).round())
+          .clamp(0, maxDur)
+          .toInt();
+      final targetDuration = Duration(milliseconds: offsetInClipMs);
+      final currentVideoMs = controller.value.position.inMilliseconds;
 
-    if (isPlaying) {
-      // 1. Update playback speed only if changed to avoid unnecessary native platform channel overhead
-      if ((_lastAppliedSpeed - targetSpeed).abs() > 0.03 || hasSwitchedClip || hasPlayStateChanged) {
-        _lastAppliedSpeed = targetSpeed;
+      final curveSpeed = clip.speedCurve.getSpeedAtProgress(timelineProgress);
+      final targetSpeed = (clip.speed * curveSpeed).clamp(0.25, 4.0);
+      final targetVolume = clip.isMuted ? 0.0 : clip.volume.clamp(0.0, 1.0);
+
+      if (isPlaying) {
+        // Set playback speed
         controller.setPlaybackSpeed(targetSpeed);
-      }
 
-      // 2. Update volume only if changed
-      if ((_lastAppliedVolume - activeClip.volume).abs() > 0.03 || hasSwitchedClip) {
-        _lastAppliedVolume = activeClip.volume;
-        controller.setVolume(activeClip.volume.clamp(0.0, 1.0));
-      }
+        // Set volume / mute
+        controller.setVolume(targetVolume);
 
-      // 3. Resync only when starting playback, switching clips, or on large drift (> 600ms)
-      final isDislocated = (currentVideoMs - offsetInClipMs).abs() > 600;
-      if (hasPlayStateChanged || hasSwitchedClip || isDislocated) {
-        controller.seekTo(targetDuration);
-      }
+        // Resync drift
+        final isDislocated = (currentVideoMs - offsetInClipMs).abs() > 500;
+        if (hasPlayStateChanged || isDislocated) {
+          controller.seekTo(targetDuration);
+        }
 
-      if (!controller.value.isPlaying) {
-        controller.play();
-      }
-    } else {
-      _lastAppliedSpeed = -1.0;
-      // When paused or scrubbing, pause video and seek precisely to the current playhead frame
-      if (controller.value.isPlaying) {
-        controller.pause();
-      }
-      if ((currentVideoMs - offsetInClipMs).abs() > 30 && _lastSeekTargetMs != offsetInClipMs) {
-        _lastSeekTargetMs = offsetInClipMs;
-        controller.seekTo(targetDuration);
+        if (!controller.value.isPlaying) {
+          controller.play();
+        }
+      } else {
+        // When paused or scrubbing playhead, pause video and seek to exact current frame
+        if (controller.value.isPlaying) {
+          controller.pause();
+        }
+        if ((currentVideoMs - offsetInClipMs).abs() > 30) {
+          controller.seekTo(targetDuration);
+        }
       }
     }
   }
@@ -539,11 +546,32 @@ class _CanvasPreviewState extends State<CanvasPreview> {
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
-                            // Video Frame / Player Rendering Layer
-                            if (activeClip != null)
-                              _buildVideoClipFrame(activeClip, currentPosMs, isClipSelected)
-                            else
-                              _buildEmptyCanvasPlaceholder(),
+                            // Video Frame / Media Rendering Layer (wrapped in RepaintBoundary for accurate pixel sampling across all tracks)
+                            RepaintBoundary(
+                              key: _chromaPreviewBoundaryKey,
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  if (activeClip != null)
+                                    _buildVideoClipFrame(activeClip, currentPosMs, isClipSelected)
+                                  else
+                                    _buildEmptyCanvasPlaceholder(),
+
+                                  // Picture-in-Picture (PIP) Overlays Track Layer
+                                  ...state.activeOverlayClips.map((overlayClip) {
+                                    final isOverlaySelected = state.selectionType == SelectionType.overlayClip &&
+                                        state.selectedItemId == overlayClip.id;
+                                    return GestureDetector(
+                                      behavior: HitTestBehavior.deferToChild,
+                                      onTap: () {
+                                        widget.controller.setSelection(SelectionType.overlayClip, overlayClip.id);
+                                      },
+                                      child: _buildVideoClipFrame(overlayClip, currentPosMs, isOverlaySelected),
+                                    );
+                                  }),
+                                ],
+                              ),
+                            ),
 
                             // Transform Selection Bounding Box & Corner Handles for Video Clip
                             if (isClipSelected && activeClip != null) ...[
@@ -551,24 +579,16 @@ class _CanvasPreviewState extends State<CanvasPreview> {
                               _buildClipQuickToolbar(activeClip),
                             ],
 
-                            // Picture-in-Picture (PIP) Overlays Track Layer
+                            // Picture-in-Picture (PIP) Overlays Transform Handles Layer
                             ...state.activeOverlayClips.map((overlayClip) {
                               final isOverlaySelected = state.selectionType == SelectionType.overlayClip &&
                                   state.selectedItemId == overlayClip.id;
-                              return GestureDetector(
-                                behavior: HitTestBehavior.deferToChild,
-                                onTap: () {
-                                  widget.controller.setSelection(SelectionType.overlayClip, overlayClip.id);
-                                },
-                                child: Stack(
-                                  children: [
-                                    _buildVideoClipFrame(overlayClip, currentPosMs, isOverlaySelected),
-                                    if (isOverlaySelected) ...[
-                                      _buildSelectionTransformHandles(overlayClip),
-                                      _buildClipQuickToolbar(overlayClip),
-                                    ],
-                                  ],
-                                ),
+                              if (!isOverlaySelected) return const SizedBox.shrink();
+                              return Stack(
+                                children: [
+                                  _buildSelectionTransformHandles(overlayClip),
+                                  _buildClipQuickToolbar(overlayClip),
+                                ],
                               );
                             }),
 
@@ -622,6 +642,17 @@ class _CanvasPreviewState extends State<CanvasPreview> {
                                 canvasHeight: canvasHeight,
                               );
                             }),
+
+                            // 7. Interactive Chroma Key Crosshair Overlay & Color Picker
+                            if (state.isChromaKeyPickingMode) ...[
+                              _buildChromaKeyCrosshairOverlay(
+                                canvasWidth,
+                                canvasHeight,
+                                state.project.videoClips.where((c) => c.id == state.chromaKeyTargetClipId).firstOrNull ??
+                                    state.selectedVideoClip ??
+                                    activeClip,
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -635,91 +666,102 @@ class _CanvasPreviewState extends State<CanvasPreview> {
           // Top Info Bar (Timecode, Safe Margin Toggle, & Full Screen Button)
           Positioned(
             top: 8,
-            left: 16,
-            right: 16,
+            left: 12,
+            right: 12,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // Live SMPTE Timecode
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.7),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.white12),
-                  ),
-                  child: Text(
-                    '${TimecodeFormatter.formatTimecode(currentPosMs, fps: project.fps)} / ${TimecodeFormatter.formatTimecode(totalDurationMs, fps: project.fps)}',
-                    style: AppTypography.timecode.copyWith(fontSize: 12, color: AppColors.primaryLight),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.7),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: Colors.white12),
+                      ),
+                      child: Text(
+                        '${TimecodeFormatter.formatTimecode(currentPosMs, fps: project.fps)} / ${TimecodeFormatter.formatTimecode(totalDurationMs, fps: project.fps)}',
+                        style: AppTypography.timecode.copyWith(fontSize: 12, color: AppColors.primaryLight),
+                      ),
+                    ),
                   ),
                 ),
+                const SizedBox(width: 8),
 
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Safe Margin Guide Toggle
-                    InkWell(
-                      onTap: () => setState(() => _showSafeMargins = !_showSafeMargins),
-                      borderRadius: BorderRadius.circular(6),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: _showSafeMargins
-                              ? AppColors.primary.withValues(alpha: 0.3)
-                              : Colors.black.withValues(alpha: 0.7),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: _showSafeMargins ? AppColors.primaryLight : Colors.white12,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.grid_3x3,
-                              size: 14,
-                              color: _showSafeMargins ? Colors.white : AppColors.textMuted,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Safe Margin Guide Toggle
+                      InkWell(
+                        onTap: () => setState(() => _showSafeMargins = !_showSafeMargins),
+                        borderRadius: BorderRadius.circular(6),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _showSafeMargins
+                                ? AppColors.primary.withValues(alpha: 0.3)
+                                : Colors.black.withValues(alpha: 0.7),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: _showSafeMargins ? AppColors.primaryLight : Colors.white12,
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Guides',
-                              style: AppTypography.labelSmall.copyWith(
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.grid_3x3,
+                                size: 14,
                                 color: _showSafeMargins ? Colors.white : AppColors.textMuted,
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-
-                    // Full Screen Preview Button ⛶
-                    InkWell(
-                      onTap: _openFullScreenPreview,
-                      borderRadius: BorderRadius.circular(6),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF00C2CB).withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: const Color(0xFF00C2CB), width: 1.2),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.fullscreen, size: 16, color: Color(0xFF00C2CB)),
-                            SizedBox(width: 4),
-                            Text(
-                              'Full Screen',
-                              style: TextStyle(
-                                color: Color(0xFF00C2CB),
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
+                              const SizedBox(width: 4),
+                              Text(
+                                'Guides',
+                                style: AppTypography.labelSmall.copyWith(
+                                  color: _showSafeMargins ? Colors.white : AppColors.textMuted,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+
+                      // Full Screen Preview Button ⛶
+                      InkWell(
+                        onTap: _openFullScreenPreview,
+                        borderRadius: BorderRadius.circular(6),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00C2CB).withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFF00C2CB), width: 1.2),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.fullscreen, size: 16, color: Color(0xFF00C2CB)),
+                              SizedBox(width: 4),
+                              Text(
+                                'Full Screen',
+                                style: TextStyle(
+                                  color: Color(0xFF00C2CB),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -853,12 +895,15 @@ class _CanvasPreviewState extends State<CanvasPreview> {
       frameContent = _buildFallbackFrame(clip);
     }
 
-    // 2. Preset LUT Color Filter
-    if (clip.filterType != FilterType.none && clip.filterType.colorFilter != null) {
-      frameContent = ColorFiltered(
-        colorFilter: clip.filterType.colorFilter!,
-        child: frameContent,
-      );
+    // 2. Preset LUT Color Filter with Intensity Control (0-100%)
+    if (clip.filterType != FilterType.none) {
+      final colorFilter = clip.filterType.getColorFilter(clip.filterIntensity);
+      if (colorFilter != null) {
+        frameContent = ColorFiltered(
+          colorFilter: colorFilter,
+          child: frameContent,
+        );
+      }
     }
 
     // 3. Custom Brightness & Contrast
@@ -920,7 +965,10 @@ class _CanvasPreviewState extends State<CanvasPreview> {
     }
 
     // 7. Chroma Key / Green Screen Filter
-    if (clip.chromaKey != null && clip.chromaKey!.isEnabled) {
+    // In interactive color picking mode on this clip, bypass keying so the user can accurately sample the raw green color
+    final isPickingThisClip = widget.timelineState.isChromaKeyPickingMode &&
+        widget.timelineState.chromaKeyTargetClipId == clip.id;
+    if (clip.chromaKey != null && clip.chromaKey!.isEnabled && !isPickingThisClip) {
       frameContent = _applyChromaKey(frameContent, clip.chromaKey!);
     }
 
@@ -1047,14 +1095,235 @@ class _CanvasPreviewState extends State<CanvasPreview> {
   }
 
   Widget _applyChromaKey(Widget content, ChromaKeyConfigEntity config) {
-    // Luma-key shader color filter representation
-    return ColorFiltered(
-      colorFilter: ColorFilter.mode(
-        Colors.transparent,
-        BlendMode.dstOut,
-      ),
+    return ChromaKeyFilter.apply(
       child: content,
+      config: config,
     );
+  }
+
+  Widget _buildChromaKeyCrosshairOverlay(double canvasWidth, double canvasHeight, VideoClipEntity? targetClip) {
+    if (targetClip == null) return const SizedBox.shrink();
+    final state = widget.timelineState;
+    final markerX = (state.chromaKeyCrosshairX * canvasWidth).clamp(0.0, canvasWidth);
+    final markerY = (state.chromaKeyCrosshairY * canvasHeight).clamp(0.0, canvasHeight);
+
+    final keyHex = targetClip.chromaKey?.keyColorHex ?? 0xFF00FF00;
+    final sampledColor = _liveSampledColor ?? Color(keyHex);
+    final hexString = '#${keyHex.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
+
+    return Positioned.fill(
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // 1. Interactive touch detector for sampling color across canvas
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTapDown: (details) => _handleChromaPointer(details.localPosition, canvasWidth, canvasHeight, targetClip),
+              onPanUpdate: (details) => _handleChromaPointer(details.localPosition, canvasWidth, canvasHeight, targetClip),
+            ),
+          ),
+
+          // 2. High-Contrast Crosshair Target Marker
+          Positioned(
+            left: markerX - 28,
+            top: markerY - 28,
+            child: IgnorePointer(
+              child: SizedBox(
+                width: 56,
+                height: 56,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Outer Glowing Ring
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: const Color(0xFF00FF88), width: 2.5),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x9900FF88),
+                            blurRadius: 10,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Horizontal Crosshair Line
+                    Positioned(
+                      left: 2,
+                      right: 2,
+                      height: 2,
+                      child: Container(color: Colors.white.withValues(alpha: 0.9)),
+                    ),
+                    // Vertical Crosshair Line
+                    Positioned(
+                      top: 2,
+                      bottom: 2,
+                      width: 2,
+                      child: Container(color: Colors.white.withValues(alpha: 0.9)),
+                    ),
+                    // Inner Target Core Dot
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: sampledColor,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // 3. Attached Live Sampled Color Loupe Badge
+          Positioned(
+            left: (markerX + 32).clamp(10.0, (canvasWidth - 110.0).clamp(10.0, canvasWidth)),
+            top: (markerY - 42).clamp(10.0, (canvasHeight - 42.0).clamp(10.0, canvasHeight)),
+            child: IgnorePointer(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E2130),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF00FF88).withValues(alpha: 0.5)),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black87, blurRadius: 6),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 14,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: sampledColor,
+                        border: Border.all(color: Colors.white, width: 1.5),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      hexString,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // 4. Semi-transparent guide hint banner with Done button
+          Positioned(
+            top: 10,
+            left: 12,
+            right: 12,
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFF00FF88).withValues(alpha: 0.6)),
+                    boxShadow: const [
+                      BoxShadow(color: Colors.black54, blurRadius: 8),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.colorize, color: Color(0xFF00FF88), size: 12),
+                      const SizedBox(width: 5),
+                      const Text(
+                        'Tap to pick color',
+                        style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        key: const ValueKey('chroma_banner_done_btn'),
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => widget.controller.toggleChromaKeyPickingMode(),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00FF88),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.check, color: Colors.black, size: 12),
+                              SizedBox(width: 2),
+                              Text(
+                                'Done',
+                                style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleChromaPointer(Offset localPos, double canvasWidth, double canvasHeight, VideoClipEntity targetClip) {
+    final normX = (localPos.dx / canvasWidth).clamp(0.0, 1.0);
+    final normY = (localPos.dy / canvasHeight).clamp(0.0, 1.0);
+    widget.controller.setChromaKeyCrosshair(normX, normY);
+    _sampleChromaKeyColorAt(localPos, canvasWidth, canvasHeight, targetClip);
+  }
+
+  Future<void> _sampleChromaKeyColorAt(Offset localOffset, double width, double height, VideoClipEntity targetClip) async {
+    try {
+      final boundary = _chromaPreviewBoundaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary != null) {
+        final image = await boundary.toImage(pixelRatio: 1.0);
+        final byteData = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+        if (byteData != null) {
+          final scaleX = image.width / width;
+          final scaleY = image.height / height;
+          final px = (localOffset.dx * scaleX).clamp(0, image.width - 1).toInt();
+          final py = (localOffset.dy * scaleY).clamp(0, image.height - 1).toInt();
+          final index = (py * image.width + px) * 4;
+          final r = byteData.getUint8(index);
+          final g = byteData.getUint8(index + 1);
+          final b = byteData.getUint8(index + 2);
+          final color = Color.fromARGB(255, r, g, b);
+          final colorHex = (0xFF << 24) | (r << 16) | (g << 8) | b;
+          if (mounted) {
+            setState(() => _liveSampledColor = color);
+            widget.controller.sampleChromaKeyColor(targetClip.id, colorHex);
+          }
+          return;
+        }
+      }
+    } catch (_) {}
+
+    if (mounted) {
+      final defaultHex = targetClip.chromaKey?.keyColorHex ?? 0xFF00FF00;
+      setState(() => _liveSampledColor = Color(defaultHex));
+      widget.controller.sampleChromaKeyColor(targetClip.id, defaultHex);
+    }
   }
 
   Widget _applyClipMask(Widget content, MaskConfigEntity mask) {
@@ -3477,8 +3746,19 @@ class _CanvasPreviewState extends State<CanvasPreview> {
         builder: (ctx) => _FullScreenEditorPreviewDialog(
           timelineState: widget.timelineState,
           controller: widget.controller,
-          videoController: _currentPlayingPath != null ? _videoControllers[_currentPlayingPath] : null,
           buildVideoFrame: (clip, pos, isSel) => _buildVideoClipFrame(clip, pos, isSel),
+          applyVideoEffect: ({
+            required Widget content,
+            required VideoEffectType effect,
+            required double intensity,
+            required int offsetInClipMs,
+          }) => _applyVideoEffect(
+            content: content,
+            effect: effect,
+            intensity: intensity,
+            offsetInClipMs: offsetInClipMs,
+          ),
+          onSyncVideo: (st) => _syncActiveVideoController(st),
         ),
       ),
     );
@@ -4689,14 +4969,21 @@ class _CyberScanEffectPainter extends CustomPainter {
 class _FullScreenEditorPreviewDialog extends StatefulWidget {
   final TimelineState timelineState;
   final EditorController controller;
-  final VideoPlayerController? videoController;
   final Widget Function(VideoClipEntity clip, int currentPosMs, bool isSelected) buildVideoFrame;
+  final Widget Function({
+    required Widget content,
+    required VideoEffectType effect,
+    required double intensity,
+    required int offsetInClipMs,
+  }) applyVideoEffect;
+  final void Function(TimelineState state) onSyncVideo;
 
   const _FullScreenEditorPreviewDialog({
     required this.timelineState,
     required this.controller,
-    required this.videoController,
     required this.buildVideoFrame,
+    required this.applyVideoEffect,
+    required this.onSyncVideo,
   });
 
   @override
@@ -4705,10 +4992,38 @@ class _FullScreenEditorPreviewDialog extends StatefulWidget {
 
 class _FullScreenEditorPreviewDialogState extends State<_FullScreenEditorPreviewDialog> {
   bool _showControls = true;
+  late TimelineState _currentState;
+  void Function()? _removeListener;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentState = widget.controller.currentState;
+    _removeListener = widget.controller.addListener((newState) {
+      if (mounted) {
+        setState(() {
+          _currentState = newState;
+        });
+        widget.onSyncVideo(newState);
+      }
+    });
+    // Immediately sync all active video playback states on opening full screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        widget.onSyncVideo(_currentState);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _removeListener?.call();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final state = widget.timelineState;
+    final state = _currentState;
     final project = state.project;
     final activeClip = state.activeVideoClip;
     final currentPosMs = state.playheadPositionMs;
@@ -4745,6 +5060,7 @@ class _FullScreenEditorPreviewDialogState extends State<_FullScreenEditorPreview
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
+                          // Base track: Main video/photo clip
                           if (activeClip != null)
                             widget.buildVideoFrame(activeClip, currentPosMs, false)
                           else
@@ -4754,6 +5070,60 @@ class _FullScreenEditorPreviewDialogState extends State<_FullScreenEditorPreview
                                 child: Text('No Clip at Playhead', style: TextStyle(color: Colors.white54)),
                               ),
                             ),
+
+                          // Picture-in-Picture (PIP) Overlays Track Layer (Green Screen, Videos, Photos)
+                          ...state.activeOverlayClips.map((overlayClip) {
+                            return widget.buildVideoFrame(overlayClip, currentPosMs, false);
+                          }),
+
+                          // Active Timeline Effect Clips Layer
+                          ...project.effectClips
+                              .where((e) => currentPosMs >= e.timelineStartMs && currentPosMs <= e.timelineEndMs)
+                              .map((effClip) {
+                            final offsetInEffect = currentPosMs - effClip.timelineStartMs;
+                            return Positioned.fill(
+                              child: IgnorePointer(
+                                child: widget.applyVideoEffect(
+                                  content: const SizedBox.expand(),
+                                  effect: effClip.effectType,
+                                  intensity: effClip.intensity,
+                                  offsetInClipMs: offsetInEffect,
+                                ),
+                              ),
+                            );
+                          }),
+
+                          // Subtitles Layer
+                          ...project.subtitles
+                              .where((s) => currentPosMs >= s.timelineStartMs && currentPosMs <= s.timelineEndMs)
+                              .map((sub) {
+                            return Positioned(
+                              left: 20,
+                              right: 20,
+                              bottom: 30,
+                              child: Center(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.7),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    sub.text,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Color(sub.colorHex),
+                                      fontSize: sub.fontSize * (canvasWidth / 360.0).clamp(0.8, 2.0),
+                                      fontWeight: FontWeight.w600,
+                                      shadows: const [
+                                        Shadow(color: Colors.black, blurRadius: 4, offset: Offset(1, 1)),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
 
                           // Text Overlays
                           ...activeTexts.map((textEntity) {
@@ -4898,7 +5268,7 @@ class _FullScreenEditorPreviewDialogState extends State<_FullScreenEditorPreview
                         ],
                       ),
 
-                      // Minimize / Exit Full Screen Button 🗗
+                      // Minimize / Exit Full Screen Button
                       InkWell(
                         onTap: () => Navigator.of(context).pop(),
                         borderRadius: BorderRadius.circular(20),

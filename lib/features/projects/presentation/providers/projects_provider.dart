@@ -9,6 +9,7 @@ import 'package:looma/features/editor/domain/entities/video_clip_entity.dart';
 import 'package:looma/features/filters_effects/domain/entities/filter_preset.dart';
 import 'package:looma/features/projects/domain/entities/aspect_ratio_type.dart';
 import 'package:looma/features/projects/domain/entities/project_entity.dart';
+import 'package:looma/features/projects/domain/entities/sync_status_type.dart';
 import 'package:looma/features/projects/domain/repositories/project_repository.dart';
 import 'package:looma/features/projects/domain/usecases/project_usecases.dart';
 import 'package:looma/features/text_stickers/domain/entities/overlay_animation_type.dart';
@@ -281,6 +282,28 @@ class ProjectsNotifier extends StateNotifier<ProjectsState> {
     }
   }
 
+  Future<void> renameProject(String id, String newTitle) async {
+    final clean = newTitle.trim();
+    if (clean.isEmpty) return;
+    try {
+      final index = state.projects.indexWhere((p) => p.id == id);
+      if (index != -1) {
+        final current = state.projects[index];
+        final updated = current.copyWith(
+          title: clean,
+          updatedAt: DateTime.now(),
+        );
+        await saveProjectUseCase(updated);
+        final list = List<ProjectEntity>.from(state.projects);
+        list[index] = updated;
+        state = state.copyWith(projects: list);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      state = state.copyWith(errorMessage: 'Failed to rename project: $e');
+    }
+  }
+
   Future<void> deleteProject(String id) async {
     try {
       await deleteProjectUseCase(id);
@@ -303,15 +326,19 @@ final projectsNotifierProvider =
   );
 });
 
+final projectSyncFilterProvider = StateProvider<SyncStatusType?>((ref) => null);
+
 /// Filtered projects selector provider
 final filteredProjectsProvider = Provider<List<ProjectEntity>>((ref) {
   final state = ref.watch(projectsNotifierProvider);
   final query = ref.watch(projectSearchQueryProvider).toLowerCase();
   final ratioFilter = ref.watch(projectFilterRatioProvider);
+  final syncFilter = ref.watch(projectSyncFilterProvider);
 
   return state.projects.where((p) {
     final matchesQuery = query.isEmpty || p.title.toLowerCase().contains(query);
     final matchesRatio = ratioFilter == null || p.aspectRatio == ratioFilter;
-    return matchesQuery && matchesRatio;
+    final matchesSync = syncFilter == null || p.syncStatus == syncFilter;
+    return matchesQuery && matchesRatio && matchesSync;
   }).toList();
 });

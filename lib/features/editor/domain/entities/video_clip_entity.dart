@@ -23,6 +23,7 @@ class VideoClipEntity {
   final double volume; // 0.0 to 2.0 (default 1.0 = unchanged original audio)
   final bool isMuted; // User-controlled mute state
   final FilterType filterType;
+  final double filterIntensity; // 0.0 to 1.0 (default 1.0 = full strength)
   final double brightness; // -1.0 to 1.0
   final double contrast; // 0.5 to 2.0
   final double saturation; // 0.0 to 2.0
@@ -70,6 +71,7 @@ class VideoClipEntity {
     this.volume = 1.0,
     this.isMuted = false,
     this.filterType = FilterType.none,
+    this.filterIntensity = 1.0,
     this.brightness = 0.0,
     this.contrast = 1.0,
     this.saturation = 1.0,
@@ -137,6 +139,7 @@ class VideoClipEntity {
     double? volume,
     bool? isMuted,
     FilterType? filterType,
+    double? filterIntensity,
     double? brightness,
     double? contrast,
     double? saturation,
@@ -163,6 +166,7 @@ class VideoClipEntity {
     CropRectEntity? crop,
     MaskConfigEntity? mask,
     ChromaKeyConfigEntity? chromaKey,
+    bool clearChromaKey = false,
     SpeedCurveType? speedCurve,
     bool? isReversed,
     bool? isOverlay,
@@ -180,6 +184,7 @@ class VideoClipEntity {
       volume: volume ?? this.volume,
       isMuted: isMuted ?? this.isMuted,
       filterType: filterType ?? this.filterType,
+      filterIntensity: filterIntensity ?? this.filterIntensity,
       brightness: brightness ?? this.brightness,
       contrast: contrast ?? this.contrast,
       saturation: saturation ?? this.saturation,
@@ -205,7 +210,7 @@ class VideoClipEntity {
       animationCombo: animationCombo ?? this.animationCombo,
       crop: crop ?? this.crop,
       mask: mask ?? this.mask,
-      chromaKey: chromaKey ?? this.chromaKey,
+      chromaKey: clearChromaKey ? null : (chromaKey ?? this.chromaKey),
       speedCurve: speedCurve ?? this.speedCurve,
       isReversed: isReversed ?? this.isReversed,
       isOverlay: isOverlay ?? this.isOverlay,
@@ -224,6 +229,7 @@ class VideoClipEntity {
           speed == other.speed &&
           volume == other.volume &&
           filterType == other.filterType &&
+          filterIntensity == other.filterIntensity &&
           brightness == other.brightness &&
           contrast == other.contrast &&
           saturation == other.saturation &&
@@ -256,6 +262,7 @@ class VideoClipEntity {
         speed,
         volume,
         filterType,
+        filterIntensity,
         effectType,
         effectIntensity,
         blurSigma,

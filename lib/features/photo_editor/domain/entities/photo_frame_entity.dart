@@ -8,6 +8,7 @@ class PhotoFrameEntity {
   final double offsetY;
   final double rotation;
   final FilterType filterType;
+  final double filterIntensity; // 0.0 to 1.0 (default 1.0 = full strength)
   final double brightness;
   final double contrast;
   final double saturation;
@@ -20,6 +21,7 @@ class PhotoFrameEntity {
     this.offsetY = 0.0,
     this.rotation = 0.0,
     this.filterType = FilterType.none,
+    this.filterIntensity = 1.0,
     this.brightness = 0.0,
     this.contrast = 1.0,
     this.saturation = 1.0,
@@ -33,6 +35,7 @@ class PhotoFrameEntity {
     double? offsetY,
     double? rotation,
     FilterType? filterType,
+    double? filterIntensity,
     double? brightness,
     double? contrast,
     double? saturation,
@@ -45,6 +48,7 @@ class PhotoFrameEntity {
       offsetY: offsetY ?? this.offsetY,
       rotation: rotation ?? this.rotation,
       filterType: filterType ?? this.filterType,
+      filterIntensity: filterIntensity ?? this.filterIntensity,
       brightness: brightness ?? this.brightness,
       contrast: contrast ?? this.contrast,
       saturation: saturation ?? this.saturation,
@@ -60,6 +64,7 @@ class PhotoFrameEntity {
       'offsetY': offsetY,
       'rotation': rotation,
       'filterType': filterType.name,
+      'filterIntensity': filterIntensity,
       'brightness': brightness,
       'contrast': contrast,
       'saturation': saturation,
@@ -74,10 +79,8 @@ class PhotoFrameEntity {
       offsetX: (json['offsetX'] as num?)?.toDouble() ?? 0.0,
       offsetY: (json['offsetY'] as num?)?.toDouble() ?? 0.0,
       rotation: (json['rotation'] as num?)?.toDouble() ?? 0.0,
-      filterType: FilterType.values.firstWhere(
-        (f) => f.name == json['filterType'],
-        orElse: () => FilterType.none,
-      ),
+      filterType: FilterType.fromString(json['filterType'] as String?),
+      filterIntensity: (json['filterIntensity'] as num?)?.toDouble() ?? 1.0,
       brightness: (json['brightness'] as num?)?.toDouble() ?? 0.0,
       contrast: (json['contrast'] as num?)?.toDouble() ?? 1.0,
       saturation: (json['saturation'] as num?)?.toDouble() ?? 1.0,

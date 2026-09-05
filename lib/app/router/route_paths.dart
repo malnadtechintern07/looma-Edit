@@ -5,6 +5,7 @@ abstract class RoutePaths {
   static const String store = '/store';
   static const String cloud = '/cloud';
   static const String export = '/export/:projectId';
+  static const String auth = '/auth';
 
   /// Helper to format dynamic route paths
   static String editorPath(String projectId) => '/editor/$projectId';

@@ -8,6 +8,7 @@ import '../../domain/entities/photo_project_entity.dart';
 import '../../domain/entities/photo_sticker_overlay_entity.dart';
 import '../../domain/entities/photo_text_overlay_entity.dart';
 import '../../domain/entities/watermark_entity.dart';
+import '../../../filters_effects/domain/entities/filter_preset.dart';
 
 class PhotoEditorState {
   final PhotoProjectEntity project;
@@ -72,9 +73,9 @@ final photoEditorControllerProvider = StateNotifierProvider.family
 });
 
 class PhotoEditorController extends StateNotifier<PhotoEditorState> {
-  final PhotoProjectRepository _repository;
+  final PhotoProjectRepository? _repository;
 
-  PhotoEditorController(PhotoProjectEntity initialProject, this._repository)
+  PhotoEditorController(PhotoProjectEntity initialProject, [this._repository])
       : super(PhotoEditorState(project: initialProject));
 
   void _recordHistory() {
@@ -229,6 +230,7 @@ class PhotoEditorController extends StateNotifier<PhotoEditorState> {
   void updateFrameColorGrading(
     String frameId, {
     dynamic filterType,
+    double? filterIntensity,
     double? brightness,
     double? contrast,
     double? saturation,
@@ -236,8 +238,12 @@ class PhotoEditorController extends StateNotifier<PhotoEditorState> {
     _recordHistory();
     final updatedFrames = state.project.frames.map((f) {
       if (f.id == frameId) {
+        final FilterType newFilter = filterType is FilterType
+            ? filterType
+            : (filterType != null ? FilterType.fromString(filterType.toString()) : f.filterType);
         return f.copyWith(
-          filterType: filterType ?? f.filterType,
+          filterType: newFilter,
+          filterIntensity: filterIntensity ?? (newFilter == FilterType.none ? 1.0 : f.filterIntensity),
           brightness: brightness ?? f.brightness,
           contrast: contrast ?? f.contrast,
           saturation: saturation ?? f.saturation,
@@ -250,12 +256,22 @@ class PhotoEditorController extends StateNotifier<PhotoEditorState> {
     _persist();
   }
 
-  void applyFilterToAllFrames(dynamic filterType) {
+  void applyFilterToAllFrames(dynamic filterType, {double? filterIntensity}) {
     _recordHistory();
-    final updatedFrames = state.project.frames.map((f) => f.copyWith(filterType: filterType)).toList();
+    final FilterType newFilter = filterType is FilterType
+        ? filterType
+        : (filterType != null ? FilterType.fromString(filterType.toString()) : FilterType.none);
+    final updatedFrames = state.project.frames.map((f) => f.copyWith(
+      filterType: newFilter,
+      filterIntensity: filterIntensity ?? (newFilter == FilterType.none ? 1.0 : f.filterIntensity),
+    )).toList();
     final updated = state.project.copyWith(frames: updatedFrames, updatedAt: DateTime.now());
     state = state.copyWith(project: updated);
     _persist();
+  }
+
+  void removeFilter(String frameId) {
+    updateFrameColorGrading(frameId, filterType: FilterType.none, filterIntensity: 1.0);
   }
 
   void updateWatermark(WatermarkEntity watermark) {
@@ -326,6 +342,6 @@ class PhotoEditorController extends StateNotifier<PhotoEditorState> {
   }
 
   Future<void> _persist() async {
-    await _repository.savePhotoProject(state.project);
+    await _repository?.savePhotoProject(state.project);
   }
 }

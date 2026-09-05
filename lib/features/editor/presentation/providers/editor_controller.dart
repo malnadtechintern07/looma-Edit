@@ -51,6 +51,9 @@ class EditorController extends StateNotifier<TimelineState> {
           playheadPositionMs: project.lastPlayheadPositionMs,
         ));
 
+  /// Synchronous public getter for the current timeline state
+  TimelineState get currentState => state;
+
   void _startPlaybackTimer() {
     _playbackTimer?.cancel();
     _lastPlaybackTime = DateTime.now();
@@ -252,11 +255,14 @@ class EditorController extends StateNotifier<TimelineState> {
     _persistChanges();
   }
 
-  void setClipFilter(String clipId, FilterType filter) {
+  void setClipFilter(String clipId, FilterType filter, {double? intensity}) {
     _recordHistory();
     final clips = state.project.videoClips.map((c) {
       if (c.id == clipId) {
-        return c.copyWith(filterType: filter);
+        return c.copyWith(
+          filterType: filter,
+          filterIntensity: intensity ?? (filter == FilterType.none ? 1.0 : c.filterIntensity),
+        );
       }
       return c;
     }).toList();
@@ -264,6 +270,26 @@ class EditorController extends StateNotifier<TimelineState> {
     final updated = state.project.copyWith(videoClips: clips);
     state = state.copyWith(project: updated);
     _persistChanges();
+  }
+
+  void setClipFilterIntensity(String clipId, double intensity) {
+    _recordHistory();
+    final clips = state.project.videoClips.map((c) {
+      if (c.id == clipId) {
+        return c.copyWith(
+          filterIntensity: intensity.clamp(0.0, 1.0),
+        );
+      }
+      return c;
+    }).toList();
+
+    final updated = state.project.copyWith(videoClips: clips);
+    state = state.copyWith(project: updated);
+    _persistChanges();
+  }
+
+  void removeClipFilter(String clipId) {
+    setClipFilter(clipId, FilterType.none, intensity: 1.0);
   }
 
   void setClipEffect(String clipId, VideoEffectType effect, {double intensity = 1.0}) {
@@ -477,10 +503,14 @@ class EditorController extends StateNotifier<TimelineState> {
   }
 
   void setClipChromaKey(String clipId, ChromaKeyConfigEntity? chromaKey) {
+    if (!mounted) return;
     _recordHistory();
     final clips = state.project.videoClips.map((c) {
       if (c.id == clipId) {
-        return c.copyWith(chromaKey: chromaKey);
+        return c.copyWith(
+          chromaKey: chromaKey,
+          clearChromaKey: chromaKey == null,
+        );
       }
       return c;
     }).toList();
@@ -488,6 +518,68 @@ class EditorController extends StateNotifier<TimelineState> {
     final updated = state.project.copyWith(videoClips: clips);
     state = state.copyWith(project: updated);
     _persistChanges();
+  }
+
+  /// Activates interactive Chroma Key picking mode on the preview for [clipId]
+  void openChromaKeyMode(String clipId) {
+    final clip = state.project.videoClips.where((c) => c.id == clipId).firstOrNull;
+    if (clip == null) return;
+
+    // If clip doesn't have chroma key or it's disabled, initialize it with enabled = true
+    if (clip.chromaKey == null || !clip.chromaKey!.isEnabled) {
+      final initialConfig = (clip.chromaKey ?? const ChromaKeyConfigEntity()).copyWith(
+        isEnabled: true,
+        keyColorHex: clip.chromaKey?.keyColorHex ?? 0xFF00FF00,
+      );
+      setClipChromaKey(clipId, initialConfig);
+    }
+
+    state = state.copyWith(
+      isChromaKeyPickingMode: true,
+      chromaKeyTargetClipId: clipId,
+      chromaKeyCrosshairX: 0.5,
+      chromaKeyCrosshairY: 0.5,
+    );
+  }
+
+  /// Deactivates Chroma Key picking mode
+  void closeChromaKeyMode() {
+    state = state.copyWith(
+      isChromaKeyPickingMode: false,
+      clearChromaKeyTarget: true,
+    );
+  }
+
+  /// Toggles Chroma Key interactive color picking mode on/off
+  void toggleChromaKeyPickingMode() {
+    state = state.copyWith(
+      isChromaKeyPickingMode: !state.isChromaKeyPickingMode,
+    );
+  }
+
+  /// Updates crosshair coordinates on the preview (normalized 0..1)
+  void setChromaKeyCrosshair(double x, double y) {
+    state = state.copyWith(
+      chromaKeyCrosshairX: x.clamp(0.0, 1.0),
+      chromaKeyCrosshairY: y.clamp(0.0, 1.0),
+    );
+  }
+
+  /// Samples color under crosshair and updates chroma key config
+  void sampleChromaKeyColor(String clipId, int colorHex) {
+    if (!mounted) return;
+    final clip = state.project.videoClips.where((c) => c.id == clipId).firstOrNull;
+    final current = clip?.chromaKey ?? const ChromaKeyConfigEntity();
+    final updated = current.copyWith(
+      isEnabled: true,
+      keyColorHex: colorHex,
+    );
+    setClipChromaKey(clipId, updated);
+  }
+
+  /// Resets or removes chroma key for the given clip
+  void resetChromaKey(String clipId) {
+    setClipChromaKey(clipId, null);
   }
 
   void setClipSpeedCurve(String clipId, SpeedCurveType curve) {
@@ -769,6 +861,7 @@ class EditorController extends StateNotifier<TimelineState> {
 
     final updated = state.project.copyWith(
       videoClips: [...state.project.videoClips, overlayClip],
+      durationMs: max(state.project.durationMs, startMs + effectiveDuration),
     );
 
     state = state.copyWith(
@@ -1224,30 +1317,59 @@ class EditorController extends StateNotifier<TimelineState> {
     if (clip.isPhoto) return;
     // If real duration differs from the recorded source duration
     if (clip.sourceDurationMs != realDurationMs) {
-      final wasFullClip = clip.trimEndMs >= clip.sourceDurationMs || clip.trimEndMs == 5000 || clip.trimEndMs == 6000;
+      final wasFullClip = clip.trimEndMs >= clip.sourceDurationMs ||
+          clip.trimEndMs == 4000 ||
+          clip.trimEndMs == 5000 ||
+          clip.trimEndMs == 6000;
       final newTrimEnd = wasFullClip ? realDurationMs : min(clip.trimEndMs, realDurationMs);
 
       final List<VideoClipEntity> updatedClips = List.from(state.project.videoClips);
+
+      if (clip.isOverlay) {
+        // Overlay clip: maintain user-defined timeline start, update duration
+        final effectiveDur = newTrimEnd - clip.trimStartMs;
+        updatedClips[clipIndex] = clip.copyWith(
+          sourceDurationMs: realDurationMs,
+          trimEndMs: newTrimEnd,
+          timelineEndMs: clip.timelineStartMs + (effectiveDur > 0 ? effectiveDur : realDurationMs),
+        );
+
+        final maxEnd = updatedClips.fold(0, (maxVal, c) => max(maxVal, c.timelineEndMs));
+        final updatedProject = state.project.copyWith(
+          videoClips: updatedClips,
+          durationMs: max(maxEnd, 1000),
+        );
+
+        state = state.copyWith(project: updatedProject);
+        _persistChanges();
+        return;
+      }
+
       updatedClips[clipIndex] = clip.copyWith(
         sourceDurationMs: realDurationMs,
         trimEndMs: newTrimEnd,
       );
 
-      // Re-align all clips sequentially along timeline
+      // Re-align only main track clips sequentially along timeline
       int currentOffset = 0;
       final alignedClips = <VideoClipEntity>[];
       for (final c in updatedClips) {
-        final dur = c.effectiveDurationMs;
-        alignedClips.add(c.copyWith(
-          timelineStartMs: currentOffset,
-          timelineEndMs: currentOffset + dur,
-        ));
-        currentOffset += dur;
+        if (c.isOverlay) {
+          alignedClips.add(c);
+        } else {
+          final dur = c.effectiveDurationMs;
+          alignedClips.add(c.copyWith(
+            timelineStartMs: currentOffset,
+            timelineEndMs: currentOffset + dur,
+          ));
+          currentOffset += dur;
+        }
       }
 
+      final maxEnd = alignedClips.fold(0, (maxVal, c) => max(maxVal, c.timelineEndMs));
       final updatedProject = state.project.copyWith(
         videoClips: alignedClips,
-        durationMs: currentOffset,
+        durationMs: max(maxEnd, 1000),
       );
 
       state = state.copyWith(project: updatedProject);
@@ -2322,6 +2444,7 @@ class EditorController extends StateNotifier<TimelineState> {
 
     final updated = state.project.copyWith(
       videoClips: [...state.project.videoClips, photoClip],
+      durationMs: max(state.project.durationMs, startMs + dur),
     );
 
     state = state.copyWith(
