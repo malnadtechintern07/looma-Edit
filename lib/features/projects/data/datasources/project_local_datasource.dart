@@ -63,9 +63,18 @@ class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
     if (projectIds.isEmpty && seededFlag == null) {
       await storageService.writeString('app_seeded.flag', 'true');
       final initialProjects = _getSampleInitialProjects();
-      for (final p in initialProjects) {
+      initialProjects.sort((a, b) {
+        final cmp = b.updatedAt.compareTo(a.updatedAt);
+        if (cmp != 0) return cmp;
+        return b.createdAt.compareTo(a.createdAt);
+      });
+      for (final p in initialProjects.reversed) {
         await saveProject(p);
       }
+      await storageService.writeString(
+        AppConstants.projectsCatalogFile,
+        jsonEncode(initialProjects.map((p) => p.id).toList()),
+      );
       return initialProjects;
     }
 
@@ -73,23 +82,23 @@ class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
       await storageService.writeString('app_seeded.flag', 'true');
     }
 
-    final List<ProjectEntity> results = [];
-    final List<String> validIds = [];
+    final loadedProjects = await Future.wait(
+      projectIds.map((id) => getProjectById(id)),
+    );
+    final List<ProjectEntity> results = loadedProjects.whereType<ProjectEntity>().toList();
 
-    for (final id in projectIds) {
-      final p = await getProjectById(id);
-      if (p != null) {
-        results.add(p);
-        validIds.add(id);
-      }
-    }
+    results.sort((a, b) {
+      final cmp = b.updatedAt.compareTo(a.updatedAt);
+      if (cmp != 0) return cmp;
+      final createCmp = b.createdAt.compareTo(a.createdAt);
+      if (createCmp != 0) return createCmp;
+      return b.id.compareTo(a.id);
+    });
 
-    // Keep catalog in sync with valid project files
-    if (validIds.length != projectIds.length) {
-      await storageService.writeString(AppConstants.projectsCatalogFile, jsonEncode(validIds));
-    }
+    // Always keep catalog strictly in sync with sorted valid project files
+    final sortedIds = results.map((p) => p.id).toList();
+    await storageService.writeString(AppConstants.projectsCatalogFile, jsonEncode(sortedIds));
 
-    results.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     return results;
   }
 
@@ -122,8 +131,7 @@ class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
 
   @override
   Future<void> updateProject(ProjectEntity project) async {
-    final updated = project.copyWith(updatedAt: DateTime.now());
-    await saveProject(updated);
+    await saveProject(project);
   }
 
   @override

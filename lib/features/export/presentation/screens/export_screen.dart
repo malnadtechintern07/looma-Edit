@@ -4,13 +4,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
+import '../../../../core/services/app_actions_service.dart';
 import '../../../../core/services/gallery_saver_service.dart';
 import '../../../../core/widgets/looma_button.dart';
 import '../../../../core/widgets/looma_card.dart';
+import '../../../../core/widgets/looma_watermark.dart';
+import '../../../../core/widgets/rate_us_dialog.dart';
 import '../../../projects/domain/entities/project_entity.dart';
 import '../../../projects/presentation/providers/projects_provider.dart';
 import '../../domain/entities/export_config_entity.dart';
 import '../../domain/entities/render_progress_entity.dart';
+import '../../../media_picker/domain/entities/media_item_entity.dart';
+import '../../../media_picker/domain/services/recent_media_service.dart';
 import '../providers/export_provider.dart';
 
 class ExportScreen extends ConsumerStatefulWidget {
@@ -26,6 +31,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   ExportResolution _selectedResolution = ExportResolution.res1080p;
   int _selectedFps = 30;
   ExportQuality _selectedQuality = ExportQuality.normal;
+  bool _includeWatermark = true;
   String? _autoSavedGalleryPath;
   bool _isAutoSaving = false;
   ProjectEntity? _project;
@@ -47,6 +53,14 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
     }
   }
 
+  Future<void> _checkAndShowFirstExportRating() async {
+    final hasShown = await AppActionsService.hasShownFirstExportRating();
+    if (hasShown || !mounted) return;
+    await Future.delayed(const Duration(milliseconds: 700));
+    if (!mounted) return;
+    await showRateUsDialog(context, isFirstExport: true);
+  }
+
   @override
   Widget build(BuildContext context) {
     // 1. Riverpod listener must be placed directly at the top of build()
@@ -62,12 +76,13 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
         if (next.outputPath != null && File(next.outputPath!).existsSync()) {
           sourcePath = next.outputPath!;
         } else {
-          // Only allow direct single raw video copy if project has no overlays, photos, or text
+          // Only allow direct single raw video copy if project has no overlays, photos, text, or watermark
           final isSingleRawVideo = _project!.videoClips.length == 1 &&
               !_project!.videoClips.first.isPhoto &&
               !_project!.videoClips.first.isOverlay &&
               _project!.textOverlays.isEmpty &&
-              _project!.stickerOverlays.isEmpty;
+              _project!.stickerOverlays.isEmpty &&
+              !_includeWatermark;
 
           if (isSingleRawVideo && File(_project!.videoClips.first.mediaPath).existsSync()) {
             sourcePath = _project!.videoClips.first.mediaPath;
@@ -89,6 +104,24 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
               _isAutoSaving = false;
             });
           }
+
+          // Automatically register exported video in recent media catalog
+          try {
+            final catalogPath = (savedPath != null && savedPath.isNotEmpty && File(savedPath).existsSync())
+                ? savedPath
+                : sourcePath;
+            if (File(catalogPath).existsSync()) {
+              RecentMediaService().addRecentMediaSingle(
+                MediaItemEntity(
+                  path: catalogPath,
+                  name: '${_project!.title} (Exported)',
+                  type: MediaType.video,
+                  durationMs: _project!.calculatedDurationMs,
+                  addedAt: DateTime.now(),
+                ),
+              );
+            }
+          } catch (_) {}
         } else {
           if (mounted) {
             setState(() {
@@ -96,6 +129,12 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
             });
           }
         }
+      }
+
+
+      // Prompt Rate Us dialog once after first successful export
+      if (next.status == RenderStatus.completed && prev?.status != RenderStatus.completed) {
+        _checkAndShowFirstExportRating();
       }
     });
 
@@ -117,6 +156,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       fps: _selectedFps,
       aspectRatio: project.aspectRatio,
       quality: _selectedQuality,
+      includeWatermark: _includeWatermark,
     );
 
     final estimatedSize = config.getEstimatedSizeMb(project.calculatedDurationMs);
@@ -284,6 +324,43 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                       ),
                     );
                   }),
+                  const SizedBox(height: 20),
+
+                  // Looma Watermark Toggle
+                  LoomaCard(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    child: Row(
+                      children: [
+                        const LoomaWatermark(opacity: 0.85, scale: 0.95),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Looma Watermark', style: AppTypography.titleSmall),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Clean watermark in bottom-right corner',
+                                style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch(
+                          key: const Key('watermark_toggle'),
+                          value: _includeWatermark,
+                          activeTrackColor: AppColors.primary,
+                          activeThumbColor: Colors.white,
+                          inactiveTrackColor: const Color(0xFFCBD5E1),
+                          inactiveThumbColor: Colors.white,
+                          trackOutlineColor: WidgetStateProperty.resolveWith((states) =>
+                            states.contains(WidgetState.selected) ? Colors.transparent : const Color(0xFF94A3B8),
+                          ),
+                          onChanged: (val) => setState(() => _includeWatermark = val),
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 16),
 
                   // Estimated Size Banner
@@ -389,20 +466,23 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
             if (isCompleted && _autoSavedGalleryPath != null) ...[
               const SizedBox(height: 16),
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceElevated,
+                  color: AppColors.success.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.success.withValues(alpha: 0.5)),
+                  border: Border.all(color: AppColors.success.withValues(alpha: 0.6), width: 1.2),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.check_circle, color: AppColors.success, size: 18),
-                    const SizedBox(width: 8),
+                    const Icon(Icons.check_circle, color: AppColors.success, size: 20),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         'Directly Saved: ${_autoSavedGalleryPath!}',
-                        style: const TextStyle(color: Colors.white70, fontSize: 11),
+                        style: AppTypography.bodySmall.copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),

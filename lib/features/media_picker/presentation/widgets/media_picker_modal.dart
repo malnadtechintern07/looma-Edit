@@ -1,8 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import '../../../../core/widgets/responsive_tap_button.dart';
 import '../../domain/entities/media_item_entity.dart';
 import '../../domain/services/device_media_service.dart';
+import '../../domain/services/recent_media_service.dart';
 
 class MediaPickerModal extends StatefulWidget {
   final String title;
@@ -31,89 +33,95 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
   _PickerSubTab _activeSubTab = _PickerSubTab.videos;
   _PickerBottomNav _activeBottomNav = _PickerBottomNav.addMedia;
 
-  String _selectedAlbum = 'All Media';
+  String _selectedAlbum = 'Recent';
   bool _isHdEnabled = true;
   bool _isLoading = false;
 
   final List<MediaItemEntity> _selectedItems = [];
-  final List<MediaItemEntity> _deviceMediaList = [];
+  final List<MediaItemEntity> _recentMediaList = [];
 
-  // Preset demo stock media matching the exact look in Image 1
+  // Preset demo stock media matching the exact look and durations in Image 1
   final List<MediaItemEntity> _demoMediaList = [
     const MediaItemEntity(
       path: 'assets/branding/demo_vid1.mp4',
+      name: 'Lake Horizon Scene',
+      type: MediaType.video,
+      durationMs: 4000, // 00:04
+    ),
+    const MediaItemEntity(
+      path: 'assets/demo/ramen_bar.mp4',
+      name: 'Boat Fishing Harbor',
+      type: MediaType.video,
+      durationMs: 18000, // 00:18
+    ),
+    const MediaItemEntity(
+      path: 'assets/demo/tokyo_shinjuku.mp4',
+      name: 'Garden Greenery Walk',
+      type: MediaType.video,
+      durationMs: 60000, // 01:00
+    ),
+    const MediaItemEntity(
+      path: 'assets/branding/demo_vid2.mp4',
+      name: 'Lake Panorama View',
+      type: MediaType.video,
+      durationMs: 11000, // 00:11
+    ),
+    const MediaItemEntity(
+      path: 'assets/demo/cyberpunk_arcade.mp4',
+      name: 'Green Screen Studio',
+      type: MediaType.video,
+      durationMs: 11000, // 00:11
+    ),
+    const MediaItemEntity(
+      path: 'assets/demo/tokyo_street.mp4',
+      name: 'Night Street Motion',
+      type: MediaType.video,
+      durationMs: 35000, // 00:35
+    ),
+    const MediaItemEntity(
+      path: 'assets/demo/urban_skate.mp4',
       name: 'Office Room Walkthrough',
       type: MediaType.video,
       durationMs: 49000, // 00:49
     ),
     const MediaItemEntity(
-      path: 'assets/branding/demo_vid2.mp4',
+      path: 'assets/demo/overlay_vid.mp4',
       name: 'Temple Courtyard Ceremony',
       type: MediaType.video,
       durationMs: 104000, // 01:44
     ),
     const MediaItemEntity(
-      path: 'assets/branding/demo_vid3.mp4',
-      name: 'Studio Setup & Intro',
-      type: MediaType.video,
-      durationMs: 35000, // 00:35
-    ),
-    const MediaItemEntity(
-      path: 'assets/branding/demo_vid4.mp4',
-      name: 'Friends Selfie Vlog',
-      type: MediaType.video,
-      durationMs: 6000, // 00:06
-    ),
-    const MediaItemEntity(
-      path: 'assets/branding/demo_vid5.mp4',
+      path: 'assets/sample/sample_export.mp4',
       name: 'Desktop Screencast',
       type: MediaType.video,
       durationMs: 11000, // 00:11
     ),
     const MediaItemEntity(
-      path: 'assets/branding/demo_vid6.mp4',
-      name: 'Night City Lights',
+      path: 'assets/demo/tokyo_street.mp4',
+      name: 'Friends Vlog Selfie',
+      type: MediaType.video,
+      durationMs: 6000, // 00:06
+    ),
+    const MediaItemEntity(
+      path: 'assets/demo/alps_drone.mp4',
+      name: 'Evening Atmosphere',
       type: MediaType.video,
       durationMs: 88000, // 01:28
     ),
     const MediaItemEntity(
-      path: 'assets/branding/demo_vid7.mp4',
-      name: 'Ocean Waves & Sunset',
-      type: MediaType.video,
-      durationMs: 17000, // 00:17
-    ),
-    const MediaItemEntity(
-      path: 'assets/branding/demo_vid8.mp4',
-      name: 'Eyes Dramatic Close-up',
+      path: 'assets/demo/urban_skate.mp4',
+      name: 'Downtown Skater',
       type: MediaType.video,
       durationMs: 13000, // 00:13
     ),
     const MediaItemEntity(
-      path: 'assets/branding/demo_vid9.mp4',
-      name: 'Nature Horizon Panorama',
-      type: MediaType.video,
-      durationMs: 3000, // 00:03
-    ),
-    const MediaItemEntity(
-      path: 'assets/branding/demo_vid10.mp4',
-      name: 'Portrait Window Light',
-      type: MediaType.video,
-      durationMs: 3000, // 00:03
-    ),
-    const MediaItemEntity(
-      path: 'assets/branding/demo_vid11.mp4',
-      name: 'Fashion Studio Pose',
-      type: MediaType.video,
-      durationMs: 3000, // 00:03
-    ),
-    const MediaItemEntity(
       path: 'assets/branding/demo_photo1.jpg',
-      name: 'Creative Portrait',
+      name: 'Sunset Beach Portrait',
       type: MediaType.photo,
       durationMs: 4000,
     ),
     const MediaItemEntity(
-      path: 'assets/branding/demo_photo2.jpg',
+      path: 'assets/demo/sunset_beach.jpg',
       name: 'City Skyline',
       type: MediaType.photo,
       durationMs: 4000,
@@ -123,16 +131,16 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
   @override
   void initState() {
     super.initState();
-    _loadDeviceMedia();
+    _loadRecentMedia();
   }
 
-  Future<void> _loadDeviceMedia() async {
-    // Initial fetch from device gallery in background
+  Future<void> _loadRecentMedia() async {
     try {
-      final videos = await _mediaService.pickVideosFromDevice();
-      if (mounted && videos.isNotEmpty) {
+      final recents = await RecentMediaService().getRecentMedia();
+      if (mounted) {
         setState(() {
-          _deviceMediaList.addAll(videos);
+          _recentMediaList.clear();
+          _recentMediaList.addAll(recents);
         });
       }
     } catch (_) {}
@@ -156,12 +164,14 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
         : await _mediaService.pickPhotosFromDevice();
 
     if (mounted) {
+      if (picked.isNotEmpty) {
+        await RecentMediaService().addRecentMedia(picked);
+      }
       setState(() {
         _isLoading = false;
         for (final m in picked) {
-          if (!_deviceMediaList.any((e) => e.path == m.path)) {
-            _deviceMediaList.insert(0, m);
-          }
+          _recentMediaList.removeWhere((e) => e.path == m.path);
+          _recentMediaList.insert(0, m);
           if (!_selectedItems.any((e) => e.path == m.path)) {
             _selectedItems.add(m);
           }
@@ -177,15 +187,20 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
         : await _mediaService.capturePhotoWithCamera();
 
     if (mounted) {
+      if (item != null) {
+        await RecentMediaService().addRecentMediaSingle(item);
+      }
       setState(() {
         _isLoading = false;
         if (item != null) {
-          _deviceMediaList.insert(0, item);
+          _recentMediaList.removeWhere((e) => e.path == item.path);
+          _recentMediaList.insert(0, item);
           _selectedItems.add(item);
         }
       });
     }
   }
+
 
   void _showAlbumSelector() {
     showModalBottomSheet(
@@ -196,9 +211,11 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
       ),
       builder: (ctx) {
         final albums = [
-          {'name': 'All Media', 'icon': Icons.perm_media, 'count': '248'},
-          {'name': 'Videos', 'icon': Icons.videocam, 'count': '86'},
-          {'name': 'Photos', 'icon': Icons.photo, 'count': '162'},
+          {'name': 'Recent', 'icon': Icons.access_time_rounded, 'count': '${_recentMediaList.length}'},
+          {'name': 'Device Gallery (Open Directly)', 'icon': Icons.photo_library_outlined, 'count': 'Direct'},
+          {'name': 'All Media', 'icon': Icons.perm_media, 'count': '${_recentMediaList.length}'},
+          {'name': 'Videos', 'icon': Icons.videocam, 'count': '${_recentMediaList.where((m) => m.type == MediaType.video).length}'},
+          {'name': 'Photos', 'icon': Icons.photo, 'count': '${_recentMediaList.where((m) => m.type == MediaType.photo).length}'},
           {'name': 'Camera', 'icon': Icons.camera_alt, 'count': '94'},
           {'name': 'Downloads', 'icon': Icons.download_done, 'count': '42'},
           {'name': 'WhatsApp', 'icon': Icons.chat, 'count': '58'},
@@ -231,26 +248,46 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
               ),
               const Divider(color: Colors.white12),
               ...albums.map((alb) {
+                final isDirectGallery = alb['name'] == 'Device Gallery (Open Directly)';
                 final isSelected = _selectedAlbum == alb['name'];
                 return ListTile(
                   leading: Icon(
                     alb['icon'] as IconData,
-                    color: isSelected ? const Color(0xFF00C2CB) : Colors.white70,
+                    color: isDirectGallery
+                        ? const Color(0xFF00C2CB)
+                        : (isSelected ? const Color(0xFF00C2CB) : Colors.white70),
                   ),
                   title: Text(
                     alb['name'] as String,
                     style: TextStyle(
-                      color: isSelected ? const Color(0xFF00C2CB) : Colors.white,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isDirectGallery
+                          ? const Color(0xFF00C2CB)
+                          : (isSelected ? const Color(0xFF00C2CB) : Colors.white),
+                      fontWeight: (isSelected || isDirectGallery) ? FontWeight.bold : FontWeight.normal,
                     ),
                   ),
                   trailing: Text(
                     alb['count'] as String,
-                    style: const TextStyle(color: Colors.white38, fontSize: 13),
+                    style: TextStyle(
+                      color: isDirectGallery ? const Color(0xFF00C2CB) : Colors.white38,
+                      fontSize: 13,
+                      fontWeight: isDirectGallery ? FontWeight.bold : FontWeight.normal,
+                    ),
                   ),
                   onTap: () {
-                    setState(() => _selectedAlbum = alb['name'] as String);
                     Navigator.of(ctx).pop();
+                    if (isDirectGallery) {
+                      _pickFromGalleryExplicitly();
+                    } else {
+                      setState(() {
+                        _selectedAlbum = alb['name'] as String;
+                        if (alb['name'] == 'Videos') {
+                          _activeSubTab = _PickerSubTab.videos;
+                        } else if (alb['name'] == 'Photos') {
+                          _activeSubTab = _PickerSubTab.photos;
+                        }
+                      });
+                    }
                   },
                 );
               }),
@@ -346,13 +383,18 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
   }
 
   List<MediaItemEntity> _getDisplayMediaList() {
-    final all = [..._deviceMediaList, ..._demoMediaList];
-    if (_activeSubTab == _PickerSubTab.videos) {
-      return all.where((m) => m.type == MediaType.video).toList();
-    } else {
-      return all.where((m) => m.type == MediaType.photo).toList();
+    final targetType = _activeSubTab == _PickerSubTab.videos ? MediaType.video : MediaType.photo;
+    final matchingRecents = _recentMediaList.where((m) => m.type == targetType).toList();
+
+    // Prioritize user's real recently added media
+    if (matchingRecents.isNotEmpty) {
+      return matchingRecents;
     }
+
+    // Fallback demo media for fresh install onboarding
+    return _demoMediaList.where((m) => m.type == targetType).toList();
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -496,23 +538,26 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
               child: Row(
                 children: [
                   // Videos Sub-tab
-                  GestureDetector(
+                  ResponsiveTapButton(
                     onTap: () => setState(() => _activeSubTab = _PickerSubTab.videos),
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            'Videos',
+                          AnimatedDefaultTextStyle(
+                            duration: const Duration(milliseconds: 150),
                             style: TextStyle(
                               color: _activeSubTab == _PickerSubTab.videos ? const Color(0xFF00C2CB) : const Color(0xFF8E95A5),
                               fontSize: 14.5,
                               fontWeight: FontWeight.bold,
                             ),
+                            child: const Text('Videos'),
                           ),
                           const SizedBox(height: 4),
-                          Container(
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            curve: Curves.easeOutCubic,
                             height: 2.5,
                             width: 52,
                             decoration: BoxDecoration(
@@ -527,23 +572,26 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
                   const SizedBox(width: 16),
 
                   // Photos Sub-tab
-                  GestureDetector(
+                  ResponsiveTapButton(
                     onTap: () => setState(() => _activeSubTab = _PickerSubTab.photos),
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            'Photos',
+                          AnimatedDefaultTextStyle(
+                            duration: const Duration(milliseconds: 150),
                             style: TextStyle(
                               color: _activeSubTab == _PickerSubTab.photos ? const Color(0xFF00C2CB) : const Color(0xFF8E95A5),
                               fontSize: 14.5,
                               fontWeight: FontWeight.bold,
                             ),
+                            child: const Text('Photos'),
                           ),
                           const SizedBox(height: 4),
-                          Container(
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            curve: Curves.easeOutCubic,
                             height: 2.5,
                             width: 52,
                             decoration: BoxDecoration(
@@ -557,14 +605,38 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
                   ),
                   const Spacer(),
 
-                  // Quick gallery picker action icon
-                  IconButton(
-                    icon: const Icon(Icons.add_photo_alternate_outlined, color: Colors.white70, size: 20),
-                    tooltip: 'Import from Device',
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                    onPressed: _pickFromGalleryExplicitly,
+                  // Prominent Open Gallery button
+                  ResponsiveTapButton(
+                    key: const Key('picker_header_open_gallery_button'),
+                    onTap: _pickFromGalleryExplicitly,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1C1F2A),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: const Color(0xFF00C2CB).withValues(alpha: 0.4),
+                          width: 1,
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.photo_library_outlined, color: Color(0xFF00C2CB), size: 14),
+                          SizedBox(width: 5),
+                          Text(
+                            'Open Gallery',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
+                  const SizedBox(width: 6),
                   IconButton(
                     icon: const Icon(Icons.camera_alt_outlined, color: Colors.white70, size: 20),
                     tooltip: 'Capture Camera',
@@ -578,7 +650,7 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
 
             const Divider(color: Color(0xFF181A22), height: 1),
 
-            // 3. 3-Column Square Media Grid (CapCut style)
+            // 3. 3-Column Square Media Grid (CapCut style) with Tile 0 "+ Open Gallery"
             Expanded(
               child: Stack(
                 children: [
@@ -591,9 +663,12 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
                       mainAxisSpacing: 1.5,
                       childAspectRatio: 1.0,
                     ),
-                    itemCount: mediaList.length,
+                    itemCount: mediaList.length + 1,
                     itemBuilder: (context, index) {
-                      final item = mediaList[index];
+                      if (index == 0) {
+                        return _buildOpenGalleryTile();
+                      }
+                      final item = mediaList[index - 1];
                       final isSelected = _selectedItems.any((i) => i.path == item.path);
                       final selectedIndex = _selectedItems.indexWhere((i) => i.path == item.path);
 
@@ -605,6 +680,7 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
                       );
                     },
                   ),
+
 
                   if (_isLoading)
                     Container(
@@ -672,8 +748,9 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
                   ElevatedButton(
                     onPressed: selectedCount > 0
                         ? () {
-                            widget.onMediaSelected(_selectedItems);
+                            final items = List<MediaItemEntity>.from(_selectedItems);
                             Navigator.of(context).pop();
+                            widget.onMediaSelected(items);
                           }
                         : null,
                     style: ElevatedButton.styleFrom(
@@ -708,7 +785,10 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
                   // Add media (Active)
                   Expanded(
                     child: InkWell(
-                      onTap: () => setState(() => _activeBottomNav = _PickerBottomNav.addMedia),
+                      onTap: () {
+                        setState(() => _activeBottomNav = _PickerBottomNav.addMedia);
+                        _pickFromGalleryExplicitly();
+                      },
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -790,13 +870,81 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
     );
   }
 
+  Widget _buildOpenGalleryTile() {
+    final isVideos = _activeSubTab == _PickerSubTab.videos;
+    return ResponsiveTapButton(
+      key: const Key('picker_open_gallery_tile'),
+      onTap: _pickFromGalleryExplicitly,
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF161822),
+          border: Border.all(
+            color: const Color(0xFF00C2CB).withValues(alpha: 0.55),
+            width: 1.5,
+          ),
+          borderRadius: BorderRadius.circular(4),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1E212E), Color(0xFF11131A)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF00C2CB).withValues(alpha: 0.15),
+                border: Border.all(
+                  color: const Color(0xFF00C2CB),
+                  width: 1.2,
+                ),
+              ),
+              child: const Icon(
+                Icons.add_photo_alternate_rounded,
+                color: Color(0xFF00C2CB),
+                size: 20,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Open Gallery',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.2,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              isVideos ? 'Device Videos' : 'Device Photos',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.55),
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
   Widget _buildMediaGridTile({
     required MediaItemEntity item,
     required bool isSelected,
     required int? selectedIndex,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
+    return ResponsiveTapButton(
+      key: ValueKey('media_tile_${item.path}'),
       onTap: onTap,
       onLongPress: () => _openMediaPreview(item),
       child: Stack(
@@ -920,11 +1068,25 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
 
   Widget _buildThumbnailImage(MediaItemEntity item) {
     if (item.type == MediaType.video) {
-      if (item.path.startsWith('assets/')) {
-        return _AssetVideoThumbnail(assetPath: item.path, fallback: _buildFallbackThumbnail(item));
-      } else if (File(item.path).existsSync()) {
-        return _DeviceVideoThumbnail(filePath: item.path, fallback: _buildFallbackThumbnail(item));
+      if (item.thumbnailPath != null && item.thumbnailPath!.isNotEmpty) {
+        if (item.thumbnailPath!.startsWith('assets/')) {
+          return Image.asset(
+            item.thumbnailPath!,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => _buildFallbackThumbnail(item),
+          );
+        } else {
+          final file = File(item.thumbnailPath!);
+          if (file.existsSync() && file.lengthSync() > 0) {
+            return Image.file(
+              file,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => _buildFallbackThumbnail(item),
+            );
+          }
+        }
       }
+      return _buildFallbackThumbnail(item);
     } else {
       if (item.path.startsWith('assets/')) {
         return Image.asset(
@@ -932,15 +1094,18 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
           fit: BoxFit.cover,
           errorBuilder: (_, _, _) => _buildFallbackThumbnail(item),
         );
-      } else if (File(item.path).existsSync()) {
-        return Image.file(
-          File(item.path),
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => _buildFallbackThumbnail(item),
-        );
+      } else {
+        final file = File(item.path);
+        if (file.existsSync() && file.lengthSync() > 0) {
+          return Image.file(
+            file,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => _buildFallbackThumbnail(item),
+          );
+        }
+        return _buildFallbackThumbnail(item);
       }
     }
-    return _buildFallbackThumbnail(item);
   }
 
   Widget _buildFallbackThumbnail(MediaItemEntity item) {
@@ -964,10 +1129,17 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
         ),
       ),
       child: Center(
-        child: Icon(
-          item.type == MediaType.video ? Icons.videocam : Icons.photo,
-          color: Colors.white24,
-          size: 28,
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.35),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            item.type == MediaType.video ? Icons.play_arrow_rounded : Icons.photo_camera_back_outlined,
+            color: Colors.white70,
+            size: 24,
+          ),
         ),
       ),
     );

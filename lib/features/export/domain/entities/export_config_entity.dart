@@ -32,6 +32,7 @@ class ExportConfigEntity {
   final int fps;
   final AspectRatioType aspectRatio;
   final ExportQuality quality;
+  final bool includeWatermark;
 
   const ExportConfigEntity({
     required this.projectId,
@@ -39,6 +40,7 @@ class ExportConfigEntity {
     this.fps = 30,
     this.aspectRatio = AspectRatioType.ratio9_16,
     this.quality = ExportQuality.normal,
+    this.includeWatermark = true,
   });
 
   /// Approximate output file size in megabytes
@@ -54,6 +56,7 @@ class ExportConfigEntity {
     int? fps,
     AspectRatioType? aspectRatio,
     ExportQuality? quality,
+    bool? includeWatermark,
   }) {
     return ExportConfigEntity(
       projectId: projectId ?? this.projectId,
@@ -61,6 +64,7 @@ class ExportConfigEntity {
       fps: fps ?? this.fps,
       aspectRatio: aspectRatio ?? this.aspectRatio,
       quality: quality ?? this.quality,
+      includeWatermark: includeWatermark ?? this.includeWatermark,
     );
   }
 }

@@ -321,7 +321,7 @@ class _TemplateFeedScreenState extends ConsumerState<TemplateFeedScreen>
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 1.5),
                       gradient: const LinearGradient(
-                        colors: [Color(0xFF5B4DFB), Color(0xFF00D2D3)],
+                        colors: [AppColors.primary, Color(0xFF00D2D3)],
                       ),
                     ),
                     child: const Center(

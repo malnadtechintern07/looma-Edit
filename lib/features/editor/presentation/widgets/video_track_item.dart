@@ -31,8 +31,12 @@ class VideoTrackItem extends StatefulWidget {
   final VoidCallback onTap;
   final Function(double deltaPixels, bool isLeftHandle)? onHandleDragUpdate;
   final Function(double deltaPixels)? onBodyDragUpdate;
+  final Function(double deltaPixels)? onVerticalDragUpdate;
+  final VoidCallback? onVerticalDragEnd;
   final VoidCallback? onHandleDragStart;
   final VoidCallback? onHandleDragEnd;
+  final Function(int timestampMs)? onKeyframeTap;
+  final int? currentPlayheadMs;
 
   const VideoTrackItem({
     super.key,
@@ -42,8 +46,12 @@ class VideoTrackItem extends StatefulWidget {
     required this.onTap,
     this.onHandleDragUpdate,
     this.onBodyDragUpdate,
+    this.onVerticalDragUpdate,
+    this.onVerticalDragEnd,
     this.onHandleDragStart,
     this.onHandleDragEnd,
+    this.onKeyframeTap,
+    this.currentPlayheadMs,
   });
 
   @override
@@ -60,6 +68,8 @@ class _VideoTrackItemState extends State<VideoTrackItem> {
   VoidCallback get onTap => widget.onTap;
   Function(double deltaPixels, bool isLeftHandle)? get onHandleDragUpdate => widget.onHandleDragUpdate;
   Function(double deltaPixels)? get onBodyDragUpdate => widget.onBodyDragUpdate;
+  Function(double deltaPixels)? get onVerticalDragUpdate => widget.onVerticalDragUpdate;
+  VoidCallback? get onVerticalDragEnd => widget.onVerticalDragEnd;
 
   bool _isImageFile(String path) {
     return widget.clip.isPhoto;
@@ -443,7 +453,7 @@ class _VideoTrackItemState extends State<VideoTrackItem> {
   Widget build(BuildContext context) {
     // Dynamic clip width based on current timeline zoom pixelsPerSecond
     final rawWidth = (clip.effectiveDurationMs / 1000.0) * pixelsPerSecond;
-    const minWidth = 14.0;
+    final minWidth = isSelected ? 56.0 : 18.0;
     final width = max(minWidth, rawWidth);
     final durationStr = TimecodeFormatter.formatMmSsHundredths(clip.effectiveDurationMs);
 
@@ -460,13 +470,13 @@ class _VideoTrackItemState extends State<VideoTrackItem> {
         children: [
           // 1. Clip Box (Filmstrip, Dark Tint, Text, Duration, Badges)
           Container(
-            margin: const EdgeInsets.symmetric(horizontal: 1),
+            margin: const EdgeInsets.symmetric(horizontal: 1.5),
             decoration: BoxDecoration(
               color: const Color(0xFF1E293B),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(6),
               border: Border.all(
-                color: isSelected ? Colors.white : AppColors.surfaceBorder,
-                width: isSelected ? 2.0 : 1.0,
+                color: isSelected ? Colors.white : const Color(0xFF3B4252),
+                width: isSelected ? 2.0 : 1.2,
               ),
               boxShadow: isSelected
                   ? [
@@ -508,8 +518,14 @@ class _VideoTrackItemState extends State<VideoTrackItem> {
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: onTap,
-                  onHorizontalDragUpdate: onBodyDragUpdate != null
+                  onHorizontalDragUpdate: isSelected && onBodyDragUpdate != null
                       ? (details) => onBodyDragUpdate!(details.delta.dx)
+                      : null,
+                  onVerticalDragUpdate: isSelected && onVerticalDragUpdate != null
+                      ? (details) => onVerticalDragUpdate!(details.delta.dy)
+                      : null,
+                  onVerticalDragEnd: isSelected && onVerticalDragEnd != null
+                      ? (_) => onVerticalDragEnd!()
                       : null,
                   child: Padding(
                     padding: EdgeInsets.symmetric(
@@ -591,19 +607,63 @@ class _VideoTrackItemState extends State<VideoTrackItem> {
           // 2. Keyframe Diamond Markers placed on timeline clip at exact timestamps
           ...clip.keyframes.map((kf) {
             final kfX = ((kf.timestampMs / 1000.0) * pixelsPerSecond).clamp(4.0, max(4.0, width - 12.0)).toDouble();
+            final clipPlayheadOffset = (widget.currentPlayheadMs != null)
+                ? (widget.currentPlayheadMs! - clip.timelineStartMs)
+                : null;
+            final isNearPlayhead = clipPlayheadOffset != null && (clipPlayheadOffset - kf.timestampMs).abs() <= 40;
+
             return Positioned(
-              left: kfX,
-              bottom: 3,
-              child: const Icon(
-                Icons.diamond,
-                size: 10,
-                color: AppColors.accent,
+              left: kfX - 8,
+              bottom: 0,
+              child: GestureDetector(
+                key: ValueKey('keyframe-marker-${kf.id}'),
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  if (widget.onKeyframeTap != null) {
+                    widget.onKeyframeTap!(kf.timestampMs);
+                  }
+                },
+                child: Container(
+                  width: 18,
+                  height: 18,
+                  alignment: Alignment.center,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: isNearPlayhead
+                          ? [
+                              BoxShadow(
+                                color: AppColors.accent.withValues(alpha: 0.8),
+                                blurRadius: 6,
+                                spreadRadius: 1,
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: Transform.rotate(
+                      angle: 0.785398, // 45 degrees
+                      child: Container(
+                        width: isNearPlayhead ? 9 : 7,
+                        height: isNearPlayhead ? 9 : 7,
+                        decoration: BoxDecoration(
+                          color: isNearPlayhead ? const Color(0xFFFF4757) : AppColors.accent,
+                          border: Border.all(
+                            color: Colors.white,
+                            width: isNearPlayhead ? 1.5 : 0.8,
+                          ),
+                          borderRadius: BorderRadius.circular(1),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             );
           }),
 
           // 3. Selection Trim & Duration Drag Handles (CapCut Style: Left & Right)
-          if (isSelected && width >= 28.0) ...[
+          if (isSelected) ...[
             _buildCapCutHandle(isLeft: true, clipWidth: width),
             _buildCapCutHandle(isLeft: false, clipWidth: width),
           ],
@@ -621,8 +681,8 @@ class _VideoTrackItemState extends State<VideoTrackItem> {
   /// CapCut-style dual-side drag handle with ergonomic grip lines
   Widget _buildCapCutHandle({required bool isLeft, required double clipWidth}) {
     final isDragging = isLeft ? _isDraggingLeft : _isDraggingRight;
-    final maxHandleW = min(18.0, clipWidth / 2.2);
-    final hitW = max(maxHandleW, min(36.0, clipWidth / 1.5));
+    final handleW = min(16.0, clipWidth / 3.0);
+    final hitW = handleW + 4.0;
 
     return Positioned(
       left: isLeft ? 0 : null,
@@ -631,7 +691,7 @@ class _VideoTrackItemState extends State<VideoTrackItem> {
       bottom: 0,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onPanStart: (_) {
+        onHorizontalDragStart: (_) {
           setState(() {
             if (isLeft) {
               _isDraggingLeft = true;
@@ -641,17 +701,17 @@ class _VideoTrackItemState extends State<VideoTrackItem> {
           });
           widget.onHandleDragStart?.call();
         },
-        onPanUpdate: (details) {
+        onHorizontalDragUpdate: (details) {
           widget.onHandleDragUpdate?.call(details.delta.dx, isLeft);
         },
-        onPanEnd: (_) {
+        onHorizontalDragEnd: (_) {
           setState(() {
             _isDraggingLeft = false;
             _isDraggingRight = false;
           });
           widget.onHandleDragEnd?.call();
         },
-        onPanCancel: () {
+        onHorizontalDragCancel: () {
           setState(() {
             _isDraggingLeft = false;
             _isDraggingRight = false;
@@ -662,14 +722,14 @@ class _VideoTrackItemState extends State<VideoTrackItem> {
           width: hitW,
           alignment: isLeft ? Alignment.centerLeft : Alignment.centerRight,
           child: Container(
-            width: maxHandleW,
+            width: handleW,
             height: double.infinity,
-            margin: const EdgeInsets.symmetric(horizontal: 1),
+            margin: const EdgeInsets.symmetric(horizontal: 0.5),
             decoration: BoxDecoration(
               color: isDragging ? const Color(0xFF00E5FF) : Colors.white,
               borderRadius: BorderRadius.horizontal(
-                left: isLeft ? const Radius.circular(7) : Radius.zero,
-                right: isLeft ? Radius.zero : const Radius.circular(7),
+                left: isLeft ? const Radius.circular(6) : Radius.zero,
+                right: isLeft ? Radius.zero : const Radius.circular(6),
               ),
               boxShadow: [
                 BoxShadow(
@@ -685,17 +745,17 @@ class _VideoTrackItemState extends State<VideoTrackItem> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    width: 2,
-                    height: 15,
+                    width: 1.5,
+                    height: 14,
                     decoration: BoxDecoration(
                       color: isDragging ? const Color(0xFF0F172A) : const Color(0xFF475569),
                       borderRadius: BorderRadius.circular(1),
                     ),
                   ),
-                  const SizedBox(width: 2.5),
+                  const SizedBox(width: 2.0),
                   Container(
-                    width: 2,
-                    height: 15,
+                    width: 1.5,
+                    height: 14,
                     decoration: BoxDecoration(
                       color: isDragging ? const Color(0xFF0F172A) : const Color(0xFF475569),
                       borderRadius: BorderRadius.circular(1),

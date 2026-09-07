@@ -61,6 +61,13 @@ abstract class AppTypography {
         letterSpacing: 0.2,
       );
 
+  static TextStyle get labelMedium => GoogleFonts.inter(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textPrimary,
+        letterSpacing: 0.3,
+      );
+
   static TextStyle get labelSmall => GoogleFonts.inter(
         fontSize: 10,
         fontWeight: FontWeight.w600,

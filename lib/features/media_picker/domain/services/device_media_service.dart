@@ -47,7 +47,8 @@ class DeviceMediaService {
         lower.endsWith('.webm') ||
         lower.endsWith('.avi') ||
         lower.endsWith('.3gp') ||
-        lower.endsWith('.m4v');
+        lower.endsWith('.m4v') ||
+        lower.contains('video');
   }
 
   /// Pick audio/music files from local device storage
@@ -70,14 +71,14 @@ class DeviceMediaService {
     return [];
   }
 
-  /// Pick one or more videos from device storage with exact full duration
+  /// Pick one or more videos and photos from device gallery with exact duration
   Future<List<MediaItemEntity>> pickVideosFromDevice() async {
     try {
       final List<XFile> files = await _imagePicker.pickMultipleMedia();
       if (files.isNotEmpty) {
         final List<MediaItemEntity> results = [];
         for (final f in files) {
-          final isVideo = _isVideoPath(f.path) || f.mimeType?.startsWith('video') == true;
+          final isVideo = _isVideoPath(f.path) || _isVideoPath(f.name) || f.mimeType?.startsWith('video') == true;
           int durationMs = 4000;
           if (isVideo) {
             durationMs = await getVideoDurationMs(f.path);
@@ -93,7 +94,8 @@ class DeviceMediaService {
         }
         return results;
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('pickMultipleMedia error, falling back to gallery video/image: $e');
       try {
         final xfile = await _imagePicker.pickVideo(source: ImageSource.gallery);
         if (xfile != null) {
@@ -104,6 +106,20 @@ class DeviceMediaService {
               name: xfile.name,
               type: MediaType.video,
               durationMs: durationMs,
+            ),
+          ];
+        }
+      } catch (_) {}
+
+      try {
+        final xfile = await _imagePicker.pickImage(source: ImageSource.gallery);
+        if (xfile != null) {
+          return [
+            MediaItemEntity(
+              path: xfile.path,
+              name: xfile.name,
+              type: MediaType.photo,
+              durationMs: 4000,
             ),
           ];
         }

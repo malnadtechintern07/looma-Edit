@@ -1,5 +1,16 @@
 /// Formats millisecond timestamps into SMPTE timecodes and UI strings
 class TimecodeFormatter {
+  /// Format milliseconds into MM:SS (e.g. 00:00, 01:23)
+  static String formatMmSs(int milliseconds) {
+    if (milliseconds < 0) milliseconds = 0;
+    final int totalSeconds = milliseconds ~/ 1000;
+    final int minutes = (totalSeconds % 3600) ~/ 60;
+    final int seconds = totalSeconds % 60;
+    final String mm = minutes.toString().padLeft(2, '0');
+    final String ss = seconds.toString().padLeft(2, '0');
+    return '$mm:$ss';
+  }
+
   /// Format milliseconds into MM:SS.ms (e.g. 01:23.4)
   static String formatMmSsMs(int milliseconds) {
     if (milliseconds < 0) milliseconds = 0;

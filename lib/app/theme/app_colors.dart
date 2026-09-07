@@ -14,13 +14,19 @@ abstract class AppColors {
   static const Color darkSurface = Color(0xFF16181F);
   static const Color darkBorder = Color(0xFF2E3240);
 
-  // Brand Accents (Vibrant Blue-Purple Gradient Tokens from Reference UI)
-  static const Color primary = Color(0xFF5B4DFB); // Royal Violet / Purple
-  static const Color primaryDark = Color(0xFF4338CA);
-  static const Color primaryLight = Color(0xFF8644FF);
+  // Brand Accents (Vibrant Royal Sapphire & Electric Cyan Palette from Reference UI)
+  static const Color primary = Color(0xFF0D6EFD); // Vibrant Royal Sapphire Blue
+  static const Color primaryDark = Color(0xFF0A58CA); // Deep Cobalt
+  static const Color primaryLight = Color(0xFF2563EB); // Electric Blue
 
   static const Color secondary = Color(0xFF00C2CB); // Soft Electric Cyan
-  static const Color secondaryLight = Color(0xFF38BDF8);
+  static const Color secondaryLight = Color(0xFF38BDF8); // Sky Cyan
+
+  static const List<Color> headerGradient = [
+    Color(0xFF084298),
+    Color(0xFF0D6EFD),
+    Color(0xFF0284C7),
+  ];
 
   static const Color accent = Color(0xFFFFB800); // Amber / Gold PRO Badge
   static const Color accentRose = Color(0xFFFF3B5C); // Coral Rose / Red
@@ -48,5 +54,5 @@ abstract class AppColors {
 
   // Soft Elevation Shadows
   static const Color shadowColor = Color(0x0C000000);
-  static const Color cardShadow = Color(0x145B4DFB);
+  static const Color cardShadow = Color(0x140D6EFD);
 }

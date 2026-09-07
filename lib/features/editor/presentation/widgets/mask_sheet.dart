@@ -119,6 +119,11 @@ class _MaskSheetState extends State<MaskSheet> {
                   value: _isInverted,
                   activeTrackColor: AppColors.primary,
                   activeThumbColor: Colors.white,
+                  inactiveTrackColor: const Color(0xFF2E3240),
+                  inactiveThumbColor: const Color(0xFF9CA3AF),
+                  trackOutlineColor: WidgetStateProperty.resolveWith((states) =>
+                    states.contains(WidgetState.selected) ? Colors.transparent : const Color(0xFF4B5563),
+                  ),
                   onChanged: (val) {
                     setState(() => _isInverted = val);
                     _notify();

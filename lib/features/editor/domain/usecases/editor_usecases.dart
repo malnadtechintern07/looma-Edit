@@ -1,4 +1,5 @@
 import 'package:looma/core/utils/id_generator.dart';
+import 'package:looma/features/editor/domain/entities/keyframe_entity.dart';
 import 'package:looma/features/editor/domain/entities/speed_curve_type.dart';
 import 'package:looma/features/editor/domain/entities/video_clip_entity.dart';
 import 'package:looma/features/projects/domain/entities/project_entity.dart';
@@ -22,9 +23,60 @@ class SplitClipUseCase {
     final durationFirstPart = splitPositionMs - clip.timelineStartMs;
     final sourceDeltaFirst = (durationFirstPart * clip.speed).round();
 
+    List<KeyframeEntity> firstKeyframes = const [];
+    List<KeyframeEntity> secondKeyframes = const [];
+
+    if (clip.keyframes.isNotEmpty) {
+      final baseValues = KeyframeValues(
+        posX: clip.positionX,
+        posY: clip.positionY,
+        scale: clip.zoomScale,
+        rotation: clip.rotationDegrees,
+        opacity: clip.opacity,
+      );
+      final splitValues = KeyframeInterpolator.interpolate(
+        keyframes: clip.keyframes,
+        currentOffsetMs: durationFirstPart,
+        baseValues: baseValues,
+      );
+
+      final kfBoundaryFirst = KeyframeEntity(
+        id: IdGenerator.generate(),
+        timestampMs: durationFirstPart,
+        posX: splitValues.posX,
+        posY: splitValues.posY,
+        scale: splitValues.scale,
+        rotation: splitValues.rotation,
+        opacity: splitValues.opacity,
+      );
+
+      final kfBoundarySecond = KeyframeEntity(
+        id: IdGenerator.generate(),
+        timestampMs: 0,
+        posX: splitValues.posX,
+        posY: splitValues.posY,
+        scale: splitValues.scale,
+        rotation: splitValues.rotation,
+        opacity: splitValues.opacity,
+      );
+
+      final before = clip.keyframes.where((k) => k.timestampMs < durationFirstPart - 20).toList();
+      firstKeyframes = [...before, kfBoundaryFirst];
+
+      final after = clip.keyframes
+          .where((k) => k.timestampMs > durationFirstPart + 20)
+          .map((k) => k.copyWith(
+                id: IdGenerator.generate(),
+                timestampMs: k.timestampMs - durationFirstPart,
+              ))
+          .toList();
+      secondKeyframes = [kfBoundarySecond, ...after];
+    }
+
     final firstClip = clip.copyWith(
       timelineEndMs: splitPositionMs,
       trimEndMs: clip.trimStartMs + sourceDeltaFirst,
+      keyframes: firstKeyframes,
     );
 
     final secondClip = clip.copyWith(
@@ -32,6 +84,7 @@ class SplitClipUseCase {
       timelineStartMs: splitPositionMs,
       trimStartMs: clip.trimStartMs + sourceDeltaFirst,
       name: '${clip.name} (Part 2)',
+      keyframes: secondKeyframes,
     );
 
     final updatedClips = List<VideoClipEntity>.from(project.videoClips);
@@ -41,6 +94,7 @@ class SplitClipUseCase {
     return project.copyWith(videoClips: updatedClips);
   }
 }
+
 
 class TrimClipUseCase {
   ProjectEntity call({

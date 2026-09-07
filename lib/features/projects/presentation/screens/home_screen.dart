@@ -5,11 +5,13 @@ import '../../../../app/router/route_paths.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/utils/id_generator.dart';
+import '../../../../core/widgets/responsive_tap_button.dart';
 import '../../../asset_store/presentation/screens/template_feed_screen.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../cloud_sync/presentation/providers/cloud_sync_provider.dart';
 import '../../../editor/domain/entities/video_clip_entity.dart';
 import '../../../media_picker/domain/services/device_media_service.dart';
+import '../../../media_picker/domain/services/recent_media_service.dart';
 import '../../../media_picker/presentation/widgets/media_picker_modal.dart';
 import '../../../photo_editor/domain/entities/photo_frame_entity.dart';
 import '../../../photo_editor/domain/entities/photo_project_entity.dart';
@@ -32,6 +34,16 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _currentNavIndex = 0;
+  final Set<int> _visitedTabs = {0};
+
+  void _onTabSelected(int index) {
+    if (_currentNavIndex != index) {
+      setState(() {
+        _currentNavIndex = index;
+        _visitedTabs.add(index);
+      });
+    }
+  }
 
   final DeviceMediaService _mediaService = DeviceMediaService();
 
@@ -50,28 +62,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Future<void> _openPhotoEditor() async {
     final photos = await _mediaService.pickPhotosFromDevice();
-    if (photos.isNotEmpty && mounted) {
-      final newPhotoProject = PhotoProjectEntity(
+    if (photos.isEmpty || !mounted) return;
+
+    final newPhotoProject = PhotoProjectEntity(
+      id: IdGenerator.generate(),
+      title: photos.first.name.split('.').first,
+      frames: photos.map((p) => PhotoFrameEntity(
         id: IdGenerator.generate(),
-        title: photos.first.name.split('.').first,
-        frames: photos.map((p) => PhotoFrameEntity(
-          id: IdGenerator.generate(),
-          imagePath: p.path,
-        )).toList(),
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-      context.push(RoutePaths.photoEditor, extra: newPhotoProject);
-    } else if (mounted) {
-      final newPhotoProject = PhotoProjectEntity(
-        id: IdGenerator.generate(),
-        title: 'Photo Collage ${DateTime.now().millisecond}',
-        frames: const [],
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-      context.push(RoutePaths.photoEditor, extra: newPhotoProject);
-    }
+        imagePath: p.path,
+      )).toList(),
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+    context.push(RoutePaths.photoEditor, extra: newPhotoProject);
   }
 
   void _openDirectMediaPicker() {
@@ -79,15 +82,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       MaterialPageRoute(
         fullscreenDialog: true,
         builder: (ctx) => MediaPickerModal(
-          title: 'Select Photos & Videos for Project',
+          title: 'Select media',
           actionLabel: 'Add',
           onMediaSelected: (pickedList) async {
-            if (pickedList.isEmpty) return;
+            if (pickedList.isEmpty || !mounted) return;
+
+            RecentMediaService().addRecentMedia(pickedList);
             int offsetMs = 0;
             final List<VideoClipEntity> clips = [];
 
             for (final m in pickedList) {
-              final dur = m.durationMs;
+              final dur = m.durationMs > 0 ? m.durationMs : 4000;
               clips.add(
                 VideoClipEntity(
                   id: IdGenerator.generate(),
@@ -126,23 +131,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    Widget currentBody;
-    switch (_currentNavIndex) {
-      case 1:
-        currentBody = const ProjectsOnlyScreen();
-        break;
-      case 2:
-        currentBody = const TemplateFeedScreen();
-        break;
-      case 3:
-        currentBody = const ProfileMeScreen();
-        break;
-      default:
-        currentBody = _buildHomeDashboardTab();
-    }
-
     return Scaffold(
-      body: currentBody,
+      body: IndexedStack(
+        index: _currentNavIndex,
+        children: [
+          _buildHomeDashboardTab(),
+          _visitedTabs.contains(1) ? const ProjectsOnlyScreen() : const SizedBox.shrink(),
+          _visitedTabs.contains(2) ? const TemplateFeedScreen() : const SizedBox.shrink(),
+          _visitedTabs.contains(3) ? const ProfileMeScreen() : const SizedBox.shrink(),
+        ],
+      ),
       bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
@@ -156,192 +154,348 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFF8F9FE),
-        elevation: 0,
-        titleSpacing: 16,
-        title: FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'LOOMA',
-                style: AppTypography.titleLarge.copyWith(
-                  color: const Color(0xFF111827),
-                  fontWeight: FontWeight.w900,
-                  fontSize: 22,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF111827),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  'PRO',
-                  style: TextStyle(
-                    color: Color(0xFFFFB800),
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          if (!isAuthenticated)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-              child: ElevatedButton.icon(
-                key: const Key('home_signin_register_button'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF5B4DFB),
-                  foregroundColor: Colors.white,
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                  visualDensity: VisualDensity.compact,
-                ),
-                icon: const Icon(Icons.login, size: 14),
-                label: const Text('Sign In / Register', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                onPressed: () => context.push(RoutePaths.auth),
-              ),
-            ),
-          IconButton(
-            tooltip: 'Cloud Backup',
-            icon: const Icon(Icons.cloud_done_outlined, color: Color(0xFF5B4DFB), size: 22),
-            onPressed: () => context.push(RoutePaths.cloud),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: state.isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-          : RefreshIndicator(
-              onRefresh: () async {
-                await ref.read(projectsNotifierProvider.notifier).loadProjects();
-                if (ref.read(authNotifierProvider).isAuthenticated) {
-                  await ref.read(syncNotifierProvider.notifier).triggerSync();
-                }
-              },
-              color: AppColors.primary,
-              child: SingleChildScrollView(
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await ref.read(projectsNotifierProvider.notifier).loadProjects();
+          if (ref.read(authNotifierProvider).isAuthenticated) {
+            await ref.read(syncNotifierProvider.notifier).triggerSync();
+          }
+        },
+        color: AppColors.primary,
+        child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                padding: const EdgeInsets.only(bottom: 100),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 0. Sign In or Register CTA Banner (Only shown on Home page when NOT signed in)
-                    if (!isAuthenticated) ...[
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 16),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF2E266D), Color(0xFF1E1B4B)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(
-                            color: const Color(0xFF5B4DFB).withValues(alpha: 0.5),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF5B4DFB).withValues(alpha: 0.25),
-                              blurRadius: 16,
-                              offset: const Offset(0, 4),
-                            ),
+                    // Atmospheric Royal Sapphire Blue Unified Header (Image 2 - Merged, No Dividing Line)
+                    Container(
+                      width: double.infinity,
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Color(0xFF084298), // Deep royal cobalt
+                            Color(0xFF0D6EFD), // Electric sapphire blue
+                            Color(0xFF0284C7), // Sky electric blue
                           ],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  width: 44,
-                                  height: 44,
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [Color(0xFF5B4DFB), Color(0xFF8644FF)],
+                      ),
+                      child: SafeArea(
+                        bottom: false,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 10, 16, 22),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Top Bar Row: LOOMA Brand Badge (Left) + Actions (Right)
+                              Row(
+                                children: [
+                                  // LOOMA PRO Ultra Badge
+                                  Flexible(
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.centerLeft,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(alpha: 0.18),
+                                          borderRadius: BorderRadius.circular(18),
+                                          border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Image.asset('assets/icon/app_icon.png', width: 18, height: 18),
+                                            const SizedBox(width: 5),
+                                            const Text(
+                                              'LOOMA',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w900,
+                                                fontSize: 12.5,
+                                                letterSpacing: 0.3,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 5),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white.withValues(alpha: 0.25),
+                                                borderRadius: BorderRadius.circular(8),
+                                                border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+                                              ),
+                                              child: const Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(
+                                                    'PRO',
+                                                    style: TextStyle(
+                                                      color: Color(0xFFFFB800),
+                                                      fontSize: 8,
+                                                      fontWeight: FontWeight.w900,
+                                                    ),
+                                                  ),
+                                                  SizedBox(width: 3),
+                                                  Icon(Icons.auto_awesome, color: Color(0xFFFFD700), size: 9),
+                                                  SizedBox(width: 2),
+                                                  Text(
+                                                    'Ultra',
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 8,
+                                                      fontWeight: FontWeight.w800,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                     ),
-                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: const Icon(Icons.cloud_sync, color: Colors.white, size: 24),
-                                ),
-                                const SizedBox(width: 14),
-                                const Expanded(
+
+                                  const SizedBox(width: 8),
+
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      // Sign In Button if not authenticated
+                                      if (!isAuthenticated)
+                                        Padding(
+                                          padding: const EdgeInsets.only(right: 6),
+                                          child: SizedBox(
+                                            height: 30,
+                                            child: ElevatedButton.icon(
+                                              key: const Key('home_signin_register_button'),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.white,
+                                                foregroundColor: const Color(0xFF0D6EFD),
+                                                elevation: 1,
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
+                                                visualDensity: VisualDensity.compact,
+                                              ),
+                                              icon: const Icon(Icons.login, size: 12),
+                                              label: const Text('Sign In', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                                              onPressed: () => context.push(RoutePaths.auth),
+                                            ),
+                                          ),
+                                        ),
+
+                                      // Circular Glass Search Button
+                                      ResponsiveTapButton(
+                                        onTap: () {},
+                                        child: Container(
+                                          width: 30,
+                                          height: 30,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Colors.white.withValues(alpha: 0.18),
+                                            border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+                                          ),
+                                          alignment: Alignment.center,
+                                          child: const Icon(Icons.search, color: Colors.white, size: 16),
+                                        ),
+                                      ),
+
+                                      const SizedBox(width: 6),
+
+                                      // Cloud Sync Button
+                                      ResponsiveTapButton(
+                                        onTap: () => context.push(RoutePaths.cloud),
+                                        child: Container(
+                                          width: 30,
+                                          height: 30,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Colors.white.withValues(alpha: 0.18),
+                                            border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+                                          ),
+                                          alignment: Alignment.center,
+                                          child: const Icon(Icons.cloud_done_outlined, color: Colors.white, size: 16),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 18),
+
+                              // Video create & Get started > (Seamlessly merged in single gradient container)
+                              InkWell(
+                                onTap: _openDirectMediaPicker,
+                                borderRadius: BorderRadius.circular(12),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 4),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        'Cloud Backup & Sync',
+                                      const Text(
+                                        'Video create',
                                         style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14.5,
+                                          color: Color(0xD0FFFFFF),
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 0.3,
                                         ),
                                       ),
-                                      SizedBox(height: 3),
-                                      Text(
-                                        'Sign in or register to secure your timeline projects in the cloud.',
-                                        style: TextStyle(
-                                          color: Color(0xFFC7D2FE),
-                                          fontSize: 11.5,
-                                          height: 1.25,
+                                      const SizedBox(height: 4),
+                                      FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        alignment: Alignment.centerLeft,
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Text(
+                                              'Get started',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 26,
+                                                fontWeight: FontWeight.w900,
+                                                letterSpacing: -0.4,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Container(
+                                              padding: const EdgeInsets.all(3),
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                color: Colors.white.withValues(alpha: 0.2),
+                                              ),
+                                              child: const Icon(Icons.chevron_right, color: Colors.white, size: 18),
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
-                                key: const Key('home_banner_signin_register_btn'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF5B4DFB),
-                                  foregroundColor: Colors.white,
-                                  elevation: 3,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    if (state.isLoading)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 40),
+                        child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+                      )
+                    else
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // 0. Sign In or Register CTA Banner (Only shown on Home page when NOT signed in)
+                          if (!isAuthenticated) ...[
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 16),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF084298), Color(0xFF0D6EFD)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                 ),
-                                icon: const Icon(Icons.login, size: 16),
-                                label: const Text(
-                                  'Sign In / Register Account',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(
+                                  color: const Color(0xFF00C2CB).withValues(alpha: 0.4),
                                 ),
-                                onPressed: () => context.push(RoutePaths.auth),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Color(0x220D6EFD),
+                                    blurRadius: 16,
+                                    offset: Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 44,
+                                        height: 44,
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Image.asset('assets/icon/app_icon.png', fit: BoxFit.contain),
+                                      ),
+                                      const SizedBox(width: 14),
+                                      const Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Cloud Backup & Sync',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14.5,
+                                              ),
+                                            ),
+                                            SizedBox(height: 3),
+                                            Text(
+                                              'Sign in or register to secure your timeline projects in the cloud.',
+                                              style: TextStyle(
+                                                color: Color(0xFFC7D2FE),
+                                                fontSize: 11.5,
+                                                height: 1.25,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: ElevatedButton.icon(
+                                      key: const Key('home_banner_signin_register_btn'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.white,
+                                        foregroundColor: const Color(0xFF0D6EFD),
+                                        elevation: 3,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                                      ),
+                                      icon: const Icon(Icons.login, size: 16),
+                                      label: const FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          'Sign In / Register Account',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
+                                      onPressed: () => context.push(RoutePaths.auth),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
-                        ),
-                      ),
-                    ],
 
-                    // 1. Hero Banner Card (+ New Project) & Quick Action Tools Cards
-                    QuickActionBanner(
-                      onNewProject: _openDirectMediaPicker,
-                      onNewPhotoProject: _openPhotoEditor,
-                      onRecordVoiceover: _openDirectMediaPicker,
-                      onBrowseTemplates: () => setState(() => _currentNavIndex = 2),
-                    ),
-                    const SizedBox(height: 24),
+                          // 1. Hero Action Banner (New video & Edit photo + Quick tools grid from Reference UI)
+                          QuickActionBanner(
+                            onNewProject: _openDirectMediaPicker,
+                            onNewPhotoProject: _openPhotoEditor,
+                            onRecordVoiceover: _openDirectMediaPicker,
+                            onBrowseTemplates: () => setState(() => _currentNavIndex = 2),
+                          ),
+                          const SizedBox(height: 24),
 
                     // 2. Recent Projects Section Header & Vertical List
                     Row(
@@ -364,7 +518,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           child: Text(
                             'See All (${projects.length})',
                             style: AppTypography.labelLarge.copyWith(
-                              color: const Color(0xFF5B4DFB),
+                              color: AppColors.primary,
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
                             ),
@@ -447,7 +601,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ],
                 ),
               ),
-            ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -471,17 +628,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             index: 0,
             icon: Icons.home_filled,
             label: 'Home',
-            onTap: () => setState(() => _currentNavIndex = 0),
+            onTap: () => _onTabSelected(0),
           ),
           _buildBottomNavItem(
             index: 1,
             icon: Icons.folder_open,
             label: 'Projects',
-            onTap: () => setState(() => _currentNavIndex = 1),
+            onTap: () => _onTabSelected(1),
           ),
 
           // Center Elevated Floating Action Button (+)
-          GestureDetector(
+          ResponsiveTapButton(
             onTap: _openDirectMediaPicker,
             child: Container(
               width: 48,
@@ -490,11 +647,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF5B4DFB), Color(0xFF8644FF)],
+                  colors: [Color(0xFF0A58CA), Color(0xFF0D6EFD)],
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF5B4DFB).withValues(alpha: 0.4),
+                    color: const Color(0xFF0D6EFD).withValues(alpha: 0.4),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -508,13 +665,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             index: 2,
             icon: Icons.auto_awesome_outlined,
             label: 'Templates',
-            onTap: () => setState(() => _currentNavIndex = 2),
+            onTap: () => _onTabSelected(2),
           ),
           _buildBottomNavItem(
             index: 3,
             icon: Icons.person_outline,
             label: 'Me',
-            onTap: () => setState(() => _currentNavIndex = 3),
+            onTap: () => _onTabSelected(3),
           ),
         ],
       ),
@@ -527,22 +684,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    return InkWell(
+    return ResponsiveTapButton(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 140),
+        curve: Curves.easeOutCubic,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.white,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? const Color(0xFF5B4DFB) : const Color(0xFFECEEF5),
+            color: isSelected ? AppColors.primary : const Color(0xFFECEEF5),
             width: isSelected ? 2.0 : 1.0,
           ),
           boxShadow: isSelected
               ? const [
                   BoxShadow(
-                    color: Color(0x145B4DFB),
+                    color: AppColors.cardShadow,
                     blurRadius: 12,
                     offset: Offset(0, 4),
                   ),
@@ -560,13 +718,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             Icon(
               icon,
               size: 20,
-              color: isSelected ? const Color(0xFF5B4DFB) : const Color(0xFF6B7280),
+              color: isSelected ? AppColors.primary : const Color(0xFF6B7280),
             ),
             const SizedBox(height: 6),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? const Color(0xFF5B4DFB) : const Color(0xFF6B7280),
+                color: isSelected ? AppColors.primary : const Color(0xFF6B7280),
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 fontSize: 12,
               ),
@@ -599,24 +757,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     required VoidCallback onTap,
   }) {
     final isSelected = _currentNavIndex == index;
-    final color = isSelected ? const Color(0xFF5B4DFB) : const Color(0xFF9CA3AF);
+    final color = isSelected ? AppColors.primary : const Color(0xFF9CA3AF);
 
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: color, size: 22),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 10,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            ),
+    return Expanded(
+      child: ResponsiveTapButton(
+        onTap: onTap,
+        pressedScale: 0.92,
+        child: InkResponse(
+          onTap: onTap,
+          splashColor: AppColors.primary.withValues(alpha: 0.15),
+          highlightColor: Colors.transparent,
+          radius: 28,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedScale(
+                scale: isSelected ? 1.12 : 1.0,
+                duration: const Duration(milliseconds: 140),
+                curve: Curves.easeOutBack,
+                child: Icon(icon, color: color, size: 22),
+              ),
+              const SizedBox(height: 2),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 140),
+                style: TextStyle(
+                  color: color,
+                  fontSize: 10,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+                child: Text(label),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -645,7 +818,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF5B4DFB),
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
@@ -686,7 +859,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF5B4DFB),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),

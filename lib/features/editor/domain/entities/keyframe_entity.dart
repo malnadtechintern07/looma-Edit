@@ -116,12 +116,22 @@ class KeyframeInterpolator {
       posX: _lerp(k1.posX ?? baseValues.posX, k2.posX ?? baseValues.posX, smoothT),
       posY: _lerp(k1.posY ?? baseValues.posY, k2.posY ?? baseValues.posY, smoothT),
       scale: _lerp(k1.scale ?? baseValues.scale, k2.scale ?? baseValues.scale, smoothT),
-      rotation: _lerp(k1.rotation ?? baseValues.rotation, k2.rotation ?? baseValues.rotation, smoothT),
+      rotation: _lerpRotation(k1.rotation ?? baseValues.rotation, k2.rotation ?? baseValues.rotation, smoothT),
       opacity: _lerp(k1.opacity ?? baseValues.opacity, k2.opacity ?? baseValues.opacity, smoothT),
     );
   }
 
   static double _lerp(double a, double b, double t) => a + (b - a) * t;
+
+  static double _lerpRotation(double a, double b, double t) {
+    double diff = (b - a) % 360.0;
+    if (diff > 180.0) {
+      diff -= 360.0;
+    } else if (diff < -180.0) {
+      diff += 360.0;
+    }
+    return a + diff * t;
+  }
 }
 
 @immutable
@@ -139,4 +149,20 @@ class KeyframeValues {
     required this.rotation,
     required this.opacity,
   });
+
+  KeyframeValues copyWith({
+    double? posX,
+    double? posY,
+    double? scale,
+    double? rotation,
+    double? opacity,
+  }) {
+    return KeyframeValues(
+      posX: posX ?? this.posX,
+      posY: posY ?? this.posY,
+      scale: scale ?? this.scale,
+      rotation: rotation ?? this.rotation,
+      opacity: opacity ?? this.opacity,
+    );
+  }
 }

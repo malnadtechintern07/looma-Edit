@@ -246,23 +246,23 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   children: [
                     // 1. Looma Logo & Hero Title
                     Container(
-                      width: 64,
-                      height: 64,
+                      width: 76,
+                      height: 76,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF5B4DFB), Color(0xFF8644FF)],
-                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF5B4DFB).withValues(alpha: 0.45),
-                            blurRadius: 20,
+                            color: const Color(0xFF00A2FF).withValues(alpha: 0.35),
+                            blurRadius: 24,
                             offset: const Offset(0, 8),
                           ),
                         ],
                       ),
-                      child: const Center(
-                        child: Icon(Icons.movie_creation_outlined, color: Colors.white, size: 32),
+                      child: Image.asset(
+                        'assets/icon/app_icon.png',
+                        width: 76,
+                        height: 76,
+                        fit: BoxFit.contain,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -332,12 +332,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                               child: Container(
                                 padding: const EdgeInsets.symmetric(vertical: 10),
                                 decoration: BoxDecoration(
-                                  color: !_isRegister ? const Color(0xFF5B4DFB) : Colors.transparent,
+                                  color: !_isRegister ? AppColors.primary : Colors.transparent,
                                   borderRadius: BorderRadius.circular(10),
                                   boxShadow: !_isRegister
                                       ? [
                                           BoxShadow(
-                                            color: const Color(0xFF5B4DFB).withValues(alpha: 0.35),
+                                            color: AppColors.primary.withValues(alpha: 0.35),
                                             blurRadius: 10,
                                             offset: const Offset(0, 2),
                                           ),
@@ -368,12 +368,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                               child: Container(
                                 padding: const EdgeInsets.symmetric(vertical: 10),
                                 decoration: BoxDecoration(
-                                  color: _isRegister ? const Color(0xFF5B4DFB) : Colors.transparent,
+                                  color: _isRegister ? AppColors.primary : Colors.transparent,
                                   borderRadius: BorderRadius.circular(10),
                                   boxShadow: _isRegister
                                       ? [
                                           BoxShadow(
-                                            color: const Color(0xFF5B4DFB).withValues(alpha: 0.35),
+                                            color: AppColors.primary.withValues(alpha: 0.35),
                                             blurRadius: 10,
                                             offset: const Offset(0, 2),
                                           ),
@@ -549,7 +549,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                           height: 20,
                                           child: Checkbox(
                                             value: _rememberMe,
-                                            activeColor: const Color(0xFF5B4DFB),
+                                            activeColor: AppColors.primary,
                                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                                             onChanged: (v) => setState(() => _rememberMe = v ?? true),
                                           ),
@@ -594,10 +594,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             height: 48,
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF5B4DFB),
+                                backgroundColor: AppColors.primary,
                                 foregroundColor: Colors.white,
                                 elevation: 4,
-                                shadowColor: const Color(0x665B4DFB),
+                                shadowColor: AppColors.primary.withValues(alpha: 0.4),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                               ),
                               onPressed: authState.isLoading ? null : _submit,
@@ -699,7 +699,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF5B4DFB), width: 1.5),
+              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),

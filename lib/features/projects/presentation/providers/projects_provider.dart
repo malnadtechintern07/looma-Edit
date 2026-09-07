@@ -100,6 +100,13 @@ class ProjectsNotifier extends StateNotifier<ProjectsState> {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       final list = await getProjectsUseCase();
+      list.sort((a, b) {
+        final cmp = b.updatedAt.compareTo(a.updatedAt);
+        if (cmp != 0) return cmp;
+        final createCmp = b.createdAt.compareTo(a.createdAt);
+        if (createCmp != 0) return createCmp;
+        return b.id.compareTo(a.id);
+      });
       if (!mounted) return;
       state = state.copyWith(isLoading: false, projects: list);
     } catch (e) {
@@ -263,7 +270,13 @@ class ProjectsNotifier extends StateNotifier<ProjectsState> {
       } else {
         updatedList = [updated, ...state.projects];
       }
-      updatedList.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      updatedList.sort((a, b) {
+        final cmp = b.updatedAt.compareTo(a.updatedAt);
+        if (cmp != 0) return cmp;
+        final createCmp = b.createdAt.compareTo(a.createdAt);
+        if (createCmp != 0) return createCmp;
+        return b.id.compareTo(a.id);
+      });
       state = state.copyWith(projects: updatedList);
     } catch (e) {
       if (!mounted) return;
@@ -296,6 +309,13 @@ class ProjectsNotifier extends StateNotifier<ProjectsState> {
         await saveProjectUseCase(updated);
         final list = List<ProjectEntity>.from(state.projects);
         list[index] = updated;
+        list.sort((a, b) {
+          final cmp = b.updatedAt.compareTo(a.updatedAt);
+          if (cmp != 0) return cmp;
+          final createCmp = b.createdAt.compareTo(a.createdAt);
+          if (createCmp != 0) return createCmp;
+          return b.id.compareTo(a.id);
+        });
         state = state.copyWith(projects: list);
       }
     } catch (e) {
@@ -335,10 +355,19 @@ final filteredProjectsProvider = Provider<List<ProjectEntity>>((ref) {
   final ratioFilter = ref.watch(projectFilterRatioProvider);
   final syncFilter = ref.watch(projectSyncFilterProvider);
 
-  return state.projects.where((p) {
+  final list = state.projects.where((p) {
     final matchesQuery = query.isEmpty || p.title.toLowerCase().contains(query);
     final matchesRatio = ratioFilter == null || p.aspectRatio == ratioFilter;
     final matchesSync = syncFilter == null || p.syncStatus == syncFilter;
     return matchesQuery && matchesRatio && matchesSync;
   }).toList();
+
+  list.sort((a, b) {
+    final cmp = b.updatedAt.compareTo(a.updatedAt);
+    if (cmp != 0) return cmp;
+    final createCmp = b.createdAt.compareTo(a.createdAt);
+    if (createCmp != 0) return createCmp;
+    return b.id.compareTo(a.id);
+  });
+  return list;
 });

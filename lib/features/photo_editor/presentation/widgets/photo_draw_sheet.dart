@@ -58,10 +58,16 @@ class PhotoDrawSheet extends StatelessWidget {
 
           // Enable Draw Mode Toggle
           SwitchListTile(
-            title: const Text('Enable Freehand Drawing Mode'),
-            subtitle: const Text('Draw directly on the canvas using your finger or stylus'),
+            title: const Text('Enable Freehand Drawing Mode', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppColors.textPrimary)),
+            subtitle: const Text('Draw directly on the canvas using your finger or stylus', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
             value: state.isDrawMode,
-            activeThumbColor: AppColors.accent,
+            activeTrackColor: AppColors.primary,
+            activeThumbColor: Colors.white,
+            inactiveTrackColor: const Color(0xFFCBD5E1),
+            inactiveThumbColor: Colors.white,
+            trackOutlineColor: WidgetStateProperty.resolveWith((states) =>
+              states.contains(WidgetState.selected) ? Colors.transparent : const Color(0xFF94A3B8),
+            ),
             onChanged: (val) => controller.toggleDrawMode(val),
           ),
           const SizedBox(height: 12),

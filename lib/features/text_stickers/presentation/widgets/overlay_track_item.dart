@@ -12,6 +12,8 @@ class TextOverlayTrackItem extends StatelessWidget {
   final VoidCallback onTap;
   final Function(double deltaPixels, bool isLeftHandle)? onHandleDragUpdate;
   final Function(double deltaPixels)? onBodyDragUpdate;
+  final Function(double deltaPixels)? onVerticalDragUpdate;
+  final VoidCallback? onVerticalDragEnd;
 
   const TextOverlayTrackItem({
     super.key,
@@ -21,6 +23,8 @@ class TextOverlayTrackItem extends StatelessWidget {
     required this.onTap,
     this.onHandleDragUpdate,
     this.onBodyDragUpdate,
+    this.onVerticalDragUpdate,
+    this.onVerticalDragEnd,
   });
 
   @override
@@ -34,8 +38,14 @@ class TextOverlayTrackItem extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
-      onHorizontalDragUpdate: onBodyDragUpdate != null
+      onHorizontalDragUpdate: isSelected && onBodyDragUpdate != null
           ? (details) => onBodyDragUpdate!(details.delta.dx)
+          : null,
+      onVerticalDragUpdate: isSelected && onVerticalDragUpdate != null
+          ? (details) => onVerticalDragUpdate!(details.delta.dy)
+          : null,
+      onVerticalDragEnd: isSelected && onVerticalDragEnd != null
+          ? (_) => onVerticalDragEnd!()
           : null,
       child: Container(
         width: width,
@@ -151,6 +161,8 @@ class StickerOverlayTrackItem extends StatelessWidget {
   final VoidCallback onTap;
   final Function(double deltaPixels, bool isLeftHandle)? onHandleDragUpdate;
   final Function(double deltaPixels)? onBodyDragUpdate;
+  final Function(double deltaPixels)? onVerticalDragUpdate;
+  final VoidCallback? onVerticalDragEnd;
 
   const StickerOverlayTrackItem({
     super.key,
@@ -160,6 +172,8 @@ class StickerOverlayTrackItem extends StatelessWidget {
     required this.onTap,
     this.onHandleDragUpdate,
     this.onBodyDragUpdate,
+    this.onVerticalDragUpdate,
+    this.onVerticalDragEnd,
   });
 
   @override
@@ -173,8 +187,14 @@ class StickerOverlayTrackItem extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
-      onHorizontalDragUpdate: onBodyDragUpdate != null
+      onHorizontalDragUpdate: isSelected && onBodyDragUpdate != null
           ? (details) => onBodyDragUpdate!(details.delta.dx)
+          : null,
+      onVerticalDragUpdate: isSelected && onVerticalDragUpdate != null
+          ? (details) => onVerticalDragUpdate!(details.delta.dy)
+          : null,
+      onVerticalDragEnd: isSelected && onVerticalDragEnd != null
+          ? (_) => onVerticalDragEnd!()
           : null,
       child: Container(
         width: width,

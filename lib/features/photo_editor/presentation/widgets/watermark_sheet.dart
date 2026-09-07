@@ -76,7 +76,13 @@ class _WatermarkSheetState extends State<WatermarkSheet> {
               Text('Watermark & Branding', style: AppTypography.titleMedium),
               Switch(
                 value: _isEnabled,
-                activeThumbColor: AppColors.accent,
+                activeTrackColor: AppColors.primary,
+                activeThumbColor: Colors.white,
+                inactiveTrackColor: const Color(0xFFCBD5E1),
+                inactiveThumbColor: Colors.white,
+                trackOutlineColor: WidgetStateProperty.resolveWith((states) =>
+                  states.contains(WidgetState.selected) ? Colors.transparent : const Color(0xFF94A3B8),
+                ),
                 onChanged: (val) => setState(() => _isEnabled = val),
               ),
             ],
@@ -87,7 +93,7 @@ class _WatermarkSheetState extends State<WatermarkSheet> {
             // Text Input
             TextField(
               controller: _textController,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
+              style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'Enter brand watermark text...',
                 filled: true,

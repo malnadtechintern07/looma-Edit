@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
-import '../../../media_picker/presentation/widgets/media_picker_modal.dart';
+import '../../../media_picker/domain/services/device_media_service.dart';
 import '../../domain/entities/photo_project_entity.dart';
 import '../providers/photo_editor_controller.dart';
 import '../widgets/photo_adjust_sheet.dart';
@@ -31,25 +31,11 @@ class PhotoEditorScreen extends ConsumerStatefulWidget {
 class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
   final GlobalKey _canvasBoundaryKey = GlobalKey();
 
-  void _openMediaPicker(PhotoEditorController controller) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: const Color(0xFF0C0D12),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => MediaPickerModal(
-        title: 'Select Photos for Collage',
-        actionLabel: 'Add to Photo Editor',
-        onMediaSelected: (mediaList) {
-          for (final item in mediaList) {
-            controller.addPhotoFrame(item.path);
-          }
-        },
-      ),
-    );
+  Future<void> _openMediaPicker(PhotoEditorController controller) async {
+    final mediaList = await DeviceMediaService().pickPhotosFromDevice();
+    for (final item in mediaList) {
+      controller.addPhotoFrame(item.path);
+    }
   }
 
   void _openLayoutSheet(PhotoProjectEntity proj, PhotoEditorController controller) {

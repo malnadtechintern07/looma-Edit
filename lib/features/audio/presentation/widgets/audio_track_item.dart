@@ -36,7 +36,7 @@ class AudioTrackItem extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
-      onHorizontalDragUpdate: onBodyDragUpdate != null
+      onHorizontalDragUpdate: isSelected && onBodyDragUpdate != null
           ? (details) => onBodyDragUpdate!(details.delta.dx)
           : null,
       child: Container(

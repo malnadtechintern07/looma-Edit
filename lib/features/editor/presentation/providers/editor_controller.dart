@@ -27,6 +27,7 @@ import '../../domain/entities/timeline_state.dart';
 import '../../domain/entities/transition_type.dart';
 import '../../domain/entities/video_clip_entity.dart';
 import '../../domain/usecases/editor_usecases.dart';
+import '../utils/timeline_layout_helper.dart';
 
 class EditorController extends StateNotifier<TimelineState> {
   final Ref? ref;
@@ -131,6 +132,10 @@ class EditorController extends StateNotifier<TimelineState> {
     if (state.isPlaying) togglePlayPause();
   }
 
+  void toggleSnapping() {
+    state = state.copyWith(isSnappingEnabled: !state.isSnappingEnabled);
+  }
+
   void seekTo(int positionMs) {
     final clamped = positionMs.clamp(0, state.project.calculatedDurationMs);
     state = state.copyWith(playheadPositionMs: clamped);
@@ -155,6 +160,8 @@ class EditorController extends StateNotifier<TimelineState> {
     );
     state = state.copyWith(pixelsPerSecond: clamped);
   }
+
+  void setPixelsPerSecond(double pixelsPerSec) => setTimelineZoom(pixelsPerSec);
 
   void fitTimelineToScreen(double viewportWidth) {
     final totalDurationMs = state.project.calculatedDurationMs;
@@ -387,11 +394,58 @@ class EditorController extends StateNotifier<TimelineState> {
   }) {
     final list = state.project.videoClips.map((c) {
       if (c.id == clipId) {
+        final newZoom = zoomScale?.clamp(0.1, 5.0) ?? c.zoomScale;
+        final newPosX = positionX ?? c.positionX;
+        final newPosY = positionY ?? c.positionY;
+        final newRot = rotationDegrees ?? c.rotationDegrees;
+
+        if (c.keyframes.isNotEmpty) {
+          // CapCut Auto-Keyframing:
+          // If the clip has keyframes, updating transform at playhead updates/creates a keyframe!
+          final offsetInClip = (state.playheadPositionMs - c.timelineStartMs).clamp(0, c.effectiveDurationMs);
+          final baseValues = KeyframeValues(
+            posX: c.positionX,
+            posY: c.positionY,
+            scale: c.zoomScale,
+            rotation: c.rotationDegrees,
+            opacity: c.opacity,
+          );
+          final currentInterpolated = KeyframeInterpolator.interpolate(
+            keyframes: c.keyframes,
+            currentOffsetMs: offsetInClip,
+            baseValues: baseValues,
+          );
+
+          final existingKf = c.keyframes.where((k) => (k.timestampMs - offsetInClip).abs() <= 50).firstOrNull;
+
+          final updatedKf = KeyframeEntity(
+            id: existingKf?.id ?? IdGenerator.generate(),
+            timestampMs: existingKf?.timestampMs ?? offsetInClip,
+            posX: positionX ?? existingKf?.posX ?? currentInterpolated.posX,
+            posY: positionY ?? existingKf?.posY ?? currentInterpolated.posY,
+            scale: (zoomScale ?? existingKf?.scale ?? currentInterpolated.scale).clamp(0.1, 5.0),
+            rotation: rotationDegrees ?? existingKf?.rotation ?? currentInterpolated.rotation,
+            opacity: existingKf?.opacity ?? currentInterpolated.opacity,
+          );
+
+          final filtered = c.keyframes.where((k) => (k.timestampMs - offsetInClip).abs() > 50).toList();
+          filtered.add(updatedKf);
+          filtered.sort((a, b) => a.timestampMs.compareTo(b.timestampMs));
+
+          return c.copyWith(
+            zoomScale: newZoom,
+            positionX: newPosX,
+            positionY: newPosY,
+            rotationDegrees: newRot,
+            keyframes: filtered,
+          );
+        }
+
         return c.copyWith(
-          zoomScale: zoomScale?.clamp(0.1, 5.0),
-          positionX: positionX,
-          positionY: positionY,
-          rotationDegrees: rotationDegrees,
+          zoomScale: newZoom,
+          positionX: newPosX,
+          positionY: newPosY,
+          rotationDegrees: newRot,
         );
       }
       return c;
@@ -462,9 +516,39 @@ class EditorController extends StateNotifier<TimelineState> {
 
   void setClipOpacity(String clipId, double opacity) {
     _recordHistory();
+    final clampedOpacity = opacity.clamp(0.0, 1.0);
     final clips = state.project.videoClips.map((c) {
       if (c.id == clipId) {
-        return c.copyWith(opacity: opacity.clamp(0.0, 1.0));
+        if (c.keyframes.isNotEmpty) {
+          final offsetInClip = (state.playheadPositionMs - c.timelineStartMs).clamp(0, c.effectiveDurationMs);
+          final baseValues = KeyframeValues(
+            posX: c.positionX,
+            posY: c.positionY,
+            scale: c.zoomScale,
+            rotation: c.rotationDegrees,
+            opacity: c.opacity,
+          );
+          final currentInterpolated = KeyframeInterpolator.interpolate(
+            keyframes: c.keyframes,
+            currentOffsetMs: offsetInClip,
+            baseValues: baseValues,
+          );
+          final existingKf = c.keyframes.where((k) => (k.timestampMs - offsetInClip).abs() <= 50).firstOrNull;
+          final updatedKf = KeyframeEntity(
+            id: existingKf?.id ?? IdGenerator.generate(),
+            timestampMs: existingKf?.timestampMs ?? offsetInClip,
+            posX: existingKf?.posX ?? currentInterpolated.posX,
+            posY: existingKf?.posY ?? currentInterpolated.posY,
+            scale: existingKf?.scale ?? currentInterpolated.scale,
+            rotation: existingKf?.rotation ?? currentInterpolated.rotation,
+            opacity: clampedOpacity,
+          );
+          final filtered = c.keyframes.where((k) => (k.timestampMs - offsetInClip).abs() > 50).toList();
+          filtered.add(updatedKf);
+          filtered.sort((a, b) => a.timestampMs.compareTo(b.timestampMs));
+          return c.copyWith(opacity: clampedOpacity, keyframes: filtered);
+        }
+        return c.copyWith(opacity: clampedOpacity);
       }
       return c;
     }).toList();
@@ -662,19 +746,78 @@ class EditorController extends StateNotifier<TimelineState> {
   }
 
   // --- Keyframes Actions ---
-  void addKeyframeAtPlayhead(String clipId) {
-    final clip = state.project.videoClips.firstWhere((c) => c.id == clipId, orElse: () => state.project.videoClips.first);
+  bool isAtKeyframe(String clipId, {int toleranceMs = 50}) {
+    final clip = state.project.videoClips.where((c) => c.id == clipId).firstOrNull;
+    if (clip == null || clip.keyframes.isEmpty) return false;
+    final offsetInClip = state.playheadPositionMs - clip.timelineStartMs;
+    return clip.keyframes.any((k) => (k.timestampMs - offsetInClip).abs() <= toleranceMs);
+  }
+
+  KeyframeEntity? getKeyframeAtPlayhead(String clipId, {int toleranceMs = 50}) {
+    final clip = state.project.videoClips.where((c) => c.id == clipId).firstOrNull;
+    if (clip == null || clip.keyframes.isEmpty) return null;
+    final offsetInClip = state.playheadPositionMs - clip.timelineStartMs;
+    final matches = clip.keyframes.where((k) => (k.timestampMs - offsetInClip).abs() <= toleranceMs).toList();
+    if (matches.isEmpty) return null;
+    matches.sort((a, b) => (a.timestampMs - offsetInClip).abs().compareTo((b.timestampMs - offsetInClip).abs()));
+    return matches.first;
+  }
+
+  bool hasPrevKeyframe(String clipId) {
+    final clip = state.project.videoClips.where((c) => c.id == clipId).firstOrNull;
+    if (clip == null || clip.keyframes.isEmpty) return false;
+    final offsetInClip = state.playheadPositionMs - clip.timelineStartMs;
+    return clip.keyframes.any((k) => k.timestampMs < offsetInClip - 30);
+  }
+
+  bool hasNextKeyframe(String clipId) {
+    final clip = state.project.videoClips.where((c) => c.id == clipId).firstOrNull;
+    if (clip == null || clip.keyframes.isEmpty) return false;
+    final offsetInClip = state.playheadPositionMs - clip.timelineStartMs;
+    return clip.keyframes.any((k) => k.timestampMs > offsetInClip + 30);
+  }
+
+  void toggleKeyframeAtPlayhead(String clipId) {
+    if (isAtKeyframe(clipId)) {
+      removeKeyframeAtPlayhead(clipId);
+    } else {
+      addKeyframeAtPlayhead(clipId);
+    }
+  }
+
+  void addKeyframeAtPlayhead(String clipId, {KeyframeValues? customValues}) {
+    final clip = state.project.videoClips.where((c) => c.id == clipId).firstOrNull;
+    if (clip == null) return;
     final offsetInClip = (state.playheadPositionMs - clip.timelineStartMs).clamp(0, clip.effectiveDurationMs);
 
     _recordHistory();
+
+    final KeyframeValues values;
+    if (customValues != null) {
+      values = customValues;
+    } else {
+      final base = KeyframeValues(
+        posX: clip.positionX,
+        posY: clip.positionY,
+        scale: clip.zoomScale,
+        rotation: clip.rotationDegrees,
+        opacity: clip.opacity,
+      );
+      values = KeyframeInterpolator.interpolate(
+        keyframes: clip.keyframes,
+        currentOffsetMs: offsetInClip,
+        baseValues: base,
+      );
+    }
+
     final newKeyframe = KeyframeEntity(
       id: IdGenerator.generate(),
       timestampMs: offsetInClip,
-      posX: clip.positionX,
-      posY: clip.positionY,
-      scale: clip.zoomScale,
-      rotation: clip.rotationDegrees,
-      opacity: clip.opacity,
+      posX: values.posX,
+      posY: values.posY,
+      scale: values.scale,
+      rotation: values.rotation,
+      opacity: values.opacity,
     );
 
     // Replace if keyframe already exists within 50ms, else insert
@@ -694,6 +837,13 @@ class EditorController extends StateNotifier<TimelineState> {
     _persistChanges();
   }
 
+  void removeKeyframeAtPlayhead(String clipId, {int toleranceMs = 50}) {
+    final existing = getKeyframeAtPlayhead(clipId, toleranceMs: toleranceMs);
+    if (existing != null) {
+      removeKeyframe(clipId, existing.id);
+    }
+  }
+
   void removeKeyframe(String clipId, String keyframeId) {
     _recordHistory();
     final clips = state.project.videoClips.map((c) {
@@ -710,25 +860,26 @@ class EditorController extends StateNotifier<TimelineState> {
   }
 
   void jumpToNextKeyframe(String clipId) {
-    final clip = state.project.videoClips.firstWhere((c) => c.id == clipId, orElse: () => state.project.videoClips.first);
-    if (clip.keyframes.isEmpty) return;
+    final clip = state.project.videoClips.where((c) => c.id == clipId).firstOrNull;
+    if (clip == null || clip.keyframes.isEmpty) return;
     final currentOffset = state.playheadPositionMs - clip.timelineStartMs;
-    final next = clip.keyframes.firstWhere(
-      (k) => k.timestampMs > currentOffset + 30,
-      orElse: () => clip.keyframes.last,
-    );
-    seekTo(clip.timelineStartMs + next.timestampMs);
+    final sorted = List<KeyframeEntity>.from(clip.keyframes)
+      ..sort((a, b) => a.timestampMs.compareTo(b.timestampMs));
+    final next = sorted.where((k) => k.timestampMs > currentOffset + 30).firstOrNull;
+    if (next != null) {
+      seekTo(clip.timelineStartMs + next.timestampMs);
+    }
   }
 
   void jumpToPrevKeyframe(String clipId) {
-    final clip = state.project.videoClips.firstWhere((c) => c.id == clipId, orElse: () => state.project.videoClips.first);
-    if (clip.keyframes.isEmpty) return;
+    final clip = state.project.videoClips.where((c) => c.id == clipId).firstOrNull;
+    if (clip == null || clip.keyframes.isEmpty) return;
     final currentOffset = state.playheadPositionMs - clip.timelineStartMs;
-    final prevList = clip.keyframes.where((k) => k.timestampMs < currentOffset - 30).toList();
-    if (prevList.isNotEmpty) {
-      seekTo(clip.timelineStartMs + prevList.last.timestampMs);
-    } else {
-      seekTo(clip.timelineStartMs + clip.keyframes.first.timestampMs);
+    final sorted = List<KeyframeEntity>.from(clip.keyframes)
+      ..sort((a, b) => a.timestampMs.compareTo(b.timestampMs));
+    final prev = sorted.reversed.where((k) => k.timestampMs < currentOffset - 30).firstOrNull;
+    if (prev != null) {
+      seekTo(clip.timelineStartMs + prev.timestampMs);
     }
   }
 
@@ -803,10 +954,74 @@ class EditorController extends StateNotifier<TimelineState> {
     _persistChanges();
   }
 
+  /// Computes the earliest start time >= [preferredStartMs] such that a clip of [durationMs]
+  /// does NOT overlap with any of the intervals in [existingIntervals].
+  int findNonOverlappingStartMs({
+    required int preferredStartMs,
+    required int durationMs,
+    required List<({int startMs, int endMs})> existingIntervals,
+  }) {
+    if (existingIntervals.isEmpty) {
+      return max(0, preferredStartMs);
+    }
+
+    final sorted = existingIntervals
+        .where((interval) => interval.endMs > interval.startMs)
+        .toList()
+      ..sort((a, b) => a.startMs.compareTo(b.startMs));
+
+    int candidate = max(0, preferredStartMs);
+    bool hasCollision = true;
+
+    while (hasCollision) {
+      hasCollision = false;
+      final candidateEnd = candidate + durationMs;
+
+      for (final interval in sorted) {
+        // Two ranges [A, B) and [X, Y) overlap if max(A, X) < min(B, Y)
+        if (max(candidate, interval.startMs) < min(candidateEnd, interval.endMs)) {
+          // Collision detected: advance candidate past the colliding interval
+          candidate = interval.endMs;
+          hasCollision = true;
+          break;
+        }
+      }
+    }
+
+    return candidate;
+  }
+
   // --- Duplicate Video Clip ---
   void duplicateVideoClip(String clipId) {
     final clip = state.project.videoClips.firstWhere((c) => c.id == clipId, orElse: () => state.project.videoClips.first);
     _recordHistory();
+
+    if (clip.isOverlay) {
+      final dur = clip.effectiveDurationMs;
+      final startMs = clip.timelineStartMs;
+
+      final duplicated = clip.copyWith(
+        id: IdGenerator.generate(),
+        name: '${clip.name} (Copy)',
+        timelineStartMs: startMs,
+        timelineEndMs: startMs + dur,
+        positionX: clip.positionX + 20.0,
+        positionY: clip.positionY + 20.0,
+      );
+
+      final updated = state.project.copyWith(
+        videoClips: [...state.project.videoClips, duplicated],
+        durationMs: max(state.project.durationMs, startMs + dur),
+      );
+      state = state.copyWith(
+        project: updated,
+        selectionType: SelectionType.overlayClip,
+        selectedItemId: duplicated.id,
+        playheadPositionMs: startMs,
+      );
+      _persistChanges();
+      return;
+    }
 
     final duplicated = clip.copyWith(
       id: IdGenerator.generate(),
@@ -815,23 +1030,24 @@ class EditorController extends StateNotifier<TimelineState> {
       timelineEndMs: clip.timelineEndMs + clip.effectiveDurationMs,
     );
 
-    final index = state.project.videoClips.indexWhere((c) => c.id == clipId);
-    final clips = List<VideoClipEntity>.from(state.project.videoClips);
-    clips.insert(index + 1, duplicated);
+    final updatedClips = List<VideoClipEntity>.from(state.project.videoClips);
+    final insertIndex = state.project.videoClips.indexOf(clip) + 1;
+    updatedClips.insert(insertIndex, duplicated);
 
-    // Re-align subsequent clips
-    int currentOffset = 0;
-    final aligned = <VideoClipEntity>[];
-    for (final c in clips) {
-      final dur = c.effectiveDurationMs;
-      aligned.add(c.copyWith(
-        timelineStartMs: currentOffset,
-        timelineEndMs: currentOffset + dur,
-      ));
-      currentOffset += dur;
+    // Ripple subsequent main clips
+    int offset = duplicated.timelineEndMs;
+    for (int i = insertIndex + 1; i < updatedClips.length; i++) {
+      if (!updatedClips[i].isOverlay) {
+        final d = updatedClips[i].effectiveDurationMs;
+        updatedClips[i] = updatedClips[i].copyWith(
+          timelineStartMs: offset,
+          timelineEndMs: offset + d,
+        );
+        offset += d;
+      }
     }
 
-    final updated = state.project.copyWith(videoClips: aligned, durationMs: currentOffset);
+    final updated = state.project.copyWith(videoClips: updatedClips, durationMs: max(state.project.durationMs, offset));
     state = state.copyWith(project: updated, selectionType: SelectionType.videoClip, selectedItemId: duplicated.id);
     _persistChanges();
   }
@@ -843,8 +1059,9 @@ class EditorController extends StateNotifier<TimelineState> {
     int durationMs = 4000,
   }) {
     _recordHistory();
-    final startMs = state.playheadPositionMs;
     final effectiveDuration = durationMs > 0 ? durationMs : 4000;
+    final startMs = state.playheadPositionMs;
+    final activeOverlaysCount = state.activeOverlayClips.length;
 
     final overlayClip = VideoClipEntity(
       id: IdGenerator.generate(),
@@ -857,6 +1074,8 @@ class EditorController extends StateNotifier<TimelineState> {
       trimEndMs: effectiveDuration,
       zoomScale: 0.6, // Smaller PIP default scale
       isOverlay: true,
+      positionX: activeOverlaysCount > 0 ? (activeOverlaysCount * 25.0) : 0.0,
+      positionY: activeOverlaysCount > 0 ? (activeOverlaysCount * 25.0) : 0.0,
     );
 
     final updated = state.project.copyWith(
@@ -868,6 +1087,7 @@ class EditorController extends StateNotifier<TimelineState> {
       project: updated,
       selectionType: SelectionType.overlayClip,
       selectedItemId: overlayClip.id,
+      playheadPositionMs: startMs,
     );
     _persistChanges();
   }
@@ -976,8 +1196,9 @@ class EditorController extends StateNotifier<TimelineState> {
     int? backgroundColorHex = 0x99000000,
   }) {
     _recordHistory();
+    final dur = durationMs > 0 ? durationMs : 3000;
     final startMs = state.playheadPositionMs;
-    final endMs = startMs + durationMs;
+    final endMs = startMs + dur;
 
     final sub = SubtitleEntity(
       id: IdGenerator.generate(),
@@ -992,9 +1213,15 @@ class EditorController extends StateNotifier<TimelineState> {
 
     final updated = state.project.copyWith(
       subtitles: [...state.project.subtitles, sub],
+      durationMs: max(state.project.durationMs, endMs),
     );
 
-    state = state.copyWith(project: updated, selectionType: SelectionType.subtitle, selectedItemId: sub.id);
+    state = state.copyWith(
+      project: updated,
+      selectionType: SelectionType.subtitle,
+      selectedItemId: sub.id,
+      playheadPositionMs: startMs,
+    );
     _persistChanges();
   }
 
@@ -1015,6 +1242,34 @@ class EditorController extends StateNotifier<TimelineState> {
     final list = state.project.subtitles.where((s) => s.id != subtitleId).toList();
     final updated = state.project.copyWith(subtitles: list);
     state = state.copyWith(project: updated);
+    _persistChanges();
+  }
+
+  void duplicateSubtitle(String subtitleId) {
+    _recordHistory();
+    final sub = state.project.subtitles.firstWhere((s) => s.id == subtitleId, orElse: () => state.project.subtitles.first);
+    final newId = IdGenerator.generate();
+    final dur = sub.durationMs;
+    final cleanStart = _findNextEmptySlot(
+      currentStart: sub.timelineStartMs,
+      currentEnd: sub.timelineEndMs,
+      duration: dur,
+      others: state.project.subtitles.map((s) => (start: s.timelineStartMs, end: s.timelineEndMs)).toList(),
+    );
+    final cloned = sub.copyWith(
+      id: newId,
+      timelineStartMs: cleanStart,
+      timelineEndMs: cleanStart + dur,
+    );
+    final updated = state.project.copyWith(
+      subtitles: [...state.project.subtitles, cloned],
+      durationMs: max(state.project.durationMs, cleanStart + dur),
+    );
+    state = state.copyWith(
+      project: updated,
+      selectionType: SelectionType.subtitle,
+      selectedItemId: newId,
+    );
     _persistChanges();
   }
 
@@ -1120,7 +1375,7 @@ class EditorController extends StateNotifier<TimelineState> {
 
     final clip = state.project.videoClips[clipIndex];
     _dragAccumulatorPixels += deltaPixels;
-    final deltaMs = ((_dragAccumulatorPixels / pixelsPerSecond) * 1000).truncate();
+    final deltaMs = ((_dragAccumulatorPixels / pixelsPerSecond) * 1000).round();
     if (deltaMs == 0) return;
     _dragAccumulatorPixels -= (deltaMs / 1000.0) * pixelsPerSecond;
 
@@ -1162,7 +1417,7 @@ class EditorController extends StateNotifier<TimelineState> {
         );
       }
     } else {
-      // --- Video: Non-destructive trim within original video bounds ---
+      // --- Video: Real-time expansion & cropping for video clips ---
       final sourceDeltaMs = (deltaMs * clip.speed).round();
       if (isLeftHandle) {
         final newTrimStart = (clip.trimStartMs + sourceDeltaMs).clamp(0, clip.trimEndMs - minDurationMs);
@@ -1179,7 +1434,7 @@ class EditorController extends StateNotifier<TimelineState> {
           timelineEndMs: newTimelineEnd,
         );
       } else {
-        // Trimming right edge cannot exceed the physical video's source duration
+        // Trimming inward crops down to minDurationMs; dragging outward expands duration up to sourceDurationMs
         final maxDur = max(clip.sourceDurationMs, clip.trimEndMs);
         final newTrimEnd = (clip.trimEndMs + sourceDeltaMs).clamp(clip.trimStartMs + minDurationMs, maxDur);
         final newTrimmedSource = newTrimEnd - clip.trimStartMs;
@@ -1191,6 +1446,7 @@ class EditorController extends StateNotifier<TimelineState> {
 
         updatedClips[clipIndex] = clip.copyWith(
           trimEndMs: newTrimEnd,
+          sourceDurationMs: clip.sourceDurationMs,
           timelineStartMs: newTimelineStart,
           timelineEndMs: newTimelineEnd,
         );
@@ -1201,25 +1457,77 @@ class EditorController extends StateNotifier<TimelineState> {
     final activeTrimPosMs = isLeftHandle ? targetClip.timelineStartMs : targetClip.timelineEndMs;
 
     if (clip.isOverlay) {
+      // Overlay clips collision check: prevent extending over adjacent overlay clips
+      final otherOverlays = state.project.videoClips.where((c) => c.isOverlay && c.id != clipId).toList();
+      VideoClipEntity? closestPrev;
+      VideoClipEntity? closestNext;
+      for (final other in otherOverlays) {
+        if (other.timelineEndMs <= clip.timelineStartMs) {
+          if (closestPrev == null || other.timelineEndMs > closestPrev.timelineEndMs) {
+            closestPrev = other;
+          }
+        }
+        if (other.timelineStartMs >= clip.timelineEndMs) {
+          if (closestNext == null || other.timelineStartMs < closestNext.timelineStartMs) {
+            closestNext = other;
+          }
+        }
+      }
+
+      var candidateClip = updatedClips[clipIndex];
+      if (isLeftHandle && closestPrev != null && candidateClip.timelineStartMs < closestPrev.timelineEndMs) {
+        final clampedStart = closestPrev.timelineEndMs;
+        final durDiff = clampedStart - candidateClip.timelineStartMs;
+        if (candidateClip.isPhoto) {
+          final newDur = max(minDurationMs, candidateClip.effectiveDurationMs - durDiff);
+          candidateClip = candidateClip.copyWith(
+            timelineStartMs: clampedStart,
+            trimEndMs: newDur,
+          );
+        } else {
+          final sourceShift = (durDiff * candidateClip.speed).round();
+          final newTrimStart = (candidateClip.trimStartMs + sourceShift).clamp(0, candidateClip.trimEndMs - minDurationMs);
+          candidateClip = candidateClip.copyWith(
+            timelineStartMs: clampedStart,
+            trimStartMs: newTrimStart,
+          );
+        }
+      } else if (!isLeftHandle && closestNext != null && candidateClip.timelineEndMs > closestNext.timelineStartMs) {
+        final clampedEnd = closestNext.timelineStartMs;
+        final maxAllowedDur = max(minDurationMs, clampedEnd - candidateClip.timelineStartMs);
+        if (candidateClip.isPhoto) {
+          candidateClip = candidateClip.copyWith(
+            timelineEndMs: clampedEnd,
+            trimEndMs: maxAllowedDur,
+          );
+        } else {
+          final maxAllowedSourceDur = (maxAllowedDur * candidateClip.speed).round();
+          final newTrimEnd = candidateClip.trimStartMs + maxAllowedSourceDur;
+          candidateClip = candidateClip.copyWith(
+            timelineEndMs: clampedEnd,
+            trimEndMs: newTrimEnd,
+          );
+        }
+      }
+      updatedClips[clipIndex] = candidateClip;
+
       // Overlay clips are completely independent floating clips
       final updatedProject = state.project.copyWith(videoClips: updatedClips);
       state = state.copyWith(
         project: updatedProject,
-        playheadPositionMs: activeTrimPosMs,
+        playheadPositionMs: candidateClip.timelineStartMs,
       );
     } else {
-      // Main track clips: when dragging right handle, subsequent clips ripple smoothly
-      if (!isLeftHandle) {
-        int offset = targetClip.timelineEndMs;
-        for (int i = clipIndex + 1; i < updatedClips.length; i++) {
-          if (!updatedClips[i].isOverlay) {
-            final dur = updatedClips[i].effectiveDurationMs;
-            updatedClips[i] = updatedClips[i].copyWith(
-              timelineStartMs: offset,
-              timelineEndMs: offset + dur,
-            );
-            offset += dur;
-          }
+      // Main track clips: when duration changes, subsequent clips ripple smoothly in real-time
+      int offset = targetClip.timelineEndMs;
+      for (int i = clipIndex + 1; i < updatedClips.length; i++) {
+        if (!updatedClips[i].isOverlay) {
+          final dur = updatedClips[i].effectiveDurationMs;
+          updatedClips[i] = updatedClips[i].copyWith(
+            timelineStartMs: offset,
+            timelineEndMs: offset + dur,
+          );
+          offset += dur;
         }
       }
 
@@ -1285,7 +1593,25 @@ class EditorController extends StateNotifier<TimelineState> {
 
     if (clip.isOverlay) {
       final dur = clip.effectiveDurationMs;
-      final newStart = max(0, clip.timelineStartMs + deltaMs);
+      final totalDuration = state.project.calculatedDurationMs;
+      final overlayClips = state.project.videoClips.where((c) => c.isOverlay).toList();
+      final bounds = TimelineLayoutHelper.computeLaneBounds<VideoClipEntity>(
+        clipId: clipId,
+        currentStartMs: clip.timelineStartMs,
+        currentDurationMs: dur,
+        items: overlayClips,
+        getStart: (c) => c.timelineStartMs,
+        getEnd: (c) => c.timelineEndMs,
+        getId: (c) => c.id,
+        manualLanes: state.clipLanes,
+      );
+
+      final rawStart = clip.timelineStartMs + deltaMs;
+      final int newStart = rawStart.clamp(
+        bounds.minStartMs,
+        bounds.maxStartMs ?? (totalDuration + 10000),
+      ).toInt();
+
       final updatedClips = state.project.videoClips.map((c) {
         if (c.id == clipId) {
           return c.copyWith(
@@ -1304,6 +1630,395 @@ class EditorController extends StateNotifier<TimelineState> {
         reorderVideoClips(clipIndex, clipIndex - 1);
       } else if (deltaPixels > 25 && clipIndex < state.project.videoClips.length - 1) {
         reorderVideoClips(clipIndex, clipIndex + 1);
+      }
+    }
+  }
+
+  /// Places or moves a clip vertically between the Main Video Track and the Overlay Track
+  /// without overlapping any existing clip on that track.
+  void moveClipToTrack({
+    required String clipId,
+    required bool toOverlay,
+    int? targetTimelineStartMs,
+  }) {
+    _recordHistory();
+    final clipIndex = state.project.videoClips.indexWhere((c) => c.id == clipId);
+    if (clipIndex == -1) return;
+
+    final clip = state.project.videoClips[clipIndex];
+    if (clip.isOverlay == toOverlay) return;
+
+    final mainClips = state.project.videoClips.where((c) => !c.isOverlay && c.id != clipId).toList();
+    final overlayClips = state.project.videoClips.where((c) => c.isOverlay && c.id != clipId).toList();
+
+    if (toOverlay) {
+      // 1. Moving from Main Track to Overlay Track (Vertical Move Down)
+      int offset = 0;
+      final updatedMain = <VideoClipEntity>[];
+      for (final m in mainClips) {
+        final dur = m.effectiveDurationMs;
+        updatedMain.add(m.copyWith(
+          timelineStartMs: offset,
+          timelineEndMs: offset + dur,
+        ));
+        offset += dur;
+      }
+
+      // 2. Find clean non-overlapping position on Overlay track
+      final dur = clip.effectiveDurationMs;
+      int proposedStart = max(0, targetTimelineStartMs ?? clip.timelineStartMs);
+
+      overlayClips.sort((a, b) => a.timelineStartMs.compareTo(b.timelineStartMs));
+
+      bool overlaps = false;
+      for (final ov in overlayClips) {
+        if (proposedStart < ov.timelineEndMs && (proposedStart + dur) > ov.timelineStartMs) {
+          overlaps = true;
+          break;
+        }
+      }
+
+      if (overlaps) {
+        // Find first empty gap on overlay track that fits this clip
+        int candidate = 0;
+        bool foundGap = false;
+        for (final ov in overlayClips) {
+          if (ov.timelineStartMs - candidate >= dur) {
+            proposedStart = candidate;
+            foundGap = true;
+            break;
+          }
+          candidate = max(candidate, ov.timelineEndMs);
+        }
+        if (!foundGap) {
+          proposedStart = candidate;
+        }
+      }
+
+      final updatedClip = clip.copyWith(
+        isOverlay: true,
+        zoomScale: 0.6,
+        timelineStartMs: proposedStart,
+        timelineEndMs: proposedStart + dur,
+      );
+
+      final allClips = [...updatedMain, ...overlayClips, updatedClip];
+      final maxDuration = allClips.fold<int>(0, (m, c) => max(m, c.timelineEndMs));
+
+      final updatedProject = state.project.copyWith(
+        videoClips: allClips,
+        durationMs: max(maxDuration, 1000),
+      );
+
+      state = state.copyWith(
+        project: updatedProject,
+        selectionType: SelectionType.overlayClip,
+        selectedItemId: updatedClip.id,
+      );
+      _persistChanges();
+    } else {
+      // 2. Moving from Overlay Track to Main Track (Vertical Move Up)
+      final targetTime = targetTimelineStartMs ?? clip.timelineStartMs;
+
+      int insertIndex = mainClips.length;
+      for (int i = 0; i < mainClips.length; i++) {
+        if (mainClips[i].timelineStartMs >= targetTime) {
+          insertIndex = i;
+          break;
+        }
+      }
+
+      final updatedClip = clip.copyWith(
+        isOverlay: false,
+        zoomScale: 1.0,
+      );
+      mainClips.insert(insertIndex, updatedClip);
+
+      int offset = 0;
+      final updatedMain = <VideoClipEntity>[];
+      for (final m in mainClips) {
+        final d = m.effectiveDurationMs;
+        updatedMain.add(m.copyWith(
+          timelineStartMs: offset,
+          timelineEndMs: offset + d,
+        ));
+        offset += d;
+      }
+
+      final allClips = [...updatedMain, ...overlayClips];
+      final maxDuration = allClips.fold<int>(0, (m, c) => max(m, c.timelineEndMs));
+
+      final updatedProject = state.project.copyWith(
+        videoClips: allClips,
+        durationMs: max(maxDuration, 1000),
+      );
+
+      state = state.copyWith(
+        project: updatedProject,
+        selectionType: SelectionType.videoClip,
+        selectedItemId: updatedClip.id,
+      );
+      _persistChanges();
+    }
+  }
+
+  /// Automatically switches or moves a clip into an empty space on its track without overlapping.
+  void setClipVerticalLane(String clipId, int lane) {
+    final updated = Map<String, int>.from(state.clipLanes);
+    updated[clipId] = max(0, lane);
+    state = state.copyWith(clipLanes: updated);
+  }
+
+  void moveClipVerticalLane(String clipId, int delta) {
+    final current = state.clipLanes[clipId] ?? 0;
+    final next = max(0, current + delta);
+    setClipVerticalLane(clipId, next);
+  }
+
+  int _findNextEmptySlot({
+    required int currentStart,
+    required int currentEnd,
+    required int duration,
+    required List<({int start, int end})> others,
+  }) {
+    if (others.isEmpty) return currentStart;
+
+    final sorted = List<({int start, int end})>.from(others)
+      ..sort((a, b) => a.start.compareTo(b.start));
+
+    // 1. Search forward from currentEnd
+    int searchFrom = currentEnd;
+    for (final o in sorted) {
+      if (o.start >= searchFrom) {
+        if (o.start - searchFrom >= duration) {
+          return searchFrom;
+        }
+        searchFrom = max(searchFrom, o.end);
+      }
+    }
+    if (searchFrom >= sorted.last.end) {
+      return searchFrom;
+    }
+
+    // 2. Wrap around from 0
+    int wrapFrom = 0;
+    for (final o in sorted) {
+      if (o.start >= wrapFrom) {
+        if (o.start - wrapFrom >= duration && (wrapFrom - currentStart).abs() > 200) {
+          return wrapFrom;
+        }
+        wrapFrom = max(wrapFrom, o.end);
+      }
+    }
+
+    return sorted.last.end;
+  }
+
+  void switchClipToEmptySpace(String clipId) {
+    _recordHistory();
+
+    // 1. Text Overlay
+    final textIdx = state.project.textOverlays.indexWhere((t) => t.id == clipId);
+    if (textIdx != -1) {
+      final item = state.project.textOverlays[textIdx];
+      final others = state.project.textOverlays.where((t) => t.id != clipId).toList();
+      final dur = item.effectiveDurationMs;
+      final newStart = _findNextEmptySlot(
+        currentStart: item.timelineStartMs,
+        currentEnd: item.timelineEndMs,
+        duration: dur,
+        others: others.map((o) => (start: o.timelineStartMs, end: o.timelineEndMs)).toList(),
+      );
+      final updated = List<TextOverlayEntity>.from(state.project.textOverlays);
+      updated[textIdx] = item.copyWith(
+        timelineStartMs: newStart,
+        timelineEndMs: newStart + dur,
+      );
+      state = state.copyWith(
+        project: state.project.copyWith(
+          textOverlays: updated,
+          durationMs: max(state.project.durationMs, newStart + dur),
+        ),
+        playheadPositionMs: newStart,
+      );
+      _persistChanges();
+      return;
+    }
+
+    // 2. Sticker Overlay
+    final stickerIdx = state.project.stickerOverlays.indexWhere((s) => s.id == clipId);
+    if (stickerIdx != -1) {
+      final item = state.project.stickerOverlays[stickerIdx];
+      final others = state.project.stickerOverlays.where((s) => s.id != clipId).toList();
+      final dur = item.effectiveDurationMs;
+      final newStart = _findNextEmptySlot(
+        currentStart: item.timelineStartMs,
+        currentEnd: item.timelineEndMs,
+        duration: dur,
+        others: others.map((o) => (start: o.timelineStartMs, end: o.timelineEndMs)).toList(),
+      );
+      final updated = List<StickerOverlayEntity>.from(state.project.stickerOverlays);
+      updated[stickerIdx] = item.copyWith(
+        timelineStartMs: newStart,
+        timelineEndMs: newStart + dur,
+      );
+      state = state.copyWith(
+        project: state.project.copyWith(
+          stickerOverlays: updated,
+          durationMs: max(state.project.durationMs, newStart + dur),
+        ),
+        playheadPositionMs: newStart,
+      );
+      _persistChanges();
+      return;
+    }
+
+    // 3. Subtitle
+    final subIdx = state.project.subtitles.indexWhere((s) => s.id == clipId);
+    if (subIdx != -1) {
+      final item = state.project.subtitles[subIdx];
+      final others = state.project.subtitles.where((s) => s.id != clipId).toList();
+      final dur = item.durationMs;
+      final newStart = _findNextEmptySlot(
+        currentStart: item.timelineStartMs,
+        currentEnd: item.timelineEndMs,
+        duration: dur,
+        others: others.map((o) => (start: o.timelineStartMs, end: o.timelineEndMs)).toList(),
+      );
+      final updated = List<SubtitleEntity>.from(state.project.subtitles);
+      updated[subIdx] = item.copyWith(
+        timelineStartMs: newStart,
+        timelineEndMs: newStart + dur,
+      );
+      state = state.copyWith(
+        project: state.project.copyWith(
+          subtitles: updated,
+          durationMs: max(state.project.durationMs, (newStart + dur).toInt()),
+        ),
+        playheadPositionMs: newStart,
+      );
+      _persistChanges();
+      return;
+    }
+
+    // 4. Effect Clip
+    final effIdx = state.project.effectClips.indexWhere((e) => e.id == clipId);
+    if (effIdx != -1) {
+      final item = state.project.effectClips[effIdx];
+      final others = state.project.effectClips.where((e) => e.id != clipId).toList();
+      final dur = item.durationMs;
+      final newStart = _findNextEmptySlot(
+        currentStart: item.timelineStartMs,
+        currentEnd: item.timelineEndMs,
+        duration: dur,
+        others: others.map((o) => (start: o.timelineStartMs, end: o.timelineEndMs)).toList(),
+      );
+      final updated = List<EffectClipEntity>.from(state.project.effectClips);
+      updated[effIdx] = item.copyWith(timelineStartMs: newStart);
+      state = state.copyWith(
+        project: state.project.copyWith(
+          effectClips: updated,
+          durationMs: max(state.project.durationMs, newStart + dur),
+        ),
+        playheadPositionMs: newStart,
+      );
+      _persistChanges();
+      return;
+    }
+
+    // 5. Animation Clip
+    final animIdx = state.project.animationClips.indexWhere((a) => a.id == clipId);
+    if (animIdx != -1) {
+      final item = state.project.animationClips[animIdx];
+      final others = state.project.animationClips.where((a) => a.id != clipId).toList();
+      final dur = item.durationMs;
+      final newStart = _findNextEmptySlot(
+        currentStart: item.timelineStartMs,
+        currentEnd: item.timelineEndMs,
+        duration: dur,
+        others: others.map((o) => (start: o.timelineStartMs, end: o.timelineEndMs)).toList(),
+      );
+      final updated = List<AnimationClipEntity>.from(state.project.animationClips);
+      updated[animIdx] = item.copyWith(timelineStartMs: newStart);
+      state = state.copyWith(
+        project: state.project.copyWith(
+          animationClips: updated,
+          durationMs: max(state.project.durationMs, newStart + dur),
+        ),
+        playheadPositionMs: newStart,
+      );
+      _persistChanges();
+      return;
+    }
+
+    // 6. Audio Clip
+    final audIdx = state.project.audioClips.indexWhere((a) => a.id == clipId);
+    if (audIdx != -1) {
+      final item = state.project.audioClips[audIdx];
+      final others = state.project.audioClips.where((a) => a.id != clipId).toList();
+      final dur = item.effectiveDurationMs;
+      final newStart = _findNextEmptySlot(
+        currentStart: item.timelineStartMs,
+        currentEnd: item.timelineEndMs,
+        duration: dur,
+        others: others.map((o) => (start: o.timelineStartMs, end: o.timelineEndMs)).toList(),
+      );
+      final updated = List<AudioClipEntity>.from(state.project.audioClips);
+      updated[audIdx] = item.copyWith(
+        timelineStartMs: newStart,
+        timelineEndMs: newStart + dur,
+      );
+      state = state.copyWith(
+        project: state.project.copyWith(
+          audioClips: updated,
+          durationMs: max(state.project.durationMs, newStart + dur),
+        ),
+        playheadPositionMs: newStart,
+      );
+      _persistChanges();
+      return;
+    }
+
+    // 7. Video Clip
+    final clipIndex = state.project.videoClips.indexWhere((c) => c.id == clipId);
+    if (clipIndex == -1) return;
+    final clip = state.project.videoClips[clipIndex];
+
+    if (clip.isOverlay) {
+      final otherOverlays = state.project.videoClips
+          .where((c) => c.isOverlay && c.id != clipId)
+          .toList();
+      final dur = clip.effectiveDurationMs;
+      final chosenStart = _findNextEmptySlot(
+        currentStart: clip.timelineStartMs,
+        currentEnd: clip.timelineEndMs,
+        duration: dur,
+        others: otherOverlays.map((o) => (start: o.timelineStartMs, end: o.timelineEndMs)).toList(),
+      );
+
+      final updatedClips = state.project.videoClips.map((c) {
+        if (c.id == clipId) {
+          return c.copyWith(
+            timelineStartMs: chosenStart,
+            timelineEndMs: chosenStart + dur,
+          );
+        }
+        return c;
+      }).toList();
+
+      final maxDuration = updatedClips.fold<int>(0, (m, c) => max(m, c.timelineEndMs));
+      final updatedProject = state.project.copyWith(
+        videoClips: updatedClips,
+        durationMs: max(maxDuration, 1000),
+      );
+      state = state.copyWith(project: updatedProject, playheadPositionMs: chosenStart);
+      _persistChanges();
+    } else {
+      final mainClips = state.project.videoClips.where((c) => !c.isOverlay).toList();
+      final idx = mainClips.indexWhere((c) => c.id == clipId);
+      if (idx != -1 && mainClips.length > 1) {
+        final targetIdx = (idx + 1) % mainClips.length;
+        reorderVideoClips(idx, targetIdx);
       }
     }
   }
@@ -1383,10 +2098,8 @@ class EditorController extends StateNotifier<TimelineState> {
     int durationMs = 5000,
   }) {
     _recordHistory();
-    int startOffset = 0;
-    if (state.project.videoClips.isNotEmpty) {
-      startOffset = state.project.videoClips.last.timelineEndMs;
-    }
+    final mainClips = state.project.videoClips.where((c) => !c.isOverlay).toList();
+    final startOffset = mainClips.isEmpty ? 0 : mainClips.last.timelineEndMs;
 
     final effectiveDuration = durationMs > 0 ? durationMs : 5000;
 
@@ -1413,8 +2126,22 @@ class EditorController extends StateNotifier<TimelineState> {
   // --- Audio Track Actions ---
   void addAudioClip(AudioClipEntity clip) {
     _recordHistory();
+    final dur = clip.effectiveDurationMs;
+    final startMs = findNonOverlappingStartMs(
+      preferredStartMs: clip.timelineStartMs > 0 ? clip.timelineStartMs : state.playheadPositionMs,
+      durationMs: dur,
+      existingIntervals: state.project.audioClips
+          .map((a) => (startMs: a.timelineStartMs, endMs: a.timelineEndMs))
+          .toList(),
+    );
+    final adjustedClip = clip.copyWith(
+      timelineStartMs: startMs,
+      timelineEndMs: startMs + dur,
+    );
+
     final updated = state.project.copyWith(
-      audioClips: [...state.project.audioClips, clip],
+      audioClips: [...state.project.audioClips, adjustedClip],
+      durationMs: max(state.project.durationMs, startMs + dur),
     );
     state = state.copyWith(project: updated);
     _persistChanges();
@@ -1461,14 +2188,26 @@ class EditorController extends StateNotifier<TimelineState> {
     final clip = state.project.audioClips.firstWhere((a) => a.id == clipId, orElse: () => state.project.audioClips.first);
     _recordHistory();
 
+    final dur = clip.effectiveDurationMs;
+    final startMs = findNonOverlappingStartMs(
+      preferredStartMs: clip.timelineEndMs,
+      durationMs: dur,
+      existingIntervals: state.project.audioClips
+          .map((a) => (startMs: a.timelineStartMs, endMs: a.timelineEndMs))
+          .toList(),
+    );
+
     final duplicated = clip.copyWith(
       id: IdGenerator.generate(),
       title: '${clip.title} (Copy)',
-      timelineStartMs: clip.timelineEndMs,
-      timelineEndMs: clip.timelineEndMs + clip.effectiveDurationMs,
+      timelineStartMs: startMs,
+      timelineEndMs: startMs + dur,
     );
 
-    final updated = state.project.copyWith(audioClips: [...state.project.audioClips, duplicated]);
+    final updated = state.project.copyWith(
+      audioClips: [...state.project.audioClips, duplicated],
+      durationMs: max(state.project.durationMs, startMs + dur),
+    );
     state = state.copyWith(project: updated, selectionType: SelectionType.audioClip, selectedItemId: duplicated.id);
     _syncAudio();
     _persistChanges();
@@ -1487,22 +2226,39 @@ class EditorController extends StateNotifier<TimelineState> {
     final deltaMs = ((deltaPixels / pixelsPerSecond) * 1000).round();
     if (deltaMs == 0) return;
 
+    final totalDuration = state.project.calculatedDurationMs;
+    final bounds = TimelineLayoutHelper.computeTrimBounds<AudioClipEntity>(
+      clipId: clipId,
+      currentStartMs: clip.timelineStartMs,
+      currentEndMs: clip.timelineEndMs,
+      items: state.project.audioClips,
+      getStart: (a) => a.timelineStartMs,
+      getEnd: (a) => a.timelineEndMs,
+      getId: (a) => a.id,
+      manualLanes: state.clipLanes,
+    );
+
     final List<AudioClipEntity> updatedList = List.from(state.project.audioClips);
 
     if (isLeftHandle) {
-      final newTrimStart = (clip.trimStartMs + deltaMs).clamp(0, clip.trimEndMs - 500);
-      final shift = newTrimStart - clip.trimStartMs;
-      final newTimelineStart = clip.timelineStartMs + shift;
+      final maxTrimShift = clip.trimEndMs - 500;
+      final rawTrimStart = (clip.trimStartMs + deltaMs).clamp(0, maxTrimShift);
+      final shift = rawTrimStart - clip.trimStartMs;
+      final rawTimelineStart = clip.timelineStartMs + shift;
+      final clampedTimelineStart = rawTimelineStart.clamp(bounds.minTrimStartMs, clip.timelineEndMs - 500);
+      final finalTrimStart = clip.trimStartMs + (clampedTimelineStart - clip.timelineStartMs);
       updatedList[index] = clip.copyWith(
-        trimStartMs: newTrimStart,
-        timelineStartMs: newTimelineStart,
+        trimStartMs: finalTrimStart,
+        timelineStartMs: clampedTimelineStart,
       );
     } else {
-      final newTrimEnd = max(clip.trimStartMs + 500, clip.trimEndMs + deltaMs);
-      final newTimelineEnd = clip.timelineStartMs + (newTrimEnd - clip.trimStartMs);
+      final maxAllowedEnd = bounds.maxTrimEndMs ?? (totalDuration + 10000);
+      final rawTimelineEnd = (clip.timelineEndMs + deltaMs).clamp(clip.timelineStartMs + 500, maxAllowedEnd);
+      final newDur = rawTimelineEnd - clip.timelineStartMs;
+      final newTrimEnd = clip.trimStartMs + newDur;
       updatedList[index] = clip.copyWith(
         trimEndMs: newTrimEnd,
-        timelineEndMs: newTimelineEnd,
+        timelineEndMs: rawTimelineEnd,
       );
     }
 
@@ -1525,13 +2281,28 @@ class EditorController extends StateNotifier<TimelineState> {
     if (deltaMs == 0) return;
 
     final dur = clip.effectiveDurationMs;
-    final newStart = max(0, clip.timelineStartMs + deltaMs);
-    final newEnd = newStart + dur;
+    final totalDuration = state.project.calculatedDurationMs;
+    final bounds = TimelineLayoutHelper.computeLaneBounds<AudioClipEntity>(
+      clipId: clipId,
+      currentStartMs: clip.timelineStartMs,
+      currentDurationMs: dur,
+      items: state.project.audioClips,
+      getStart: (a) => a.timelineStartMs,
+      getEnd: (a) => a.timelineEndMs,
+      getId: (a) => a.id,
+      manualLanes: state.clipLanes,
+    );
+
+    final rawStart = clip.timelineStartMs + deltaMs;
+    final int newStart = rawStart.clamp(
+      bounds.minStartMs,
+      bounds.maxStartMs ?? (totalDuration + 10000),
+    ).toInt();
 
     final List<AudioClipEntity> updatedList = List.from(state.project.audioClips);
     updatedList[index] = clip.copyWith(
       timelineStartMs: newStart,
-      timelineEndMs: newEnd,
+      timelineEndMs: newStart + dur,
     );
 
     final updated = state.project.copyWith(audioClips: updatedList);
@@ -1551,8 +2322,12 @@ class EditorController extends StateNotifier<TimelineState> {
     OverlayAnimationType animationType = OverlayAnimationType.none,
   }) {
     _recordHistory();
+    const durationMs = 3500;
     final startMs = state.playheadPositionMs;
-    final endMs = (startMs + 4000).clamp(0, state.project.calculatedDurationMs);
+    final endMs = startMs + durationMs;
+    final activeTexts = state.project.textOverlays.where((t) {
+      return startMs >= t.timelineStartMs && startMs <= t.timelineEndMs;
+    }).toList();
 
     final newText = TextOverlayEntity(
       id: IdGenerator.generate(),
@@ -1563,14 +2338,21 @@ class EditorController extends StateNotifier<TimelineState> {
       backgroundColorHex: backgroundColorHex,
       outlineColorHex: outlineColorHex,
       timelineStartMs: startMs,
-      timelineEndMs: endMs > startMs ? endMs : startMs + 3000,
+      timelineEndMs: endMs,
       animationType: animationType,
+      posY: activeTexts.isNotEmpty ? (0.5 + (activeTexts.length * 0.08)).clamp(0.1, 0.9) : 0.5,
     );
 
     final updated = state.project.copyWith(
       textOverlays: [...state.project.textOverlays, newText],
+      durationMs: max(state.project.durationMs, endMs),
     );
-    state = state.copyWith(project: updated, selectionType: SelectionType.textOverlay, selectedItemId: newText.id);
+    state = state.copyWith(
+      project: updated,
+      selectionType: SelectionType.textOverlay,
+      selectedItemId: newText.id,
+      playheadPositionMs: startMs,
+    );
     _persistChanges();
   }
 
@@ -1627,13 +2409,25 @@ class EditorController extends StateNotifier<TimelineState> {
     if (deltaMs == 0) return;
 
     final totalDuration = state.project.calculatedDurationMs;
+    final bounds = TimelineLayoutHelper.computeTrimBounds<TextOverlayEntity>(
+      clipId: textId,
+      currentStartMs: item.timelineStartMs,
+      currentEndMs: item.timelineEndMs,
+      items: state.project.textOverlays,
+      getStart: (t) => t.timelineStartMs,
+      getEnd: (t) => t.timelineEndMs,
+      getId: (t) => t.id,
+      manualLanes: state.clipLanes,
+    );
+
     final List<TextOverlayEntity> updatedList = List.from(state.project.textOverlays);
 
     if (isLeftHandle) {
-      final newStart = (item.timelineStartMs + deltaMs).clamp(0, item.timelineEndMs - 500);
+      final newStart = (item.timelineStartMs + deltaMs).clamp(bounds.minTrimStartMs, item.timelineEndMs - 500);
       updatedList[textIndex] = item.copyWith(timelineStartMs: newStart);
     } else {
-      final newEnd = (item.timelineEndMs + deltaMs).clamp(item.timelineStartMs + 500, totalDuration + 5000);
+      final maxAllowed = bounds.maxTrimEndMs ?? (totalDuration + 10000);
+      final newEnd = (item.timelineEndMs + deltaMs).clamp(item.timelineStartMs + 500, maxAllowed);
       updatedList[textIndex] = item.copyWith(timelineEndMs: newEnd);
     }
 
@@ -1656,7 +2450,22 @@ class EditorController extends StateNotifier<TimelineState> {
 
     final dur = item.effectiveDurationMs;
     final totalDuration = state.project.calculatedDurationMs;
-    final int newStart = (item.timelineStartMs + deltaMs).clamp(0, max(0, totalDuration - 500)).toInt();
+    final bounds = TimelineLayoutHelper.computeLaneBounds<TextOverlayEntity>(
+      clipId: textId,
+      currentStartMs: item.timelineStartMs,
+      currentDurationMs: dur,
+      items: state.project.textOverlays,
+      getStart: (t) => t.timelineStartMs,
+      getEnd: (t) => t.timelineEndMs,
+      getId: (t) => t.id,
+      manualLanes: state.clipLanes,
+    );
+
+    final rawStart = item.timelineStartMs + deltaMs;
+    final int newStart = rawStart.clamp(
+      bounds.minStartMs,
+      bounds.maxStartMs ?? (totalDuration + 10000),
+    ).toInt();
     final int newEnd = newStart + dur;
 
     final List<TextOverlayEntity> updatedList = List.from(state.project.textOverlays);
@@ -1689,16 +2498,40 @@ class EditorController extends StateNotifier<TimelineState> {
     final text = state.project.textOverlays.firstWhere((t) => t.id == textId, orElse: () => state.project.textOverlays.first);
     _recordHistory();
 
+    final dur = text.effectiveDurationMs;
+    final startMs = text.timelineStartMs;
+    final endMs = startMs + dur;
+
     final duplicated = text.copyWith(
       id: IdGenerator.generate(),
       text: '${text.text} (Copy)',
       posY: (text.posY + 0.08).clamp(0.1, 0.9),
-      timelineStartMs: text.timelineStartMs + 500,
-      timelineEndMs: text.timelineEndMs + 500,
+      timelineStartMs: startMs,
+      timelineEndMs: endMs,
     );
 
-    final updated = state.project.copyWith(textOverlays: [...state.project.textOverlays, duplicated]);
-    state = state.copyWith(project: updated, selectionType: SelectionType.textOverlay, selectedItemId: duplicated.id);
+    final updated = state.project.copyWith(
+      textOverlays: [...state.project.textOverlays, duplicated],
+      durationMs: max(state.project.durationMs, endMs),
+    );
+    state = state.copyWith(
+      project: updated,
+      selectionType: SelectionType.textOverlay,
+      selectedItemId: duplicated.id,
+      playheadPositionMs: startMs,
+    );
+    _persistChanges();
+  }
+
+  void deleteTextOverlay(String textId) {
+    _recordHistory();
+    final texts = state.project.textOverlays.where((t) => t.id != textId).toList();
+    final updated = state.project.copyWith(textOverlays: texts);
+    state = state.copyWith(
+      project: updated,
+      selectedItemId: state.selectedItemId == textId ? null : state.selectedItemId,
+      selectionType: state.selectedItemId == textId ? SelectionType.none : state.selectionType,
+    );
     _persistChanges();
   }
 
@@ -1709,8 +2542,9 @@ class EditorController extends StateNotifier<TimelineState> {
     required String assetEmojiOrPath,
   }) {
     _recordHistory();
+    const durationMs = 3000;
     final startMs = state.playheadPositionMs;
-    final endMs = (startMs + 3500).clamp(0, state.project.calculatedDurationMs);
+    final endMs = startMs + durationMs;
 
     final sticker = StickerOverlayEntity(
       id: IdGenerator.generate(),
@@ -1718,13 +2552,19 @@ class EditorController extends StateNotifier<TimelineState> {
       stickerName: stickerName,
       assetEmojiOrPath: assetEmojiOrPath,
       timelineStartMs: startMs,
-      timelineEndMs: endMs > startMs ? endMs : startMs + 3000,
+      timelineEndMs: endMs,
     );
 
     final updated = state.project.copyWith(
       stickerOverlays: [...state.project.stickerOverlays, sticker],
+      durationMs: max(state.project.durationMs, endMs),
     );
-    state = state.copyWith(project: updated, selectionType: SelectionType.stickerOverlay, selectedItemId: sticker.id);
+    state = state.copyWith(
+      project: updated,
+      selectionType: SelectionType.stickerOverlay,
+      selectedItemId: sticker.id,
+      playheadPositionMs: startMs,
+    );
     _persistChanges();
   }
 
@@ -1741,12 +2581,25 @@ class EditorController extends StateNotifier<TimelineState> {
     final deltaMs = ((deltaPixels / pixelsPerSecond) * 1000).round();
     if (deltaMs == 0) return;
 
+    final totalDuration = state.project.calculatedDurationMs;
+    final bounds = TimelineLayoutHelper.computeTrimBounds<StickerOverlayEntity>(
+      clipId: stickerId,
+      currentStartMs: item.timelineStartMs,
+      currentEndMs: item.timelineEndMs,
+      items: state.project.stickerOverlays,
+      getStart: (s) => s.timelineStartMs,
+      getEnd: (s) => s.timelineEndMs,
+      getId: (s) => s.id,
+      manualLanes: state.clipLanes,
+    );
+
     final List<StickerOverlayEntity> updatedList = List.from(state.project.stickerOverlays);
     if (isLeftHandle) {
-      final newStart = (item.timelineStartMs + deltaMs).clamp(0, item.timelineEndMs - 500);
+      final newStart = (item.timelineStartMs + deltaMs).clamp(bounds.minTrimStartMs, item.timelineEndMs - 500);
       updatedList[index] = item.copyWith(timelineStartMs: newStart);
     } else {
-      final newEnd = max(item.timelineStartMs + 500, item.timelineEndMs + deltaMs);
+      final maxAllowed = bounds.maxTrimEndMs ?? (totalDuration + 10000);
+      final newEnd = (item.timelineEndMs + deltaMs).clamp(item.timelineStartMs + 500, maxAllowed);
       updatedList[index] = item.copyWith(timelineEndMs: newEnd);
     }
 
@@ -1768,8 +2621,24 @@ class EditorController extends StateNotifier<TimelineState> {
     if (deltaMs == 0) return;
 
     final dur = item.effectiveDurationMs;
-    final newStart = max(0, item.timelineStartMs + deltaMs);
-    final newEnd = newStart + dur;
+    final totalDuration = state.project.calculatedDurationMs;
+    final bounds = TimelineLayoutHelper.computeLaneBounds<StickerOverlayEntity>(
+      clipId: stickerId,
+      currentStartMs: item.timelineStartMs,
+      currentDurationMs: dur,
+      items: state.project.stickerOverlays,
+      getStart: (s) => s.timelineStartMs,
+      getEnd: (s) => s.timelineEndMs,
+      getId: (s) => s.id,
+      manualLanes: state.clipLanes,
+    );
+
+    final rawStart = item.timelineStartMs + deltaMs;
+    final int newStart = rawStart.clamp(
+      bounds.minStartMs,
+      bounds.maxStartMs ?? (totalDuration + 10000),
+    ).toInt();
+    final int newEnd = newStart + dur;
 
     final List<StickerOverlayEntity> updatedList = List.from(state.project.stickerOverlays);
     updatedList[index] = item.copyWith(
@@ -1813,16 +2682,34 @@ class EditorController extends StateNotifier<TimelineState> {
     final sticker = state.project.stickerOverlays.firstWhere((s) => s.id == stickerId, orElse: () => state.project.stickerOverlays.first);
     _recordHistory();
 
+    final dur = sticker.effectiveDurationMs;
+    final startMs = findNonOverlappingStartMs(
+      preferredStartMs: sticker.timelineEndMs,
+      durationMs: dur,
+      existingIntervals: state.project.stickerOverlays
+          .map((s) => (startMs: s.timelineStartMs, endMs: s.timelineEndMs))
+          .toList(),
+    );
+    final endMs = startMs + dur;
+
     final duplicated = sticker.copyWith(
       id: IdGenerator.generate(),
       stickerName: '${sticker.stickerName} (Copy)',
       posY: (sticker.posY + 0.08).clamp(0.1, 0.9),
-      timelineStartMs: sticker.timelineStartMs + 500,
-      timelineEndMs: sticker.timelineEndMs + 500,
+      timelineStartMs: startMs,
+      timelineEndMs: endMs,
     );
 
-    final updated = state.project.copyWith(stickerOverlays: [...state.project.stickerOverlays, duplicated]);
-    state = state.copyWith(project: updated, selectionType: SelectionType.stickerOverlay, selectedItemId: duplicated.id);
+    final updated = state.project.copyWith(
+      stickerOverlays: [...state.project.stickerOverlays, duplicated],
+      durationMs: max(state.project.durationMs, endMs),
+    );
+    state = state.copyWith(
+      project: updated,
+      selectionType: SelectionType.stickerOverlay,
+      selectedItemId: duplicated.id,
+      playheadPositionMs: startMs,
+    );
     _persistChanges();
   }
 
@@ -1852,12 +2739,25 @@ class EditorController extends StateNotifier<TimelineState> {
     final deltaMs = ((deltaPixels / pixelsPerSecond) * 1000).round();
     if (deltaMs == 0) return;
 
+    final totalDuration = state.project.calculatedDurationMs;
+    final bounds = TimelineLayoutHelper.computeTrimBounds<SubtitleEntity>(
+      clipId: subtitleId,
+      currentStartMs: item.timelineStartMs,
+      currentEndMs: item.timelineEndMs,
+      items: state.project.subtitles,
+      getStart: (s) => s.timelineStartMs,
+      getEnd: (s) => s.timelineEndMs,
+      getId: (s) => s.id,
+      manualLanes: state.clipLanes,
+    );
+
     final List<SubtitleEntity> updatedList = List.from(state.project.subtitles);
     if (isLeftHandle) {
-      final newStart = (item.timelineStartMs + deltaMs).clamp(0, item.timelineEndMs - 500);
+      final newStart = (item.timelineStartMs + deltaMs).clamp(bounds.minTrimStartMs, item.timelineEndMs - 500);
       updatedList[index] = item.copyWith(timelineStartMs: newStart);
     } else {
-      final newEnd = max(item.timelineStartMs + 500, item.timelineEndMs + deltaMs);
+      final maxAllowed = bounds.maxTrimEndMs ?? (totalDuration + 10000);
+      final newEnd = (item.timelineEndMs + deltaMs).clamp(item.timelineStartMs + 500, maxAllowed);
       updatedList[index] = item.copyWith(timelineEndMs: newEnd);
     }
 
@@ -1879,8 +2779,24 @@ class EditorController extends StateNotifier<TimelineState> {
     if (deltaMs == 0) return;
 
     final dur = item.durationMs;
-    final newStart = max(0, item.timelineStartMs + deltaMs);
-    final newEnd = newStart + dur;
+    final totalDuration = state.project.calculatedDurationMs;
+    final bounds = TimelineLayoutHelper.computeLaneBounds<SubtitleEntity>(
+      clipId: subtitleId,
+      currentStartMs: item.timelineStartMs,
+      currentDurationMs: dur,
+      items: state.project.subtitles,
+      getStart: (s) => s.timelineStartMs,
+      getEnd: (s) => s.timelineEndMs,
+      getId: (s) => s.id,
+      manualLanes: state.clipLanes,
+    );
+
+    final rawStart = item.timelineStartMs + deltaMs;
+    final int newStart = rawStart.clamp(
+      bounds.minStartMs,
+      bounds.maxStartMs ?? (totalDuration + 10000),
+    ).toInt();
+    final int newEnd = newStart + dur;
 
     final List<SubtitleEntity> updatedList = List.from(state.project.subtitles);
     updatedList[index] = item.copyWith(
@@ -2055,23 +2971,27 @@ class EditorController extends StateNotifier<TimelineState> {
     double intensity = 1.0,
   }) {
     _recordHistory();
+    final dur = durationMs > 0 ? durationMs : 3000;
     final start = startMs ?? state.playheadPositionMs;
+
     final newClip = EffectClipEntity(
       id: IdGenerator.generate(),
       effectType: effectType,
       timelineStartMs: start,
-      durationMs: durationMs > 0 ? durationMs : 3000,
+      durationMs: dur,
       intensity: intensity,
     );
 
     final updated = state.project.copyWith(
       effectClips: [...state.project.effectClips, newClip],
+      durationMs: max(state.project.durationMs, start + dur),
     );
 
     state = state.copyWith(
       project: updated,
       selectionType: SelectionType.effectClip,
       selectedItemId: newClip.id,
+      playheadPositionMs: start,
     );
     _persistChanges();
   }
@@ -2117,16 +3037,30 @@ class EditorController extends StateNotifier<TimelineState> {
     final deltaMs = ((deltaPixels / pixelsPerSecond) * 1000).round();
     if (deltaMs == 0) return;
 
+    final totalDuration = state.project.calculatedDurationMs;
+    final bounds = TimelineLayoutHelper.computeTrimBounds<EffectClipEntity>(
+      clipId: effectId,
+      currentStartMs: clip.timelineStartMs,
+      currentEndMs: clip.timelineEndMs,
+      items: state.project.effectClips,
+      getStart: (e) => e.timelineStartMs,
+      getEnd: (e) => e.timelineEndMs,
+      getId: (e) => e.id,
+      manualLanes: state.clipLanes,
+    );
+
     EffectClipEntity updatedClip;
     if (isLeftHandle) {
-      final newStart = max(0, clip.timelineStartMs + deltaMs);
-      final newDur = max(500, clip.durationMs - deltaMs);
+      final newStart = (clip.timelineStartMs + deltaMs).clamp(bounds.minTrimStartMs, clip.timelineEndMs - 500);
+      final newDur = clip.timelineEndMs - newStart;
       updatedClip = clip.copyWith(
         timelineStartMs: newStart,
         durationMs: newDur,
       );
     } else {
-      final newDur = max(500, clip.durationMs + deltaMs);
+      final maxAllowed = bounds.maxTrimEndMs ?? (totalDuration + 10000);
+      final newEnd = (clip.timelineEndMs + deltaMs).clamp(clip.timelineStartMs + 500, maxAllowed);
+      final newDur = newEnd - clip.timelineStartMs;
       updatedClip = clip.copyWith(durationMs: newDur);
     }
 
@@ -2150,7 +3084,24 @@ class EditorController extends StateNotifier<TimelineState> {
     if (index == -1) return;
 
     final clip = state.project.effectClips[index];
-    final newStart = max(0, clip.timelineStartMs + deltaMs);
+    final dur = clip.durationMs;
+    final totalDuration = state.project.calculatedDurationMs;
+    final bounds = TimelineLayoutHelper.computeLaneBounds<EffectClipEntity>(
+      clipId: effectId,
+      currentStartMs: clip.timelineStartMs,
+      currentDurationMs: dur,
+      items: state.project.effectClips,
+      getStart: (e) => e.timelineStartMs,
+      getEnd: (e) => e.timelineEndMs,
+      getId: (e) => e.id,
+      manualLanes: state.clipLanes,
+    );
+
+    final rawStart = clip.timelineStartMs + deltaMs;
+    final int newStart = rawStart.clamp(
+      bounds.minStartMs,
+      bounds.maxStartMs ?? (totalDuration + 10000),
+    ).toInt();
 
     final list = List<EffectClipEntity>.from(state.project.effectClips);
     list[index] = clip.copyWith(timelineStartMs: newStart);
@@ -2197,17 +3148,23 @@ class EditorController extends StateNotifier<TimelineState> {
   void duplicateEffectClip(String effectId) {
     final clip = state.project.effectClips.firstWhere((e) => e.id == effectId, orElse: () => state.project.effectClips.first);
     _recordHistory();
+    final dur = clip.durationMs;
+    final start = clip.timelineEndMs;
 
     final duplicated = clip.copyWith(
       id: IdGenerator.generate(),
-      timelineStartMs: clip.timelineEndMs,
+      timelineStartMs: start,
     );
 
-    final updated = state.project.copyWith(effectClips: [...state.project.effectClips, duplicated]);
+    final updated = state.project.copyWith(
+      effectClips: [...state.project.effectClips, duplicated],
+      durationMs: max(state.project.durationMs, start + dur),
+    );
     state = state.copyWith(
       project: updated,
       selectionType: SelectionType.effectClip,
       selectedItemId: duplicated.id,
+      playheadPositionMs: start,
     );
     _persistChanges();
   }
@@ -2231,8 +3188,8 @@ class EditorController extends StateNotifier<TimelineState> {
     String? name,
   }) {
     _recordHistory();
-    final startMs = state.playheadPositionMs;
     final dur = durationMs > 0 ? durationMs : 2000;
+    final startMs = state.playheadPositionMs;
 
     final newClip = AnimationClipEntity(
       id: IdGenerator.generate(),
@@ -2244,12 +3201,14 @@ class EditorController extends StateNotifier<TimelineState> {
 
     final updated = state.project.copyWith(
       animationClips: [...state.project.animationClips, newClip],
+      durationMs: max(state.project.durationMs, startMs + dur),
     );
 
     state = state.copyWith(
       project: updated,
       selectionType: SelectionType.animationClip,
       selectedItemId: newClip.id,
+      playheadPositionMs: startMs,
     );
     _persistChanges();
   }
@@ -2310,16 +3269,30 @@ class EditorController extends StateNotifier<TimelineState> {
     final deltaMs = ((deltaPixels / pixelsPerSecond) * 1000).round();
     if (deltaMs == 0) return;
 
+    final totalDuration = state.project.calculatedDurationMs;
+    final bounds = TimelineLayoutHelper.computeTrimBounds<AnimationClipEntity>(
+      clipId: animationId,
+      currentStartMs: clip.timelineStartMs,
+      currentEndMs: clip.timelineEndMs,
+      items: state.project.animationClips,
+      getStart: (a) => a.timelineStartMs,
+      getEnd: (a) => a.timelineEndMs,
+      getId: (a) => a.id,
+      manualLanes: state.clipLanes,
+    );
+
     AnimationClipEntity updatedClip;
     if (isLeftHandle) {
-      final newStart = max(0, clip.timelineStartMs + deltaMs);
-      final newDur = max(500, clip.durationMs - deltaMs);
+      final newStart = (clip.timelineStartMs + deltaMs).clamp(bounds.minTrimStartMs, clip.timelineEndMs - 500);
+      final newDur = clip.timelineEndMs - newStart;
       updatedClip = clip.copyWith(
         timelineStartMs: newStart,
         durationMs: newDur,
       );
     } else {
-      final newDur = max(500, clip.durationMs + deltaMs);
+      final maxAllowed = bounds.maxTrimEndMs ?? (totalDuration + 10000);
+      final newEnd = (clip.timelineEndMs + deltaMs).clamp(clip.timelineStartMs + 500, maxAllowed);
+      final newDur = newEnd - clip.timelineStartMs;
       updatedClip = clip.copyWith(durationMs: newDur);
     }
 
@@ -2343,7 +3316,24 @@ class EditorController extends StateNotifier<TimelineState> {
     if (index == -1) return;
 
     final clip = state.project.animationClips[index];
-    final newStart = max(0, clip.timelineStartMs + deltaMs);
+    final dur = clip.durationMs;
+    final totalDuration = state.project.calculatedDurationMs;
+    final bounds = TimelineLayoutHelper.computeLaneBounds<AnimationClipEntity>(
+      clipId: animationId,
+      currentStartMs: clip.timelineStartMs,
+      currentDurationMs: dur,
+      items: state.project.animationClips,
+      getStart: (a) => a.timelineStartMs,
+      getEnd: (a) => a.timelineEndMs,
+      getId: (a) => a.id,
+      manualLanes: state.clipLanes,
+    );
+
+    final rawStart = clip.timelineStartMs + deltaMs;
+    final int newStart = rawStart.clamp(
+      bounds.minStartMs,
+      bounds.maxStartMs ?? (totalDuration + 10000),
+    ).toInt();
 
     final list = List<AnimationClipEntity>.from(state.project.animationClips);
     list[index] = clip.copyWith(timelineStartMs: newStart);
@@ -2391,17 +3381,23 @@ class EditorController extends StateNotifier<TimelineState> {
   void duplicateAnimationClip(String animationId) {
     final clip = state.project.animationClips.firstWhere((a) => a.id == animationId, orElse: () => state.project.animationClips.first);
     _recordHistory();
+    final dur = clip.durationMs;
+    final start = clip.timelineEndMs;
 
     final duplicated = clip.copyWith(
       id: IdGenerator.generate(),
-      timelineStartMs: clip.timelineEndMs,
+      timelineStartMs: start,
     );
 
-    final updated = state.project.copyWith(animationClips: [...state.project.animationClips, duplicated]);
+    final updated = state.project.copyWith(
+      animationClips: [...state.project.animationClips, duplicated],
+      durationMs: max(state.project.durationMs, start + dur),
+    );
     state = state.copyWith(
       project: updated,
       selectionType: SelectionType.animationClip,
       selectedItemId: duplicated.id,
+      playheadPositionMs: start,
     );
     _persistChanges();
   }
@@ -2426,9 +3422,16 @@ class EditorController extends StateNotifier<TimelineState> {
     bool isOverlay = false,
   }) {
     _recordHistory();
-    final startMs = isOverlay ? state.playheadPositionMs : state.project.calculatedDurationMs;
     final dur = durationMs > 0 ? durationMs : 4000;
+    int startMs;
+    if (isOverlay) {
+      startMs = state.playheadPositionMs;
+    } else {
+      final mainClips = state.project.videoClips.where((c) => !c.isOverlay).toList();
+      startMs = mainClips.isEmpty ? 0 : mainClips.last.timelineEndMs;
+    }
 
+    final activeOverlaysCount = state.activeOverlayClips.length;
     final photoClip = VideoClipEntity(
       id: IdGenerator.generate(),
       mediaPath: mediaPath,
@@ -2440,6 +3443,8 @@ class EditorController extends StateNotifier<TimelineState> {
       trimEndMs: dur,
       isOverlay: isOverlay,
       zoomScale: isOverlay ? 0.6 : 1.0,
+      positionX: isOverlay && activeOverlaysCount > 0 ? (activeOverlaysCount * 25.0) : 0.0,
+      positionY: isOverlay && activeOverlaysCount > 0 ? (activeOverlaysCount * 25.0) : 0.0,
     );
 
     final updated = state.project.copyWith(
@@ -2451,6 +3456,7 @@ class EditorController extends StateNotifier<TimelineState> {
       project: updated,
       selectionType: isOverlay ? SelectionType.overlayClip : SelectionType.videoClip,
       selectedItemId: photoClip.id,
+      playheadPositionMs: startMs,
     );
     _persistChanges();
   }
@@ -2531,10 +3537,12 @@ class EditorController extends StateNotifier<TimelineState> {
   }
 
   Future<void> saveDraft() async {
+    final now = DateTime.now();
     final projectWithPlayhead = state.project.copyWith(
       lastPlayheadPositionMs: state.playheadPositionMs,
-      updatedAt: DateTime.now(),
+      updatedAt: now,
     );
+    state = state.copyWith(project: projectWithPlayhead);
     try {
       if (ref != null) {
         await ref!.read(saveProjectUseCaseProvider)(projectWithPlayhead);

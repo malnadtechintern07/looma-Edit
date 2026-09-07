@@ -1,17 +1,57 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:looma/core/storage/local_storage_service.dart';
 import 'package:looma/core/storage/storage_providers.dart';
 import 'package:looma/features/auth/presentation/providers/auth_provider.dart';
 import 'package:looma/features/projects/presentation/providers/projects_provider.dart';
+import '../../data/datasources/bunny_cloud_storage_datasource.dart';
 import '../../data/datasources/cloud_storage_datasource.dart';
 import '../../data/repositories/cloud_sync_repository_impl.dart';
+import '../../domain/entities/bunny_storage_config.dart';
 import '../../domain/entities/cloud_backup_record.dart';
 import '../../domain/entities/user_account_entity.dart';
 import '../../domain/repositories/cloud_sync_repository.dart';
 
+class BunnyStorageConfigNotifier extends StateNotifier<BunnyStorageConfig> {
+  final LocalStorageService _storage;
+  static const String _configKey = 'bunny_storage_config.json';
+
+  BunnyStorageConfigNotifier(this._storage)
+      : super(BunnyStorageConfig.defaultConfig()) {
+    _loadConfig();
+  }
+
+  Future<void> _loadConfig() async {
+    try {
+      final jsonMap = await _storage.readJson(_configKey);
+      if (jsonMap != null) {
+        state = BunnyStorageConfig.fromJson(jsonMap);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> updateConfig(BunnyStorageConfig newConfig) async {
+    state = newConfig;
+    try {
+      await _storage.writeJson(_configKey, newConfig.toJson());
+    } catch (_) {}
+  }
+}
+
+final bunnyStorageConfigProvider =
+    StateNotifierProvider<BunnyStorageConfigNotifier, BunnyStorageConfig>((ref) {
+  final storage = ref.watch(localStorageServiceProvider);
+  return BunnyStorageConfigNotifier(storage);
+});
+
 final cloudStorageDataSourceProvider = Provider<CloudStorageDataSource>((ref) {
   final storage = ref.watch(localStorageServiceProvider);
-  return CloudStorageDataSourceImpl(storageService: storage);
+  final bunnyConfig = ref.watch(bunnyStorageConfigProvider);
+  return BunnyCloudStorageDataSource(
+    localStorageService: storage,
+    config: bunnyConfig,
+  );
 });
+
 
 final cloudSyncRepositoryProvider = Provider<CloudSyncRepository>((ref) {
   final cloudDs = ref.watch(cloudStorageDataSourceProvider);

@@ -156,6 +156,11 @@ class _ChromaKeySheetState extends State<ChromaKeySheet> {
                   value: _isEnabled,
                   activeTrackColor: const Color(0xFF00FF88),
                   activeThumbColor: Colors.white,
+                  inactiveTrackColor: const Color(0xFF2E3240),
+                  inactiveThumbColor: const Color(0xFF9CA3AF),
+                  trackOutlineColor: WidgetStateProperty.resolveWith((states) =>
+                    states.contains(WidgetState.selected) ? Colors.transparent : const Color(0xFF4B5563),
+                  ),
                   onChanged: (val) {
                     setState(() => _isEnabled = val);
                     _notify();

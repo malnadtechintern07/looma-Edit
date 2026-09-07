@@ -9,6 +9,7 @@ import '../../../../core/widgets/looma_button.dart';
 import '../../../../core/widgets/looma_card.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../domain/entities/bunny_storage_config.dart';
 import '../../domain/entities/cloud_backup_record.dart';
 import '../providers/cloud_sync_provider.dart';
 
@@ -22,6 +23,7 @@ class CloudSyncScreen extends ConsumerWidget {
     final profileAsync = ref.watch(userProfileFutureProvider);
     final backupsAsync = ref.watch(cloudBackupsFutureProvider);
     final syncState = ref.watch(syncNotifierProvider);
+    final bunnyConfig = ref.watch(bunnyStorageConfigProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0C0D12),
@@ -30,7 +32,7 @@ class CloudSyncScreen extends ConsumerWidget {
         elevation: 0,
         title: Row(
           children: [
-            const Icon(Icons.cloud_sync, color: Color(0xFF5B4DFB), size: 22),
+            const Icon(Icons.cloud_sync, color: AppColors.primary, size: 22),
             const SizedBox(width: 8),
             Text(
               'Cloud Backup & Sync',
@@ -38,6 +40,13 @@ class CloudSyncScreen extends ConsumerWidget {
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.tune, color: Colors.white70, size: 20),
+            tooltip: 'Bunny.net Settings',
+            onPressed: () => _showBunnyConfigDialog(context, ref, bunnyConfig),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -50,15 +59,15 @@ class CloudSyncScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF20174D), Color(0xFF14152A)],
+                    colors: [Color(0xFF084298), Color(0xFF14152A)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFF5B4DFB).withValues(alpha: 0.5)),
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF5B4DFB).withValues(alpha: 0.2),
+                      color: AppColors.primary.withValues(alpha: 0.2),
                       blurRadius: 16,
                       offset: const Offset(0, 4),
                     ),
@@ -72,7 +81,7 @@ class CloudSyncScreen extends ConsumerWidget {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF5B4DFB),
+                            color: AppColors.primary,
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(Icons.cloud_upload_outlined, color: Colors.white, size: 20),
@@ -100,7 +109,7 @@ class CloudSyncScreen extends ConsumerWidget {
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF5B4DFB),
+                          backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -114,6 +123,82 @@ class CloudSyncScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 20),
+            ],
+
+            // Bunny.net Edge Cloud Storage Card
+            if (isAuthenticated) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF161824),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFF00C2CB).withValues(alpha: 0.35)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF00C2CB).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.cloud_done, color: Color(0xFF00C2CB), size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: const [
+                              Flexible(
+                                child: Text(
+                                  'Bunny.net Edge Cloud',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              SizedBox(width: 4),
+                              Text('🐰', style: TextStyle(fontSize: 12)),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+
+                          Text(
+                            'Zone: ${bunnyConfig.storageZoneName} • ${bunnyConfig.storageEndpoint}',
+                            style: const TextStyle(
+                              color: Color(0xFF8E95A5),
+                              fontSize: 11.5,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => _showBunnyConfigDialog(context, ref, bunnyConfig),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: const Text(
+                        'Configure',
+                        style: TextStyle(
+                          color: Color(0xFF00C2CB),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
 
             // 2. Sync Error Banner (if any)
@@ -149,7 +234,7 @@ class CloudSyncScreen extends ConsumerWidget {
                   children: [
                     CircleAvatar(
                       radius: 28,
-                      backgroundColor: const Color(0xFF5B4DFB),
+                      backgroundColor: AppColors.primary,
                       child: Text(
                         profile.displayName.isNotEmpty
                             ? profile.displayName.substring(0, profile.displayName.length >= 2 ? 2 : 1).toUpperCase()
@@ -236,7 +321,7 @@ class CloudSyncScreen extends ConsumerWidget {
                         value: profile.usagePercentage > 0.01 ? profile.usagePercentage : 0.02,
                         minHeight: 8,
                         backgroundColor: const Color(0xFF262938),
-                        valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF5B4DFB)),
+                        valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -298,7 +383,7 @@ class CloudSyncScreen extends ConsumerWidget {
                 if (isAuthenticated)
                   TextButton(
                     onPressed: () => ref.read(syncNotifierProvider.notifier).triggerSync(),
-                    child: const Text('Refresh', style: TextStyle(color: Color(0xFF5B4DFB), fontSize: 13)),
+                    child: const Text('Refresh', style: TextStyle(color: AppColors.primary, fontSize: 13)),
                   ),
               ],
             ),
@@ -496,4 +581,192 @@ class CloudSyncScreen extends ConsumerWidget {
       ),
     );
   }
+
+  void _showBunnyConfigDialog(
+    BuildContext context,
+    WidgetRef ref,
+    BunnyStorageConfig currentConfig,
+  ) {
+    final zoneController = TextEditingController(text: currentConfig.storageZoneName);
+    final keyController = TextEditingController(text: currentConfig.accessKey);
+    final cdnController = TextEditingController(text: currentConfig.cdnHostname ?? '');
+    String selectedEndpoint = currentConfig.storageEndpoint;
+    bool obscureKey = true;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF161824),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF00C2CB).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.cloud_outlined, color: Color(0xFF00C2CB), size: 20),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'Bunny.net Storage Settings 🐰',
+                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Projects will sync to Bunny.net Edge Storage when you are signed in.',
+                  style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 12.5),
+                ),
+                const SizedBox(height: 16),
+
+                // Storage Zone Name
+                const Text(
+                  'Storage Zone Name',
+                  style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: zoneController,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText: 'e.g. looma-storage',
+                    hintStyle: const TextStyle(color: Colors.white30, fontSize: 13),
+                    filled: true,
+                    fillColor: const Color(0xFF202330),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // Access Key
+                const Text(
+                  'Storage Zone Access Key / Password',
+                  style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: keyController,
+                  obscureText: obscureKey,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText: 'Bunny.net Storage Access Key',
+                    hintStyle: const TextStyle(color: Colors.white30, fontSize: 13),
+                    filled: true,
+                    fillColor: const Color(0xFF202330),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                    suffixIcon: IconButton(
+                      icon: Icon(obscureKey ? Icons.visibility : Icons.visibility_off, color: Colors.white54, size: 18),
+                      onPressed: () => setDialogState(() => obscureKey = !obscureKey),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // Region / Endpoint
+                const Text(
+                  'Storage Region Endpoint',
+                  style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF202330),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: selectedEndpoint,
+                      dropdownColor: const Color(0xFF202330),
+                      isExpanded: true,
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      items: BunnyStorageConfig.availableRegions.entries.map((e) {
+                        return DropdownMenuItem<String>(
+                          value: e.value,
+                          child: Text(e.key, style: const TextStyle(color: Colors.white, fontSize: 12.5)),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() => selectedEndpoint = val);
+                        }
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // CDN Pull Zone Hostname (Optional)
+                const Text(
+                  'CDN Hostname (Optional)',
+                  style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: cdnController,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText: 'e.g. looma.b-cdn.net',
+                    hintStyle: const TextStyle(color: Colors.white30, fontSize: 13),
+                    filled: true,
+                    fillColor: const Color(0xFF202330),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00C2CB),
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () async {
+                final updated = currentConfig.copyWith(
+                  storageZoneName: zoneController.text.trim(),
+                  accessKey: keyController.text.trim(),
+                  storageEndpoint: selectedEndpoint,
+                  cdnHostname: cdnController.text.trim().isNotEmpty ? cdnController.text.trim() : null,
+                );
+                await ref.read(bunnyStorageConfigProvider.notifier).updateConfig(updated);
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      backgroundColor: Color(0xFF00C2CB),
+                      content: Text(
+                        'Bunny.net Storage settings saved successfully! 🐰',
+                        style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  );
+                }
+              },
+              child: const Text('Save Settings', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
 }

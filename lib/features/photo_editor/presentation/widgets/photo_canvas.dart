@@ -61,7 +61,7 @@ class _PhotoCanvasState extends State<PhotoCanvas> {
     if (path.startsWith('assets/')) {
       imageWidget = Image.asset(path, fit: BoxFit.cover);
     } else if (File(path).existsSync()) {
-      imageWidget = Image.file(File(path), fit: BoxFit.cover);
+      imageWidget = Image.file(File(path), fit: BoxFit.cover, cacheWidth: 1080);
     } else {
       imageWidget = Container(
         color: AppColors.surfaceElevated,
@@ -325,11 +325,11 @@ class _PhotoCanvasState extends State<PhotoCanvas> {
                   const SizedBox(width: 6),
                   Text(
                     wm.text,
-                    style: TextStyle(
+                    style: FontHelper.getTextStyle(
+                      wm.fontFamily,
                       color: Color(wm.colorHex),
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
-                      fontFamily: wm.fontFamily,
                     ),
                   ),
                 ],

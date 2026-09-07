@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/router/route_paths.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
+import '../../../../core/services/app_actions_service.dart';
+import '../../../../core/widgets/rate_us_dialog.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../projects/presentation/providers/projects_provider.dart';
 
@@ -71,7 +73,7 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF5B4DFB),
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
@@ -100,6 +102,22 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
         content: Text('Temporary video cache cleared! Freed up 42.6 MB.'),
       ),
     );
+  }
+
+  Future<void> _handleRateUs() async {
+    await showRateUsDialog(context);
+  }
+
+  Future<void> _handleShareApp() async {
+    final success = await AppActionsService.shareApp();
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Looma download link copied to clipboard!'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override
@@ -137,7 +155,7 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
           ),
           IconButton(
             tooltip: 'Cloud Backup',
-            icon: const Icon(Icons.cloud_done_outlined, color: Color(0xFF5B4DFB), size: 22),
+            icon: const Icon(Icons.cloud_done_outlined, color: AppColors.primary, size: 22),
             onPressed: () => context.push(RoutePaths.cloud),
           ),
           const SizedBox(width: 8),
@@ -178,7 +196,7 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               gradient: const LinearGradient(
-                                colors: [Color(0xFF5B4DFB), Color(0xFF00D2D3)],
+                                colors: [Color(0xFF084298), Color(0xFF0D6EFD)],
                               ),
                               border: Border.all(color: Colors.white, width: 3),
                               boxShadow: const [
@@ -275,7 +293,7 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
                         label: 'Projects',
                         value: '${projects.length}',
                         icon: Icons.movie_outlined,
-                        color: const Color(0xFF5B4DFB),
+                        color: AppColors.primary,
                       ),
                       Container(width: 1, height: 32, color: const Color(0xFFE5E7EB)),
                       _buildStatItem(
@@ -305,15 +323,15 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF2E266D), Color(0xFF1E1B4B)],
+                    colors: [Color(0xFF084298), Color(0xFF0D6EFD)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFF5B4DFB).withValues(alpha: 0.5)),
+                  border: Border.all(color: const Color(0xFF00C2CB).withValues(alpha: 0.4)),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF5B4DFB).withValues(alpha: 0.25),
+                      color: AppColors.primary.withValues(alpha: 0.25),
                       blurRadius: 16,
                       offset: const Offset(0, 4),
                     ),
@@ -325,12 +343,9 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF5B4DFB), Color(0xFF8644FF)],
-                        ),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.account_circle_outlined, color: Colors.white, size: 24),
+                      child: Image.asset('assets/icon/app_icon.png', fit: BoxFit.contain),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -361,8 +376,8 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
                     ElevatedButton(
                       key: const Key('me_tab_signin_register_btn'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF5B4DFB),
-                        foregroundColor: Colors.white,
+                        backgroundColor: Colors.white,
+                        foregroundColor: AppColors.primary,
                         elevation: 3,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -398,37 +413,50 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
                 child: Column(
                   children: [
                     SwitchListTile(
-                      title: const Text('Direct Save to Gallery', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                      title: const Text('Direct Save to Gallery', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF111827))),
                       subtitle: const Text('Auto-save exported videos directly to Camera Roll/DCIM', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
                       value: _autoSaveToGallery,
-                      activeTrackColor: const Color(0xFF5B4DFB),
+                      activeTrackColor: AppColors.primary,
+                      activeThumbColor: Colors.white,
+                      inactiveTrackColor: const Color(0xFFCBD5E1),
+                      inactiveThumbColor: Colors.white,
+                      trackOutlineColor: WidgetStateProperty.resolveWith((states) =>
+                        states.contains(WidgetState.selected) ? Colors.transparent : const Color(0xFF94A3B8),
+                      ),
                       onChanged: (v) => setState(() => _autoSaveToGallery = v),
                     ),
                     const Divider(height: 1, color: Color(0xFFF3F4F6)),
                     SwitchListTile(
-                      title: const Text('Hardware GPU Acceleration', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                      title: const Text('Hardware GPU Acceleration', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF111827))),
                       subtitle: const Text('Ultra-fast multi-core video encoding (H.264 / HEVC)', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
                       value: _hardwareAcceleration,
-                      activeTrackColor: const Color(0xFF5B4DFB),
+                      activeTrackColor: AppColors.primary,
+                      activeThumbColor: Colors.white,
+                      inactiveTrackColor: const Color(0xFFCBD5E1),
+                      inactiveThumbColor: Colors.white,
+                      trackOutlineColor: WidgetStateProperty.resolveWith((states) =>
+                        states.contains(WidgetState.selected) ? Colors.transparent : const Color(0xFF94A3B8),
+                      ),
                       onChanged: (v) => setState(() => _hardwareAcceleration = v),
                     ),
                     const Divider(height: 1, color: Color(0xFFF3F4F6)),
                     ListTile(
-                      title: const Text('Default Resolution', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                      title: const Text('Default Resolution', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF111827))),
                       subtitle: Text(_defaultResolution, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
                       trailing: const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
                       onTap: () {
                         showDialog(
                           context: context,
                           builder: (ctx) => SimpleDialog(
-                            title: const Text('Select Default Resolution'),
+                            backgroundColor: Colors.white,
+                            title: const Text('Select Default Resolution', style: TextStyle(color: Color(0xFF111827), fontWeight: FontWeight.bold, fontSize: 18)),
                             children: ['720p (HD)', '1080p (FHD)', '4K (Ultra HD)'].map((res) {
                               return SimpleDialogOption(
                                 onPressed: () {
                                   setState(() => _defaultResolution = res);
                                   Navigator.of(ctx).pop();
                                 },
-                                child: Text(res, style: const TextStyle(fontSize: 14)),
+                                child: Text(res, style: const TextStyle(fontSize: 14, color: Color(0xFF111827))),
                               );
                             }).toList(),
                           ),
@@ -464,12 +492,12 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
                 child: Column(
                   children: [
                     ListTile(
-                      leading: const Icon(Icons.cleaning_services_outlined, color: Color(0xFF5B4DFB)),
+                      leading: const Icon(Icons.cleaning_services_outlined, color: AppColors.primary),
                       title: const Text('Clear Temporary Cache', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                       subtitle: const Text('Free storage from rendered video fragments', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
                       trailing: TextButton(
                         onPressed: _clearCache,
-                        child: const Text('Clean (42 MB)', style: TextStyle(color: Color(0xFF5B4DFB), fontSize: 12)),
+                        child: const Text('Clean (42 MB)', style: TextStyle(color: AppColors.primary, fontSize: 12)),
                       ),
                     ),
                     const Divider(height: 1, color: Color(0xFFF3F4F6)),
@@ -482,9 +510,50 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
                     ),
                     const Divider(height: 1, color: Color(0xFFF3F4F6)),
                     ListTile(
-                      leading: const Icon(Icons.info_outline, color: Color(0xFF6B7280)),
+                      leading: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.asset('assets/icon/app_icon.png', width: 28, height: 28),
+                      ),
                       title: const Text('About Looma Video Editor', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                       subtitle: const Text('Version 2.4.0 (Build 240) • Offline Pro Engine', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+                      onTap: () {
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            backgroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const SizedBox(height: 8),
+                                Image.asset('assets/icon/app_icon.png', width: 68, height: 68),
+                                const SizedBox(height: 12),
+                                const Text(
+                                  'LOOMA',
+                                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1),
+                                ),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  'Version 2.4.0 (Build 240)',
+                                  style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                                ),
+                                const SizedBox(height: 12),
+                                const Text(
+                                  'Pro Mobile Video Editor with CapCut-style Multi-Track Timeline, 70+ Effects, Keyframing, Filters, and Cloud Sync.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontSize: 13, color: Color(0xFF374151), height: 1.4),
+                                ),
+                              ],
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(ctx).pop(),
+                                child: const Text('Close'),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -492,7 +561,80 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
             ),
             const SizedBox(height: 24),
 
-            // 4. Account & Security
+            // 4. Community & Support (Rate Us & Share App)
+            Text(
+              'Community & Support',
+              style: AppTypography.titleMedium.copyWith(
+                color: const Color(0xFF111827),
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            Material(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              clipBehavior: Clip.antiAlias,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFECEEF5)),
+                ),
+                child: Column(
+                  children: [
+                    ListTile(
+                      key: const Key('me_rate_us_tile'),
+                      leading: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFB800).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.star_rounded, color: Color(0xFFFFB800), size: 22),
+                      ),
+                      title: const Text(
+                        'Rate Us',
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF111827)),
+                      ),
+                      subtitle: const Text(
+                        'Submit a star rating & review on Google Play Store',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                      ),
+                      trailing: const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
+                      onTap: _handleRateUs,
+                    ),
+                    const Divider(height: 1, color: Color(0xFFF3F4F6)),
+                    ListTile(
+                      key: const Key('me_share_app_tile'),
+                      leading: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.share_rounded, color: AppColors.primary, size: 20),
+                      ),
+                      title: const Text(
+                        'Share App',
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF111827)),
+                      ),
+                      subtitle: const Text(
+                        'Share Looma via WhatsApp, Instagram, Messages & more',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                      ),
+                      trailing: const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
+                      onTap: _handleShareApp,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // 5. Account & Security
             Text(
               'Account & Cloud Security',
               style: AppTypography.titleMedium.copyWith(
@@ -517,7 +659,7 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
                     if (!isAuthenticated)
                       ListTile(
                         key: const Key('me_account_signin_list_tile'),
-                        leading: const Icon(Icons.login, color: Color(0xFF5B4DFB)),
+                        leading: const Icon(Icons.login, color: AppColors.primary),
                         title: const Text('Sign In or Register Account', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                         subtitle: const Text('Enable private cloud project backup & multi-device sync', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
                         trailing: const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),

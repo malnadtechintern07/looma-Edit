@@ -28,11 +28,9 @@ class AnimationTrackItem extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
-      onHorizontalDragUpdate: (details) {
-        if (isSelected && onSlideDragUpdate != null) {
-          onSlideDragUpdate!(details.delta.dx);
-        }
-      },
+      onHorizontalDragUpdate: isSelected && onSlideDragUpdate != null
+          ? (details) => onSlideDragUpdate!(details.delta.dx)
+          : null,
       child: Container(
         width: width,
         height: height,

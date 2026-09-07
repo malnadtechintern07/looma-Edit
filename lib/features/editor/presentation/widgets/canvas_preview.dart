@@ -10,6 +10,8 @@ import '../../../../app/theme/app_typography.dart';
 import '../../../../core/rendering/chroma_key_filter.dart';
 import '../../../../core/utils/font_helper.dart';
 import '../../../../core/utils/timecode_formatter.dart';
+import '../../../../core/widgets/looma_watermark.dart';
+import '../../../../core/widgets/responsive_tap_button.dart';
 import '../../../editor/domain/entities/transition_type.dart';
 import '../../../filters_effects/domain/entities/filter_preset.dart';
 import '../../../filters_effects/domain/entities/video_effect_type.dart';
@@ -74,6 +76,33 @@ class _CanvasPreviewState extends State<CanvasPreview> {
   double _liveStickerScale = 1.0;
   double _liveStickerRotation = 0.0;
 
+  void _initClipLiveTransform(VideoClipEntity clip) {
+    if (clip.keyframes.isNotEmpty) {
+      final offsetInClip = (widget.timelineState.playheadPositionMs - clip.timelineStartMs).clamp(0, clip.effectiveDurationMs);
+      final base = KeyframeValues(
+        posX: clip.positionX,
+        posY: clip.positionY,
+        scale: clip.zoomScale,
+        rotation: clip.rotationDegrees,
+        opacity: clip.opacity,
+      );
+      final interpolated = KeyframeInterpolator.interpolate(
+        keyframes: clip.keyframes,
+        currentOffsetMs: offsetInClip,
+        baseValues: base,
+      );
+      _livePosX = interpolated.posX;
+      _livePosY = interpolated.posY;
+      _liveZoom = interpolated.scale;
+      _liveRotation = interpolated.rotation;
+    } else {
+      _livePosX = clip.positionX;
+      _livePosY = clip.positionY;
+      _liveZoom = clip.zoomScale;
+      _liveRotation = clip.rotationDegrees;
+    }
+  }
+
   void _handleScaleStart(ScaleStartDetails details, VideoClipEntity? activeClip) {
     _lastFocal = details.focalPoint;
     _lastScale = 1.0;
@@ -86,10 +115,7 @@ class _CanvasPreviewState extends State<CanvasPreview> {
     // Auto-select activeClip if nothing is selected
     if (state.selectionType == SelectionType.none && activeClip != null) {
       widget.controller.setSelection(SelectionType.videoClip, activeClip.id);
-      _livePosX = activeClip.positionX;
-      _livePosY = activeClip.positionY;
-      _liveZoom = activeClip.zoomScale;
-      _liveRotation = activeClip.rotationDegrees;
+      _initClipLiveTransform(activeClip);
       _isGestureActive = true;
       return;
     }
@@ -98,19 +124,13 @@ class _CanvasPreviewState extends State<CanvasPreview> {
       final clip = activeClip ??
           state.project.videoClips.where((c) => c.id == state.selectedItemId).firstOrNull;
       if (clip != null) {
-        _livePosX = clip.positionX;
-        _livePosY = clip.positionY;
-        _liveZoom = clip.zoomScale;
-        _liveRotation = clip.rotationDegrees;
+        _initClipLiveTransform(clip);
         _isGestureActive = true;
       }
     } else if (state.selectionType == SelectionType.overlayClip) {
       final clip = state.project.videoClips.where((c) => c.id == state.selectedItemId).firstOrNull;
       if (clip != null) {
-        _livePosX = clip.positionX;
-        _livePosY = clip.positionY;
-        _liveZoom = clip.zoomScale;
-        _liveRotation = clip.rotationDegrees;
+        _initClipLiveTransform(clip);
         _isGestureActive = true;
       }
     } else if (state.selectionType == SelectionType.textOverlay) {
@@ -275,12 +295,13 @@ class _CanvasPreviewState extends State<CanvasPreview> {
   VideoPlayerController? _getVideoController(String path, {String? clipId}) {
     if (!_isVideoFile(path)) return null;
 
-    if (_videoControllers.containsKey(path)) {
-      return _videoControllers[path];
+    final cacheKey = clipId ?? path;
+    if (_videoControllers.containsKey(cacheKey)) {
+      return _videoControllers[cacheKey];
     }
 
     // Keep cache size comfortable to avoid re-init overhead on multi-clip projects
-    if (_videoControllers.length >= 6) {
+    if (_videoControllers.length >= 8) {
       final keyToRemove = _videoControllers.keys.firstWhere(
         (k) => k != _currentPlayingPath,
         orElse: () => _videoControllers.keys.first,
@@ -310,7 +331,7 @@ class _CanvasPreviewState extends State<CanvasPreview> {
         }
       }
 
-      _videoControllers[path] = controller;
+      _videoControllers[cacheKey] = controller;
       controller.initialize().then((_) {
         controller.setLooping(false);
         final realDurMs = controller.value.duration.inMilliseconds;
@@ -362,11 +383,11 @@ class _CanvasPreviewState extends State<CanvasPreview> {
       }
     }
 
-    final activePaths = activeVideoClips.map((c) => c.mediaPath).toSet();
+    final activeKeys = activeVideoClips.map((c) => c.id).toSet();
 
     // 2. Pause any controllers that are no longer on active tracks or not at the current playhead
     for (final entry in _videoControllers.entries) {
-      if (!activePaths.contains(entry.key) && entry.value.value.isPlaying) {
+      if (!activeKeys.contains(entry.key) && entry.value.value.isPlaying) {
         entry.value.pause();
       }
     }
@@ -498,7 +519,7 @@ class _CanvasPreviewState extends State<CanvasPreview> {
           // Centered Aspect Ratio Preview Canvas
           Center(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.fromLTRB(16, 36, 16, 64),
               child: AspectRatio(
                 aspectRatio: project.aspectRatio.ratio,
                 child: LayoutBuilder(
@@ -653,6 +674,15 @@ class _CanvasPreviewState extends State<CanvasPreview> {
                                     activeClip,
                               ),
                             ],
+
+                            // 8. Subtle Looma Watermark in Bottom-Right Corner
+                            const Positioned(
+                              right: 10,
+                              bottom: 10,
+                              child: IgnorePointer(
+                                child: LoomaWatermark(opacity: 0.65, scale: 0.9),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -731,35 +761,6 @@ class _CanvasPreviewState extends State<CanvasPreview> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-
-                      // Full Screen Preview Button ⛶
-                      InkWell(
-                        onTap: _openFullScreenPreview,
-                        borderRadius: BorderRadius.circular(6),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF00C2CB).withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: const Color(0xFF00C2CB), width: 1.2),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(Icons.fullscreen, size: 16, color: Color(0xFF00C2CB)),
-                              SizedBox(width: 4),
-                              Text(
-                                'Full Screen',
-                                style: TextStyle(
-                                  color: Color(0xFF00C2CB),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -767,79 +768,220 @@ class _CanvasPreviewState extends State<CanvasPreview> {
             ),
           ),
 
-          // Bottom Floating Playback Controls
+          // CapCut-Style Playback & Control Options Toolbar (Matching Reference UI)
           Positioned(
-            bottom: 8,
+            left: 0,
+            right: 0,
+            bottom: 0,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceElevated.withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: AppColors.surfaceBorder),
-                boxShadow: const [
-                  BoxShadow(color: Colors.black45, blurRadius: 10, offset: Offset(0, 4)),
-                ],
-              ),
-              child: Row(
+              color: const Color(0xFF14151B),
+              padding: const EdgeInsets.only(top: 6, bottom: 4),
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Step Back 5s
-                  IconButton(
-                    icon: const Icon(Icons.replay_5, size: 20),
-                    tooltip: 'Back 5s',
-                    onPressed: () => widget.controller.seekTo(currentPosMs - 5000),
-                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                    padding: EdgeInsets.zero,
-                  ),
-                  // Frame Back (1 frame)
-                  IconButton(
-                    icon: const Icon(Icons.skip_previous, size: 20),
-                    tooltip: 'Previous Frame',
-                    onPressed: () => widget.controller.seekTo(currentPosMs - 33),
-                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                    padding: EdgeInsets.zero,
-                  ),
-                  const SizedBox(width: 4),
-                  // Main Play / Pause Button
-                  GestureDetector(
-                    onTap: widget.controller.togglePlayPause,
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [AppColors.primary, AppColors.primaryDark],
-                        ),
-                      ),
-                      child: Icon(
-                        state.isPlaying ? Icons.pause : Icons.play_arrow,
-                        size: 24,
-                        color: Colors.white,
+                  // Row 1: [ ⛶ Fullscreen ] -------- [ ▷ Play/Pause ] (Centered) -------- [ ⧉ ON Magnet ] [ ↶ Undo ] [ ↷ Redo ]
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: SizedBox(
+                      height: 40,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // Left: Fullscreen Icon Button
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: ResponsiveTapButton(
+                              onTap: _openFullScreenPreview,
+                              child: Container(
+                                width: 38,
+                                height: 38,
+                                alignment: Alignment.center,
+                                child: const Icon(
+                                  Icons.fullscreen,
+                                  size: 26,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // EXACT Center: Clean White Play/Pause Button
+                          Align(
+                            alignment: Alignment.center,
+                            child: ResponsiveTapButton(
+                              onTap: widget.controller.togglePlayPause,
+                              child: Container(
+                                width: 44,
+                                height: 44,
+                                alignment: Alignment.center,
+                                child: Icon(
+                                  state.isPlaying ? Icons.pause : Icons.play_arrow,
+                                  size: 32,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // Right: Magnet / Snapping Toggle, Undo, Redo
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // Auto-Snapping / Magnet Toggle [ ⧉ ON ]
+                                _buildSnappingButton(state.isSnappingEnabled),
+                                const SizedBox(width: 4),
+
+                                // Undo Button ↶
+                                ResponsiveTapButton(
+                                  onTap: widget.controller.canUndo ? widget.controller.undo : null,
+                                  child: Container(
+                                    width: 36,
+                                    height: 36,
+                                    alignment: Alignment.center,
+                                    child: Icon(
+                                      Icons.undo,
+                                      size: 22,
+                                      color: widget.controller.canUndo
+                                          ? Colors.white
+                                          : Colors.white.withValues(alpha: 0.3),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 2),
+
+                                // Redo Button ↷
+                                ResponsiveTapButton(
+                                  onTap: widget.controller.canRedo ? widget.controller.redo : null,
+                                  child: Container(
+                                    width: 36,
+                                    height: 36,
+                                    alignment: Alignment.center,
+                                    child: Icon(
+                                      Icons.redo,
+                                      size: 22,
+                                      color: widget.controller.canRedo
+                                          ? Colors.white
+                                          : Colors.white.withValues(alpha: 0.3),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  const SizedBox(width: 4),
-                  // Frame Forward (1 frame)
-                  IconButton(
-                    icon: const Icon(Icons.skip_next, size: 20),
-                    tooltip: 'Next Frame',
-                    onPressed: () => widget.controller.seekTo(currentPosMs + 33),
-                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                    padding: EdgeInsets.zero,
-                  ),
-                  // Step Forward 5s
-                  IconButton(
-                    icon: const Icon(Icons.forward_5, size: 20),
-                    tooltip: 'Forward 5s',
-                    onPressed: () => widget.controller.seekTo(currentPosMs + 5000),
-                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                    padding: EdgeInsets.zero,
+
+                  const SizedBox(height: 2),
+
+                  // Row 2: Timecodes [ 00:00 / 00:04 ] -------- [ 00:00 ] (Directly over playhead needle)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Left: Current / Total Timecode (e.g. 00:00 / 00:04)
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            '${TimecodeFormatter.formatMmSs(currentPosMs)} / ${TimecodeFormatter.formatMmSs(totalDurationMs)}',
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 11.5,
+                              fontFamily: 'monospace',
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+
+                        // Center: Exact Playhead Position (Aligned with Timeline Needle)
+                        Align(
+                          alignment: Alignment.center,
+                          child: Text(
+                            TimecodeFormatter.formatMmSs(currentPosMs),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11.5,
+                              fontFamily: 'monospace',
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSnappingButton(bool isEnabled) {
+    return Tooltip(
+      message: isEnabled ? 'Timeline Magnet / Auto-Snapping: ON' : 'Timeline Magnet / Auto-Snapping: OFF',
+      child: ResponsiveTapButton(
+        onTap: widget.controller.toggleSnapping,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          child: SizedBox(
+            width: 28,
+            height: 24,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                // Back rectangle
+                Positioned(
+                  top: 1,
+                  left: 1,
+                  child: Container(
+                    width: 17,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(3),
+                      border: Border.all(
+                        color: isEnabled ? Colors.white70 : Colors.white24,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                ),
+                // Front rectangle with ON/OFF label
+                Positioned(
+                  bottom: 1,
+                  right: 1,
+                  child: Container(
+                    width: 18,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF14151B),
+                      borderRadius: BorderRadius.circular(3),
+                      border: Border.all(
+                        color: isEnabled ? Colors.white : Colors.white38,
+                        width: 1.5,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      isEnabled ? 'ON' : 'OFF',
+                      style: TextStyle(
+                        fontSize: 7.5,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.3,
+                        color: isEnabled ? const Color(0xFF00C2CB) : Colors.white38,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -889,6 +1031,7 @@ class _CanvasPreviewState extends State<CanvasPreview> {
       frameContent = Image.file(
         File(path),
         fit: BoxFit.cover,
+        cacheWidth: 1080,
         errorBuilder: (_, _, _) => _buildFallbackFrame(clip),
       );
     } else {
@@ -2911,10 +3054,24 @@ class _CanvasPreviewState extends State<CanvasPreview> {
         ((widget.timelineState.selectionType == SelectionType.videoClip && widget.timelineState.selectedItemId == clip.id) ||
          (widget.timelineState.selectionType == SelectionType.overlayClip && widget.timelineState.selectedItemId == clip.id));
 
-    final effectivePosX = isTransformingThisClip ? _livePosX : clip.positionX;
-    final effectivePosY = isTransformingThisClip ? _livePosY : clip.positionY;
-    final effectiveScale = isTransformingThisClip ? _liveZoom : clip.zoomScale;
-    final effectiveRot = isTransformingThisClip ? _liveRotation : clip.rotationDegrees;
+    final offsetInClip = (widget.timelineState.playheadPositionMs - clip.timelineStartMs).clamp(0, clip.effectiveDurationMs);
+    final baseValues = KeyframeValues(
+      posX: clip.positionX,
+      posY: clip.positionY,
+      scale: clip.zoomScale,
+      rotation: clip.rotationDegrees,
+      opacity: clip.opacity,
+    );
+    final keyValues = KeyframeInterpolator.interpolate(
+      keyframes: clip.keyframes,
+      currentOffsetMs: offsetInClip,
+      baseValues: baseValues,
+    );
+
+    final effectivePosX = isTransformingThisClip ? _livePosX : keyValues.posX;
+    final effectivePosY = isTransformingThisClip ? _livePosY : keyValues.posY;
+    final effectiveScale = isTransformingThisClip ? _liveZoom : keyValues.scale;
+    final effectiveRot = isTransformingThisClip ? _liveRotation : keyValues.rotation;
 
     return IgnorePointer(
       child: Transform.translate(
@@ -2963,15 +3120,19 @@ class _CanvasPreviewState extends State<CanvasPreview> {
   }
 
   Widget _buildClipQuickToolbar(VideoClipEntity clip) {
+    final hasPrev = widget.controller.hasPrevKeyframe(clip.id);
+    final hasNext = widget.controller.hasNextKeyframe(clip.id);
+    final isAtKf = widget.controller.isAtKeyframe(clip.id);
+
     return Positioned(
       top: 12,
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 320),
+        constraints: const BoxConstraints(maxWidth: 360),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
           color: const Color(0xFF1E2028).withValues(alpha: 0.94),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.primaryLight, width: 1.2),
+          border: Border.all(color: isAtKf ? AppColors.accentRose : AppColors.primaryLight, width: 1.2),
           boxShadow: const [
             BoxShadow(color: Colors.black54, blurRadius: 10, offset: Offset(0, 3)),
           ],
@@ -2984,32 +3145,46 @@ class _CanvasPreviewState extends State<CanvasPreview> {
             children: [
               // Keyframe Jump Prev
               InkWell(
-                onTap: () => widget.controller.jumpToPrevKeyframe(clip.id),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 3),
-                  child: Icon(Icons.arrow_left, size: 16, color: Colors.white70),
+                onTap: hasPrev ? () => widget.controller.jumpToPrevKeyframe(clip.id) : null,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+                  child: Icon(Icons.arrow_left, size: 18, color: hasPrev ? Colors.white : Colors.white24),
                 ),
               ),
-              // Keyframe Add/Remove Diamond
+              // Dynamic Keyframe Add/Remove Diamond (CapCut Style)
               InkWell(
-                onTap: () => widget.controller.addKeyframeAtPlayhead(clip.id),
+                onTap: () => widget.controller.toggleKeyframeAtPlayhead(clip.id),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                   decoration: BoxDecoration(
-                    color: clip.keyframes.isNotEmpty ? AppColors.accent.withValues(alpha: 0.3) : Colors.transparent,
-                    borderRadius: BorderRadius.circular(4),
+                    color: isAtKf
+                        ? AppColors.accentRose.withValues(alpha: 0.25)
+                        : (clip.keyframes.isNotEmpty ? AppColors.accent.withValues(alpha: 0.25) : Colors.transparent),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isAtKf ? AppColors.accentRose : (clip.keyframes.isNotEmpty ? AppColors.accent : Colors.white24),
+                      width: 1,
+                    ),
                   ),
                   child: Row(
                     children: [
                       Icon(
-                        clip.keyframes.isNotEmpty ? Icons.diamond : Icons.diamond_outlined,
-                        size: 14,
-                        color: AppColors.accent,
+                        isAtKf
+                            ? Icons.diamond
+                            : (clip.keyframes.isNotEmpty ? Icons.diamond_outlined : Icons.add_circle_outline),
+                        size: 13,
+                        color: isAtKf ? AppColors.accentRose : AppColors.accent,
                       ),
-                      const SizedBox(width: 3),
+                      const SizedBox(width: 4),
                       Text(
-                        'Keyframe (${clip.keyframes.length})',
-                        style: const TextStyle(color: AppColors.accent, fontSize: 10.5, fontWeight: FontWeight.bold),
+                        isAtKf
+                            ? 'Remove KF'
+                            : (clip.keyframes.isEmpty ? 'Add Keyframe' : 'Add KF (${clip.keyframes.length})'),
+                        style: TextStyle(
+                          color: isAtKf ? AppColors.accentRose : AppColors.accent,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
@@ -3017,10 +3192,10 @@ class _CanvasPreviewState extends State<CanvasPreview> {
               ),
               // Keyframe Jump Next
               InkWell(
-                onTap: () => widget.controller.jumpToNextKeyframe(clip.id),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 3),
-                  child: Icon(Icons.arrow_right, size: 16, color: Colors.white70),
+                onTap: hasNext ? () => widget.controller.jumpToNextKeyframe(clip.id) : null,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+                  child: Icon(Icons.arrow_right, size: 18, color: hasNext ? Colors.white : Colors.white24),
                 ),
               ),
               const SizedBox(width: 4),
@@ -3138,6 +3313,9 @@ class _CanvasPreviewState extends State<CanvasPreview> {
 
     double opacity = 1.0;
     double translateY = 0.0;
+    double translateX = 0.0;
+    double scaleMultiplier = 1.0;
+    double rotationAngle = 0.0;
     const animDurationMs = 500;
 
     if (offsetInText < animDurationMs) {
@@ -3150,12 +3328,86 @@ class _CanvasPreviewState extends State<CanvasPreview> {
           translateY = (1.0 - progress) * 40.0;
           opacity = progress;
           break;
+        case OverlayAnimationType.slideDown:
+          translateY = -(1.0 - progress) * 40.0;
+          opacity = progress;
+          break;
+        case OverlayAnimationType.slideLeft:
+          translateX = (1.0 - progress) * 60.0;
+          opacity = progress;
+          break;
+        case OverlayAnimationType.slideRight:
+          translateX = -(1.0 - progress) * 60.0;
+          opacity = progress;
+          break;
+        case OverlayAnimationType.zoomIn:
+          scaleMultiplier = (progress * 1.15).clamp(0.0, 1.15);
+          if (progress > 0.8) scaleMultiplier = 1.0 + (1.0 - progress) * 0.75;
+          opacity = progress;
+          break;
+        case OverlayAnimationType.zoomOut:
+          scaleMultiplier = 1.0 + (1.0 - progress) * 1.2;
+          opacity = progress;
+          break;
         case OverlayAnimationType.bounce:
-          translateY = (1.0 - progress) * 20.0;
+          final bounceT = Curves.bounceOut.transform(progress);
+          translateY = (1.0 - bounceT) * 35.0;
+          opacity = progress;
+          break;
+        case OverlayAnimationType.spin:
+          rotationAngle = (1.0 - progress) * pi * 2;
+          scaleMultiplier = progress;
+          opacity = progress;
+          break;
+        case OverlayAnimationType.flip:
+          scaleMultiplier = progress.clamp(0.05, 1.0);
+          opacity = progress;
+          break;
+        case OverlayAnimationType.drop:
+          final dropT = Curves.bounceOut.transform(progress);
+          translateY = -(1.0 - dropT) * 60.0;
+          opacity = progress;
+          break;
+        case OverlayAnimationType.flash:
+          opacity = ((offsetInText ~/ 70) % 2 == 0) ? 1.0 : 0.2;
+          break;
+        case OverlayAnimationType.swing:
+          final swingT = sin(progress * pi * 4) * (1.0 - progress);
+          rotationAngle = swingT * 0.25;
+          opacity = progress;
+          break;
+        case OverlayAnimationType.blur:
+          opacity = progress;
+          scaleMultiplier = 1.15 - (0.15 * progress);
+          break;
+        case OverlayAnimationType.shake:
+          translateX = sin(progress * pi * 8) * 8.0 * (1.0 - progress);
+          opacity = progress;
           break;
         default:
           break;
       }
+    }
+
+    // Continuous & loop animations
+    switch (textEntity.animationType) {
+      case OverlayAnimationType.pulse:
+        scaleMultiplier = 1.0 + sin(offsetInText * 0.008).abs() * 0.12;
+        break;
+      case OverlayAnimationType.glitch:
+        if ((offsetInText ~/ 140) % 3 == 0) {
+          translateX = sin(offsetInText * 0.05) * 6.0;
+          opacity = 0.85;
+        }
+        break;
+      case OverlayAnimationType.glow:
+        scaleMultiplier = 1.0 + sin(offsetInText * 0.005) * 0.05;
+        break;
+      case OverlayAnimationType.wave:
+        translateY += sin(offsetInText * 0.005) * 6.0;
+        break;
+      default:
+        break;
     }
 
     String displayText = textEntity.text;
@@ -3192,13 +3444,13 @@ class _CanvasPreviewState extends State<CanvasPreview> {
           },
           onDoubleTap: () => _openTextEditor(textEntity),
           child: Transform.translate(
-            offset: Offset(0, translateY),
+            offset: Offset(translateX, translateY),
             child: Transform.rotate(
-              angle: effectiveRotation,
+              angle: effectiveRotation + rotationAngle,
               child: Transform.scale(
-                scale: effectiveScale,
+                scale: effectiveScale * scaleMultiplier,
                 child: Opacity(
-                  opacity: opacity,
+                  opacity: opacity.clamp(0.0, 1.0),
                   child: Stack(
                     clipBehavior: Clip.none,
                     alignment: Alignment.center,
@@ -5111,7 +5363,8 @@ class _FullScreenEditorPreviewDialogState extends State<_FullScreenEditorPreview
                                   child: Text(
                                     sub.text,
                                     textAlign: TextAlign.center,
-                                    style: TextStyle(
+                                    style: FontHelper.getTextStyle(
+                                      sub.fontFamily,
                                       color: Color(sub.colorHex),
                                       fontSize: sub.fontSize * (canvasWidth / 360.0).clamp(0.8, 2.0),
                                       fontWeight: FontWeight.w600,
@@ -5130,16 +5383,100 @@ class _FullScreenEditorPreviewDialogState extends State<_FullScreenEditorPreview
                             final offsetInText = currentPosMs - textEntity.timelineStartMs;
                             double opacity = 1.0;
                             double translateY = 0.0;
+                            double translateX = 0.0;
+                            double scaleMultiplier = 1.0;
+                            double rotationAngle = 0.0;
                             const animDurationMs = 500;
 
                             if (offsetInText < animDurationMs) {
                               final progress = (offsetInText / animDurationMs).clamp(0.0, 1.0);
-                              if (textEntity.animationType == OverlayAnimationType.fadeIn) {
-                                opacity = progress;
-                              } else if (textEntity.animationType == OverlayAnimationType.slideUp) {
-                                translateY = (1.0 - progress) * 40.0;
-                                opacity = progress;
+                              switch (textEntity.animationType) {
+                                case OverlayAnimationType.fadeIn:
+                                  opacity = progress;
+                                  break;
+                                case OverlayAnimationType.slideUp:
+                                  translateY = (1.0 - progress) * 40.0;
+                                  opacity = progress;
+                                  break;
+                                case OverlayAnimationType.slideDown:
+                                  translateY = -(1.0 - progress) * 40.0;
+                                  opacity = progress;
+                                  break;
+                                case OverlayAnimationType.slideLeft:
+                                  translateX = (1.0 - progress) * 60.0;
+                                  opacity = progress;
+                                  break;
+                                case OverlayAnimationType.slideRight:
+                                  translateX = -(1.0 - progress) * 60.0;
+                                  opacity = progress;
+                                  break;
+                                case OverlayAnimationType.zoomIn:
+                                  scaleMultiplier = (progress * 1.15).clamp(0.0, 1.15);
+                                  if (progress > 0.8) scaleMultiplier = 1.0 + (1.0 - progress) * 0.75;
+                                  opacity = progress;
+                                  break;
+                                case OverlayAnimationType.zoomOut:
+                                  scaleMultiplier = 1.0 + (1.0 - progress) * 1.2;
+                                  opacity = progress;
+                                  break;
+                                case OverlayAnimationType.bounce:
+                                  final bounceT = Curves.bounceOut.transform(progress);
+                                  translateY = (1.0 - bounceT) * 35.0;
+                                  opacity = progress;
+                                  break;
+                                case OverlayAnimationType.spin:
+                                  rotationAngle = (1.0 - progress) * pi * 2;
+                                  scaleMultiplier = progress;
+                                  opacity = progress;
+                                  break;
+                                case OverlayAnimationType.flip:
+                                  scaleMultiplier = progress.clamp(0.05, 1.0);
+                                  opacity = progress;
+                                  break;
+                                case OverlayAnimationType.drop:
+                                  final dropT = Curves.bounceOut.transform(progress);
+                                  translateY = -(1.0 - dropT) * 60.0;
+                                  opacity = progress;
+                                  break;
+                                case OverlayAnimationType.flash:
+                                  opacity = ((offsetInText ~/ 70) % 2 == 0) ? 1.0 : 0.2;
+                                  break;
+                                case OverlayAnimationType.swing:
+                                  final swingT = sin(progress * pi * 4) * (1.0 - progress);
+                                  rotationAngle = swingT * 0.25;
+                                  opacity = progress;
+                                  break;
+                                case OverlayAnimationType.blur:
+                                  opacity = progress;
+                                  scaleMultiplier = 1.15 - (0.15 * progress);
+                                  break;
+                                case OverlayAnimationType.shake:
+                                  translateX = sin(progress * pi * 8) * 8.0 * (1.0 - progress);
+                                  opacity = progress;
+                                  break;
+                                default:
+                                  break;
                               }
+                            }
+
+                            switch (textEntity.animationType) {
+                              case OverlayAnimationType.pulse:
+                                scaleMultiplier = 1.0 + sin(offsetInText * 0.008).abs() * 0.12;
+                                break;
+                              case OverlayAnimationType.glitch:
+                                if ((offsetInText ~/ 140) % 3 == 0) {
+                                  translateX = sin(offsetInText * 0.05) * 6.0;
+                                  opacity = 0.85;
+                                }
+                                break;
+                              case OverlayAnimationType.glow:
+                                scaleMultiplier = 1.0 + sin(offsetInText * 0.005) * 0.05;
+                                break;
+                              case OverlayAnimationType.wave:
+                                translateY += sin(offsetInText * 0.005) * 6.0;
+                                break;
+                              default:
+                                break;
                             }
 
                             return Positioned(
@@ -5153,13 +5490,13 @@ class _FullScreenEditorPreviewDialogState extends State<_FullScreenEditorPreview
                                   (textEntity.posY - 0.5) * 2,
                                 ),
                                 child: Transform.translate(
-                                  offset: Offset(0, translateY),
+                                  offset: Offset(translateX, translateY),
                                   child: Transform.rotate(
-                                    angle: textEntity.rotation,
+                                    angle: textEntity.rotation + rotationAngle,
                                     child: Transform.scale(
-                                      scale: textEntity.scale,
+                                      scale: textEntity.scale * scaleMultiplier,
                                       child: Opacity(
-                                        opacity: opacity,
+                                        opacity: opacity.clamp(0.0, 1.0),
                                         child: Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                           decoration: BoxDecoration(
@@ -5171,8 +5508,8 @@ class _FullScreenEditorPreviewDialogState extends State<_FullScreenEditorPreview
                                           child: Text(
                                             textEntity.text,
                                             textAlign: TextAlign.center,
-                                            style: TextStyle(
-                                              fontFamily: textEntity.fontFamily,
+                                            style: FontHelper.getTextStyle(
+                                              textEntity.fontFamily,
                                               fontSize: textEntity.fontSize * (canvasWidth / 360.0).clamp(0.8, 2.0),
                                               fontWeight: FontWeight.bold,
                                               color: Color(textEntity.colorHex),
@@ -5215,6 +5552,15 @@ class _FullScreenEditorPreviewDialogState extends State<_FullScreenEditorPreview
                               ),
                             );
                           }),
+
+                          // Subtle Looma Watermark in Bottom-Right Corner
+                          const Positioned(
+                            right: 14,
+                            bottom: 14,
+                            child: IgnorePointer(
+                              child: LoomaWatermark(opacity: 0.7, scale: 1.0),
+                            ),
+                          ),
                         ],
                       ),
                     );

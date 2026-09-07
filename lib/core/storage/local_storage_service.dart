@@ -140,7 +140,33 @@ class LocalStorageService {
     await writeString(relativePath, encoded);
   }
 
-  /// Read JSON Map with automatic corruption fallback
+  Map<String, dynamic>? _tryRepairJson(String raw) {
+    try {
+      final startIdx = raw.indexOf('{');
+      final lastIdx = raw.lastIndexOf('}');
+      if (startIdx != -1 && lastIdx != -1 && lastIdx > startIdx) {
+        final candidate = raw.substring(startIdx, lastIdx + 1);
+        try {
+          final decoded = jsonDecode(candidate);
+          if (decoded is Map<String, dynamic>) return decoded;
+        } catch (_) {
+          // If candidate still has unbalanced braces, step backwards to find valid closing brace
+          for (int i = lastIdx - 1; i > startIdx; i--) {
+            if (raw[i] == '}') {
+              try {
+                final sub = raw.substring(startIdx, i + 1);
+                final d = jsonDecode(sub);
+                if (d is Map<String, dynamic>) return d;
+              } catch (_) {}
+            }
+          }
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Read JSON Map with automatic corruption fallback and self-healing
   Future<Map<String, dynamic>?> readJson(String relativePath) async {
     final raw = await readString(relativePath);
     if (raw == null || raw.isEmpty) return null;
@@ -151,14 +177,27 @@ class LocalStorageService {
       }
       return null;
     } catch (e) {
-      // Fallback: Check SharedPreferences directly if file was corrupted
+      // 1. Try automatic JSON repair (e.g. trailing extra brace)
+      final repaired = _tryRepairJson(raw);
+      if (repaired != null) {
+        // Self-heal corrupted file on disk
+        writeString(relativePath, jsonEncode(repaired));
+        return repaired;
+      }
+
+      // 2. Fallback: Check SharedPreferences directly if file was corrupted
       try {
         _prefs ??= await SharedPreferences.getInstance();
         final prefVal = _prefs?.getString('looma_$relativePath');
         if (prefVal != null && prefVal.isNotEmpty) {
-          final decoded = jsonDecode(prefVal);
-          if (decoded is Map<String, dynamic>) {
-            return decoded;
+          try {
+            final decoded = jsonDecode(prefVal);
+            if (decoded is Map<String, dynamic>) {
+              return decoded;
+            }
+          } catch (_) {
+            final repairedPref = _tryRepairJson(prefVal);
+            if (repairedPref != null) return repairedPref;
           }
         }
       } catch (_) {}

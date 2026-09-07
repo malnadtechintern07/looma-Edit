@@ -48,6 +48,23 @@ class _ReorderClipsSheetState extends State<ReorderClipsSheet> {
     widget.controller.reorderVideoClips(currentIndex, targetIndex);
   }
 
+  void _toggleTrack(VideoClipEntity clip) {
+    widget.controller.moveClipToTrack(
+      clipId: clip.id,
+      toOverlay: !clip.isOverlay,
+    );
+    setState(() {
+      _clips = List.from(widget.controller.currentState.project.videoClips);
+    });
+  }
+
+  void _switchEmpty(VideoClipEntity clip) {
+    widget.controller.switchClipToEmptySpace(clip.id);
+    setState(() {
+      _clips = List.from(widget.controller.currentState.project.videoClips);
+    });
+  }
+
   bool _isImage(String path) {
     final lower = path.toLowerCase();
     return lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.png') || lower.endsWith('.webp');
@@ -279,6 +296,75 @@ class _ReorderClipsSheetState extends State<ReorderClipsSheet> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
+                            const SizedBox(width: 6),
+                            // Track Badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+                              decoration: BoxDecoration(
+                                color: clip.isOverlay
+                                    ? AppColors.accentRose.withValues(alpha: 0.25)
+                                    : AppColors.primary.withValues(alpha: 0.25),
+                                borderRadius: BorderRadius.circular(3),
+                                border: Border.all(
+                                  color: clip.isOverlay ? AppColors.accentRose : AppColors.primary,
+                                  width: 0.8,
+                                ),
+                              ),
+                              child: Text(
+                                clip.isOverlay ? 'Overlay' : 'Main',
+                                style: TextStyle(
+                                  color: clip.isOverlay ? AppColors.accentRose : AppColors.primaryLight,
+                                  fontSize: 8.5,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            // Move Track button (vertical placement)
+                            InkWell(
+                              onTap: () => _toggleTrack(clip),
+                              borderRadius: BorderRadius.circular(3),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(3),
+                                  border: Border.all(color: Colors.white30, width: 0.8),
+                                ),
+                                child: Text(
+                                  clip.isOverlay ? '↑ To Main' : '↓ To Overlay',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 8.5,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            if (clip.isOverlay) ...[
+                              const SizedBox(width: 4),
+                              // Switch to empty space
+                              InkWell(
+                                onTap: () => _switchEmpty(clip),
+                                borderRadius: BorderRadius.circular(3),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF00E5FF).withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(3),
+                                    border: Border.all(color: const Color(0xFF00E5FF), width: 0.8),
+                                  ),
+                                  child: const Text(
+                                    '↔ Empty Space',
+                                    style: TextStyle(
+                                      color: Color(0xFF00E5FF),
+                                      fontSize: 8.5,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                             if (clip.speed != 1.0) ...[
                               const SizedBox(width: 6),
                               Container(

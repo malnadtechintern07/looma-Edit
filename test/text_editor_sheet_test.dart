@@ -113,4 +113,79 @@ void main() {
     expect(savedAnim, equals(OverlayAnimationType.typewriter));
     expect(savedBg, isNotNull);
   });
+
+  testWidgets('TextEditorSheet supports vertical font filtering, expanded animation presets, and colors', (tester) async {
+    String? savedFont;
+    OverlayAnimationType? savedAnim;
+    int? savedColor;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TextEditorSheet(
+            initialText: const TextOverlayEntity(
+              id: 'text_2',
+              text: 'SUMMER VIBES',
+              fontFamily: 'Inter',
+              fontSize: 28.0,
+              colorHex: 0xFFFFFFFF,
+              timelineStartMs: 0,
+              timelineEndMs: 4000,
+            ),
+            onSave: ({
+              required text,
+              required fontFamily,
+              required fontSize,
+              required colorHex,
+              backgroundColorHex,
+              required animationType,
+            }) {
+              savedFont = fontFamily;
+              savedAnim = animationType;
+              savedColor = colorHex;
+            },
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // 1. Verify font search input filters fonts in vertical gallery
+    final searchInput = find.byKey(const Key('font_search_input'));
+    await tester.enterText(searchInput, 'Montserrat');
+    await tester.pumpAndSettle();
+
+    final montserratCard = find.byKey(const Key('font_card_Montserrat'));
+    expect(montserratCard, findsOneWidget);
+    await tester.tap(montserratCard);
+    await tester.pumpAndSettle();
+
+    // 2. Switch to Animation tab and select one of the new animation presets
+    await tester.tap(find.byKey(const Key('text_anim_tab_btn')));
+    await tester.pumpAndSettle();
+
+    final zoomInCard = find.byKey(const Key('anim_card_zoomIn'));
+    expect(zoomInCard, findsOneWidget);
+    expect(find.text('Neon Pulse'), findsOneWidget);
+
+    await tester.tap(zoomInCard);
+    await tester.pumpAndSettle();
+
+    // 3. Switch to Color tab and verify expanded palette
+    await tester.tap(find.byKey(const Key('text_color_tab_btn')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Text Font Color'), findsOneWidget);
+
+    // Tap Update Overlay
+    final updateBtn = find.text('Update Overlay');
+    await tester.ensureVisible(updateBtn);
+    await tester.tap(updateBtn);
+    await tester.pumpAndSettle();
+
+    expect(savedFont, equals('Montserrat'));
+    expect(savedAnim, equals(OverlayAnimationType.zoomIn));
+    expect(savedColor, equals(0xFFFFFFFF));
+  });
 }

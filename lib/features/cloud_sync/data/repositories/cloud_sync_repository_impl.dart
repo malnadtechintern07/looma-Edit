@@ -75,23 +75,22 @@ class CloudSyncRepositoryImpl implements CloudSyncRepository {
 
     try {
       // Set syncing status
-      await projectLocalDataSource.updateProject(
+      await projectLocalDataSource.saveProject(
         localProject.copyWith(syncStatus: SyncStatusType.syncing),
       );
 
       // Perform cloud backup
       await cloudDataSource.backupProject(user.id, localProject);
 
-      // Update local project status to synced
-      await projectLocalDataSource.updateProject(
+      // Update local project status to synced (preserve user's edit timestamp)
+      await projectLocalDataSource.saveProject(
         localProject.copyWith(
           syncStatus: SyncStatusType.synced,
-          updatedAt: DateTime.now(),
         ),
       );
     } catch (e) {
       // Mark as error, but NEVER delete the local project
-      await projectLocalDataSource.updateProject(
+      await projectLocalDataSource.saveProject(
         localProject.copyWith(syncStatus: SyncStatusType.error),
       );
       rethrow;
@@ -118,18 +117,18 @@ class CloudSyncRepositoryImpl implements CloudSyncRepository {
       if (cloud == null || local.updatedAt.isAfter(cloud.updatedAt)) {
         try {
           await cloudDataSource.backupProject(user.id, local);
-          await projectLocalDataSource.updateProject(
+          await projectLocalDataSource.saveProject(
             local.copyWith(syncStatus: SyncStatusType.synced),
           );
         } catch (_) {
-          await projectLocalDataSource.updateProject(
+          await projectLocalDataSource.saveProject(
             local.copyWith(syncStatus: SyncStatusType.error),
           );
         }
       } else {
         // Keep synced status
         if (local.syncStatus != SyncStatusType.synced) {
-          await projectLocalDataSource.updateProject(
+          await projectLocalDataSource.saveProject(
             local.copyWith(syncStatus: SyncStatusType.synced),
           );
         }
@@ -174,7 +173,7 @@ class CloudSyncRepositoryImpl implements CloudSyncRepository {
     // Update local project status to localOnly if it exists locally
     final local = await projectLocalDataSource.getProjectById(projectId);
     if (local != null) {
-      await projectLocalDataSource.updateProject(
+      await projectLocalDataSource.saveProject(
         local.copyWith(syncStatus: SyncStatusType.localOnly),
       );
     }

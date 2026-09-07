@@ -99,6 +99,15 @@ class VideoRenderingEngineImpl implements VideoRenderingEngine {
         'rotationDegrees': c.rotationDegrees,
         'isMuted': c.isMuted,
         'volume': c.volume,
+        'keyframes': c.keyframes.map((k) => {
+          'id': k.id,
+          'timestampMs': k.timestampMs,
+          'posX': k.posX,
+          'posY': k.posY,
+          'scale': k.scale,
+          'rotation': k.rotation,
+          'opacity': k.opacity,
+        }).toList(),
         'chromaKey': c.chromaKey != null && c.chromaKey!.isEnabled
             ? {
                 'isEnabled': true,
@@ -155,6 +164,7 @@ class VideoRenderingEngineImpl implements VideoRenderingEngine {
             'height': renderHeight,
             'fps': config.fps,
             'durationMs': project.calculatedDurationMs,
+            'includeWatermark': config.includeWatermark,
             'clips': clipsPayload,
             'texts': textsPayload,
             'stickers': stickersPayload,
@@ -223,12 +233,13 @@ class VideoRenderingEngineImpl implements VideoRenderingEngine {
       finalPath = nativeOutputPath!;
     } else {
       try {
-        // Never copy an overlay clip or project with multiple tracks directly!
+        // Never copy an overlay clip or project with watermark/overlays directly!
         final isSingleRawVideo = project.videoClips.length == 1 &&
             !project.videoClips.first.isPhoto &&
             !project.videoClips.first.isOverlay &&
             project.textOverlays.isEmpty &&
-            project.stickerOverlays.isEmpty;
+            project.stickerOverlays.isEmpty &&
+            !config.includeWatermark;
 
         if (isSingleRawVideo && File(project.videoClips.first.mediaPath).existsSync()) {
           await File(project.videoClips.first.mediaPath).copy(realOutFile.path);

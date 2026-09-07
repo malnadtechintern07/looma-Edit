@@ -61,6 +61,7 @@ object LoomaVideoComposer {
             val texts = params["texts"] as? List<Map<String, Any>> ?: emptyList()
             val stickers = params["stickers"] as? List<Map<String, Any>> ?: emptyList()
             val subtitles = params["subtitles"] as? List<Map<String, Any>> ?: emptyList()
+            val includeWatermark = (params["includeWatermark"] as? Boolean) ?: true
 
             val outFile = File(outputPath)
             outFile.parentFile?.mkdirs()
@@ -440,6 +441,27 @@ object LoomaVideoComposer {
 
                     emojiPaint.textSize = emojiSize
                     canvas.drawText(emoji, posX * width, posY * height, emojiPaint)
+                }
+
+                // E2. Draw Looma Watermark (Clean minimal ✦ Looma, small, no background box, subtle 65% opacity)
+                if (includeWatermark) {
+                    val wmScale = scaleFactor.coerceIn(0.7f, 3.0f)
+                    val wmMargin = 12f * wmScale
+                    val wmFontSize = 10f * wmScale
+
+                    val wmTextPaint = Paint().apply {
+                        isAntiAlias = true
+                        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                        textSize = wmFontSize
+                        color = Color.argb(165, 255, 255, 255) // ~65% opacity white
+                        textAlign = Paint.Align.RIGHT
+                        setShadowLayer(4f * wmScale, 1f * wmScale, 1f * wmScale, Color.argb(200, 0, 0, 0))
+                    }
+
+                    val wmString = "✦ Looma"
+                    val x = width - wmMargin
+                    val y = height - wmMargin
+                    canvas.drawText(wmString, x, y, wmTextPaint)
                 }
 
                 // F. Fast YUV420 Conversion & Queue to Hardware Encoder

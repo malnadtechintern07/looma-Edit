@@ -1,7 +1,9 @@
 package com.looma.app.looma
 
 import android.content.ContentValues
+import android.content.Intent
 import android.media.MediaScannerConnection
+import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
@@ -138,6 +140,55 @@ class MainActivity : FlutterActivity() {
                         "totalFrames" to LoomaVideoComposer.totalFrames,
                         "stage" to LoomaVideoComposer.currentStage
                     ))
+                }
+                else -> result.notImplemented()
+            }
+        }
+
+        val ACTIONS_CHANNEL = "looma/app_actions"
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, ACTIONS_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "openPlayStore" -> {
+                    val packageName = call.argument<String>("packageName") ?: context.packageName
+                    try {
+                        val marketIntent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$packageName")).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        context.startActivity(marketIntent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        try {
+                            val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$packageName")).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            context.startActivity(webIntent)
+                            result.success(true)
+                        } catch (e2: Exception) {
+                            result.error("OPEN_STORE_FAILED", e2.message, null)
+                        }
+                    }
+                }
+                "shareApp" -> {
+                    val text = call.argument<String>("text")
+                        ?: "Create cinematic videos & aesthetic reels with Looma Video Editor! Download on Google Play: https://play.google.com/store/apps/details?id=${context.packageName}"
+                    val subject = call.argument<String>("subject") ?: "Looma Video Editor"
+                    val title = call.argument<String>("title") ?: "Share Looma via"
+
+                    try {
+                        val sendIntent = Intent().apply {
+                            action = Intent.ACTION_SEND
+                            putExtra(Intent.EXTRA_TEXT, text)
+                            putExtra(Intent.EXTRA_SUBJECT, subject)
+                            type = "text/plain"
+                        }
+                        val chooser = Intent.createChooser(sendIntent, title).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        context.startActivity(chooser)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("SHARE_FAILED", e.message, null)
+                    }
                 }
                 else -> result.notImplemented()
             }

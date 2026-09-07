@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
+import '../../../../core/widgets/responsive_tap_button.dart';
 import '../../../audio/presentation/widgets/audio_mixer_sheet.dart';
 import '../../../audio/presentation/widgets/voiceover_modal.dart';
 import '../../../filters_effects/domain/entities/filter_preset.dart';
@@ -278,8 +279,8 @@ class EditorActionBar extends StatelessWidget {
   }
 
   void _openReorderSheet(BuildContext context) {
-    final mainClips = state.project.videoClips.where((c) => !c.isOverlay).toList();
-    if (mainClips.isEmpty) return;
+    final allClips = state.project.videoClips;
+    if (allClips.isEmpty) return;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -288,7 +289,7 @@ class EditorActionBar extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) => ReorderClipsSheet(
-        clips: mainClips,
+        clips: allClips,
         controller: controller,
         selectedClipId: state.selectedItemId,
       ),
@@ -321,9 +322,11 @@ class EditorActionBar extends StatelessWidget {
     );
   }
 
-  void _openTextEditor(BuildContext context, {TextOverlayEntity? initialText}) {
-    final selectedText = initialText ??
-        (state.selectionType == SelectionType.textOverlay ? state.selectedTextOverlay : null);
+  void _openTextEditor(BuildContext context, {TextOverlayEntity? initialText, bool forceAddNew = false}) {
+    final selectedText = forceAddNew
+        ? null
+        : (initialText ??
+            (state.selectionType == SelectionType.textOverlay ? state.selectedTextOverlay : null));
 
     showModalBottomSheet(
       context: context,
@@ -546,7 +549,7 @@ class EditorActionBar extends StatelessWidget {
   void _handleKeyframeAction() {
     final clipId = state.selectedItemId ?? state.activeVideoClip?.id;
     if (clipId != null) {
-      controller.addKeyframeAtPlayhead(clipId);
+      controller.toggleKeyframeAtPlayhead(clipId);
     }
   }
 
@@ -669,11 +672,17 @@ class EditorActionBar extends StatelessWidget {
               ),
 
               // 10. Keyframe
-              _buildActionButton(
-                icon: Icons.diamond_outlined,
-                label: 'Keyframe',
-                color: AppColors.accent,
-                onTap: _handleKeyframeAction,
+              Builder(
+                builder: (context) {
+                  final clipId = state.selectedItemId ?? state.activeVideoClip?.id;
+                  final isAtKf = clipId != null && controller.isAtKeyframe(clipId);
+                  return _buildActionButton(
+                    icon: isAtKf ? Icons.diamond : Icons.diamond_outlined,
+                    label: isAtKf ? 'Remove KF' : 'Keyframe',
+                    color: isAtKf ? AppColors.accentRose : AppColors.accent,
+                    onTap: _handleKeyframeAction,
+                  );
+                },
               ),
 
               // 11. Duplicate
@@ -705,7 +714,7 @@ class EditorActionBar extends StatelessWidget {
                 icon: Icons.title,
                 label: 'Text',
                 color: AppColors.textTrack,
-                onTap: () => _openTextEditor(context),
+                onTap: () => _openTextEditor(context, forceAddNew: true),
               ),
 
               // 15. Stickers
@@ -778,27 +787,33 @@ class EditorActionBar extends StatelessWidget {
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
-      child: InkWell(
+      child: ResponsiveTapButton(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          constraints: const BoxConstraints(minWidth: 56),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 20, color: color),
-              const SizedBox(height: 3),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  label,
-                  style: AppTypography.labelSmall.copyWith(fontSize: 10),
-                  maxLines: 1,
+        pressedScale: 0.90,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          splashColor: color.withValues(alpha: 0.25),
+          highlightColor: color.withValues(alpha: 0.10),
+          child: Container(
+            constraints: const BoxConstraints(minWidth: 56),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 20, color: color),
+                const SizedBox(height: 3),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    style: AppTypography.labelSmall.copyWith(fontSize: 10),
+                    maxLines: 1,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

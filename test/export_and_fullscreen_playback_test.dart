@@ -122,10 +122,10 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
 
-      // Find full screen button by text 'Full Screen' and tap it
-      final fullScreenBtn = find.text('Full Screen');
-      expect(fullScreenBtn, findsOneWidget);
-      await tester.tap(fullScreenBtn);
+      // Find full screen button by icon and tap it
+      final fullScreenBtn = find.byIcon(Icons.fullscreen);
+      expect(fullScreenBtn, findsWidgets);
+      await tester.tap(fullScreenBtn.first);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
 

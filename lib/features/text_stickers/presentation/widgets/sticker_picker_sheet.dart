@@ -21,151 +21,225 @@ class StickerPickerSheet extends StatefulWidget {
 }
 
 class _StickerPickerSheetState extends State<StickerPickerSheet> {
-  String _activeCategory = '🔥 Expressions';
+  String _activeCategory = '🍏 iOS Memojis';
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
   final List<String> _categories = const [
+    '🍏 iOS Memojis',
     '🔥 Expressions',
-    '✨ Trending',
-    '🎯 Arrows & Tags',
-    '🎙️ Creator Vibes',
-    '🐶 Animals & Pets',
+    '✨ Aesthetic',
+    '💬 Gestures',
+    '🎯 Badges & Tags',
     '🍕 Food & Drinks',
-    '🎮 Gaming & Tech',
-    '⚡ Neon & Cyber',
-    '🌸 Nature & Vibe',
-    '🏷️ Badges & Labels',
+    '🐶 Animals & Nature',
+    '🎮 Gaming & Neon',
+    '✈️ Travel & Places',
   ];
 
   final List<StickerItem> _allStickers = const [
+    // 🍏 iOS Memojis & Reactions
+    StickerItem('ios_heart_hands', 'Heart Hands', '🫶', '🍏 iOS Memojis'),
+    StickerItem('ios_hand_heart', 'Finger Heart', '🫰', '🍏 iOS Memojis'),
+    StickerItem('ios_italian_hand', 'Pinched Fingers', '🤌', '🍏 iOS Memojis'),
+    StickerItem('ios_salute', 'Salute Respect', '🫡', '🍏 iOS Memojis'),
+    StickerItem('ios_melting', 'Melting Warmth', '🫠', '🍏 iOS Memojis'),
+    StickerItem('ios_holding_back_tears', 'Holding Tears', '🥹', '🍏 iOS Memojis'),
+    StickerItem('ios_peeking', 'Peeking Eye', '🫣', '🍏 iOS Memojis'),
+    StickerItem('ios_shushing', 'Secret Shh', '🤫', '🍏 iOS Memojis'),
+    StickerItem('ios_gasp', 'Hand Over Mouth', '🫢', '🍏 iOS Memojis'),
+    StickerItem('ios_giggle', 'Giggle Hand', '🤭', '🍏 iOS Memojis'),
+    StickerItem('ios_dotted_face', 'Dotted Line', '🫥', '🍏 iOS Memojis'),
+    StickerItem('ios_diagonal_mouth', 'Skeptical Face', '🫤', '🍏 iOS Memojis'),
+    StickerItem('ios_nails', 'Nail Polish', '💅', '🍏 iOS Memojis'),
+    StickerItem('ios_selfie', 'Selfie Cam', '🤳', '🍏 iOS Memojis'),
+    StickerItem('ios_dancer', 'Party Dancer', '💃', '🍏 iOS Memojis'),
+    StickerItem('ios_disco_dancer', 'Groovy Man', '🕺', '🍏 iOS Memojis'),
+    StickerItem('ios_magic_sparkles', 'Glow Sparkles', '✨', '🍏 iOS Memojis'),
+    StickerItem('ios_fire', 'Hot Fire', '🔥', '🍏 iOS Memojis'),
+    StickerItem('ios_hundred', '100 Score', '💯', '🍏 iOS Memojis'),
+    StickerItem('ios_sparkling_heart', 'Sparkle Heart', '💖', '🍏 iOS Memojis'),
+
     // 🔥 Expressions
-    StickerItem('fire', 'Fire Flame', '🔥', '🔥 Expressions'),
-    StickerItem('sparkles', 'Magic Sparkles', '✨', '🔥 Expressions'),
+    StickerItem('joy_crying', 'Laughing Crying', '😂', '🔥 Expressions'),
+    StickerItem('rofl', 'Rolling Laugh', '🤣', '🔥 Expressions'),
+    StickerItem('skull', 'Dead Skull', '💀', '🔥 Expressions'),
+    StickerItem('loud_crying', 'Sobbing Loud', '😭', '🔥 Expressions'),
+    StickerItem('pleading', 'Puppy Eyes', '🥺', '🔥 Expressions'),
     StickerItem('heart_eyes', 'Love Eyes', '😍', '🔥 Expressions'),
+    StickerItem('star_struck', 'Starstruck', '🤩', '🔥 Expressions'),
     StickerItem('mind_blown', 'Exploding Head', '🤯', '🔥 Expressions'),
     StickerItem('cool_glasses', 'Cool Shades', '😎', '🔥 Expressions'),
-    StickerItem('joy_crying', 'Laughing Crying', '😂', '🔥 Expressions'),
-    StickerItem('party_face', 'Celebration Face', '🥳', '🔥 Expressions'),
-    StickerItem('star_struck', 'Starstruck', '🤩', '🔥 Expressions'),
+    StickerItem('party_face', 'Celebration Party', '🥳', '🔥 Expressions'),
     StickerItem('wink_tongue', 'Wink & Tongue', '😜', '🔥 Expressions'),
-    StickerItem('salute_face', 'Salute Respect', '🫡', '🔥 Expressions'),
-    StickerItem('melting_face', 'Melting Warmth', '🫠', '🔥 Expressions'),
-    StickerItem('shushing_face', 'Secret Shh', '🤫', '🔥 Expressions'),
+    StickerItem('cowboy', 'Cowboy Smile', '🤠', '🔥 Expressions'),
+    StickerItem('devil_smile', 'Cheeky Devil', '😈', '🔥 Expressions'),
+    StickerItem('ghost', 'Cute Ghost', '👻', '🔥 Expressions'),
+    StickerItem('alien', 'Space Alien', '👽', '🔥 Expressions'),
+    StickerItem('robot', 'Cyber Bot', '🤖', '🔥 Expressions'),
+    StickerItem('clown', 'Circus Clown', '🤡', '🔥 Expressions'),
+    StickerItem('poop', 'Happy Poop', '💩', '🔥 Expressions'),
+    StickerItem('cat_heart', 'Cat Love', '😻', '🔥 Expressions'),
+    StickerItem('monkey_see_no', 'See No Evil', '🙈', '🔥 Expressions'),
+    StickerItem('monkey_hear_no', 'Hear No Evil', '🙉', '🔥 Expressions'),
+    StickerItem('monkey_speak_no', 'Speak No Evil', '🙊', '🔥 Expressions'),
+    StickerItem('hot_face', 'Overheated Face', '🥵', '🔥 Expressions'),
+    StickerItem('cold_face', 'Freezing Cold', '🥶', '🔥 Expressions'),
+    StickerItem('dizzy_face', 'Dizzy Spiral', '😵‍💫', '🔥 Expressions'),
 
-    // ✨ Trending
-    StickerItem('rocket', 'Super Rocket', '🚀', '✨ Trending'),
-    StickerItem('neon_zap', 'Electric Zap', '⚡', '✨ Trending'),
-    StickerItem('crown', 'Royal Crown', '👑', '✨ Trending'),
-    StickerItem('diamond', 'Rare Diamond', '💎', '✨ Trending'),
-    StickerItem('100', '100 Percent', '💯', '✨ Trending'),
-    StickerItem('popcorn', 'Movie Time', '🍿', '✨ Trending'),
-    StickerItem('camera_flash', 'Film Camera', '📸', '✨ Trending'),
-    StickerItem('trophy', 'Winner Trophy', '🏆', '✨ Trending'),
-    StickerItem('firework', 'Fireworks Pop', '🎆', '✨ Trending'),
-    StickerItem('rainbow', 'Rainbow Arc', '🌈', '✨ Trending'),
-    StickerItem('glowing_star', 'Golden Star', '🌟', '✨ Trending'),
-    StickerItem('magic_wand', 'Magic Wand', '🪄', '✨ Trending'),
+    // ✨ Aesthetic & Vibes
+    StickerItem('magic_wand', 'Magic Wand', '🪄', '✨ Aesthetic'),
+    StickerItem('sparkles', 'Magic Sparkles', '✨', '✨ Aesthetic'),
+    StickerItem('sparkling_heart_2', 'Pink Heart Glow', '💖', '✨ Aesthetic'),
+    StickerItem('dizzy_star', 'Orbit Stars', '💫', '✨ Aesthetic'),
+    StickerItem('glowing_star', 'Golden Star', '🌟', '✨ Aesthetic'),
+    StickerItem('rainbow', 'Rainbow Arc', '🌈', '✨ Aesthetic'),
+    StickerItem('bubbles', 'Air Bubbles', '🫧', '✨ Aesthetic'),
+    StickerItem('crescent_moon', 'Moon Crescent', '🌙', '✨ Aesthetic'),
+    StickerItem('ringed_planet', 'Saturn Planet', '🪐', '✨ Aesthetic'),
+    StickerItem('lightning_bolt', 'Zap Flash', '⚡', '✨ Aesthetic'),
+    StickerItem('mirror_ball', 'Disco Ball', '🪩', '✨ Aesthetic'),
+    StickerItem('crystal_ball', 'Fortune Crystal', '🔮', '✨ Aesthetic'),
+    StickerItem('nazar_amulet', 'Evil Eye Charm', '🧿', '✨ Aesthetic'),
+    StickerItem('teddy_bear', 'Plush Teddy', '🧸', '✨ Aesthetic'),
+    StickerItem('angel_wings', 'Feather Wings', '🪽', '✨ Aesthetic'),
+    StickerItem('ribbon_bow', 'Pink Ribbon', '🎀', '✨ Aesthetic'),
+    StickerItem('diamond_gem', 'Blue Diamond', '💎', '✨ Aesthetic'),
+    StickerItem('white_dove', 'Peace Dove', '🕊️', '✨ Aesthetic'),
+    StickerItem('lotus_flower', 'Zen Lotus', '🪷', '✨ Aesthetic'),
+    StickerItem('candle_lit', 'Warm Candle', '🕯️', '✨ Aesthetic'),
+    StickerItem('fireworks_burst', 'Night Fireworks', '🎆', '✨ Aesthetic'),
+    StickerItem('sparkler_fire', 'Party Sparkler', '🎇', '✨ Aesthetic'),
 
-    // 🎯 Arrows & Tags
-    StickerItem('arrow_right', 'Pointer Right', '👉', '🎯 Arrows & Tags'),
-    StickerItem('arrow_down', 'Look Down', '👇', '🎯 Arrows & Tags'),
-    StickerItem('target', 'Bullseye', '🎯', '🎯 Arrows & Tags'),
-    StickerItem('pin', 'Map Pin', '📍', '🎯 Arrows & Tags'),
-    StickerItem('warning_badge', 'Caution Warning', '⚠️', '🎯 Arrows & Tags'),
-    StickerItem('check_badge', 'Verified Check', '✅', '🎯 Arrows & Tags'),
-    StickerItem('cross_mark', 'Red Cross', '❌', '🎯 Arrows & Tags'),
-    StickerItem('question_mark', 'Help Question', '❓', '🎯 Arrows & Tags'),
-    StickerItem('exclamation', 'Alert Mark', '❗', '🎯 Arrows & Tags'),
-    StickerItem('bell_alert', 'Notification Bell', '🔔', '🎯 Arrows & Tags'),
-    StickerItem('fire_tag', 'Hot Deal', '🏷️', '🎯 Arrows & Tags'),
-    StickerItem('recycling', 'Loop Cycle', '🔄', '🎯 Arrows & Tags'),
+    // 💬 Gestures & Hands
+    StickerItem('thumbs_up', 'Thumbs Up', '👍', '💬 Gestures'),
+    StickerItem('thumbs_down', 'Thumbs Down', '👎', '💬 Gestures'),
+    StickerItem('peace_sign', 'Victory Peace', '✌️', '💬 Gestures'),
+    StickerItem('crossed_fingers', 'Good Luck', '🤞', '💬 Gestures'),
+    StickerItem('rock_on', 'Rock On Sign', '🤟', '💬 Gestures'),
+    StickerItem('call_me', 'Call Me Shaka', '🤙', '💬 Gestures'),
+    StickerItem('clapping_hands', 'Applaud Clap', '👏', '💬 Gestures'),
+    StickerItem('raised_hands', 'Hooray Hands', '🙌', '💬 Gestures'),
+    StickerItem('handshake', 'Partnership Deal', '🤝', '💬 Gestures'),
+    StickerItem('folded_hands', 'Namaste Prayer', '🙏', '💬 Gestures'),
+    StickerItem('fist_bump', 'Punch Bump', '👊', '💬 Gestures'),
+    StickerItem('writing_hand', 'Author Writing', '✍️', '💬 Gestures'),
+    StickerItem('pointing_right', 'Look Right', '👉', '💬 Gestures'),
+    StickerItem('pointing_left', 'Look Left', '👈', '💬 Gestures'),
+    StickerItem('pointing_up', 'Look Above', '👆', '💬 Gestures'),
+    StickerItem('pointing_down', 'Look Below', '👇', '💬 Gestures'),
+    StickerItem('hand_rightwards', 'Reach Right', '🫱', '💬 Gestures'),
+    StickerItem('hand_leftwards', 'Reach Left', '🫲', '💬 Gestures'),
+    StickerItem('flexed_biceps', 'Power Muscle', '💪', '💬 Gestures'),
+    StickerItem('wave_hello', 'Friendly Wave', '👋', '💬 Gestures'),
 
-    // 🎙️ Creator Vibes
-    StickerItem('microphone', 'On Air Mic', '🎙️', '🎙️ Creator Vibes'),
-    StickerItem('headphones', 'Studio Phones', '🎧', '🎙️ Creator Vibes'),
-    StickerItem('music_notes', 'Melody Notes', '🎵', '🎙️ Creator Vibes'),
-    StickerItem('clapperboard', 'Action Cut', '🎬', '🎙️ Creator Vibes'),
-    StickerItem('thumbs_up', 'Like & Up', '👍', '🎙️ Creator Vibes'),
-    StickerItem('video_cam', 'Pro Cinema', '📹', '🎙️ Creator Vibes'),
-    StickerItem('cassette', 'Retro Tape', '📼', '🎙️ Creator Vibes'),
-    StickerItem('radio', 'FM Boombox', '📻', '🎙️ Creator Vibes'),
-    StickerItem('megaphone', 'Shout Out', '📢', '🎙️ Creator Vibes'),
-    StickerItem('palette', 'Art Brush', '🎨', '🎙️ Creator Vibes'),
-    StickerItem('camera_vintage', 'Polaroid Instant', '🎞️', '🎙️ Creator Vibes'),
-    StickerItem('spotlight', 'Stage Light', '💡', '🎙️ Creator Vibes'),
-
-    // 🐶 Animals & Pets
-    StickerItem('cat_face', 'Cute Kitty', '🐱', '🐶 Animals & Pets'),
-    StickerItem('dog_face', 'Playful Dog', '🐶', '🐶 Animals & Pets'),
-    StickerItem('panda', 'Panda Bear', '🐼', '🐶 Animals & Pets'),
-    StickerItem('lion', 'Roaring Lion', '🦁', '🐶 Animals & Pets'),
-    StickerItem('rabbit', 'Bunny Hop', '🐰', '🐶 Animals & Pets'),
-    StickerItem('unicorn', 'Magic Unicorn', '🦄', '🐶 Animals & Pets'),
-    StickerItem('koala', 'Cozy Koala', '🐨', '🐶 Animals & Pets'),
-    StickerItem('fox', 'Clever Fox', '🦊', '🐶 Animals & Pets'),
-    StickerItem('butterfly', 'Monarch Fly', '🦋', '🐶 Animals & Pets'),
-    StickerItem('dolphin', 'Ocean Dolphin', '🐬', '🐶 Animals & Pets'),
-    StickerItem('owl', 'Wise Owl', '🦉', '🐶 Animals & Pets'),
-    StickerItem('tiger', 'Wild Tiger', '🐯', '🐶 Animals & Pets'),
+    // 🎯 Badges & Tags
+    StickerItem('badge_new', 'NEW Badge', '🆕', '🎯 Badges & Tags'),
+    StickerItem('badge_top', 'TOP Rank', '🔝', '🎯 Badges & Tags'),
+    StickerItem('badge_100', '100 Percent', '💯', '🎯 Badges & Tags'),
+    StickerItem('warning_badge', 'Warning Sign', '⚠️', '🎯 Badges & Tags'),
+    StickerItem('check_badge', 'Verified Check', '✅', '🎯 Badges & Tags'),
+    StickerItem('cross_mark', 'Cancel Cross', '❌', '🎯 Badges & Tags'),
+    StickerItem('question_mark', 'Help Question', '❓', '🎯 Badges & Tags'),
+    StickerItem('exclamation', 'Alert Exclamation', '❗', '🎯 Badges & Tags'),
+    StickerItem('bell_alert', 'Notification Bell', '🔔', '🎯 Badges & Tags'),
+    StickerItem('tag_price', 'Price Tag', '🏷️', '🎯 Badges & Tags'),
+    StickerItem('gift_box', 'Special Gift', '🎁', '🎯 Badges & Tags'),
+    StickerItem('crown_gold', 'Royal Crown', '👑', '🎯 Badges & Tags'),
+    StickerItem('trophy_cup', 'Winner Trophy', '🏆', '🎯 Badges & Tags'),
+    StickerItem('medal_gold', '1st Gold Medal', '🥇', '🎯 Badges & Tags'),
+    StickerItem('medal_silver', '2nd Silver Medal', '🥈', '🎯 Badges & Tags'),
+    StickerItem('medal_bronze', '3rd Bronze Medal', '🥉', '🎯 Badges & Tags'),
+    StickerItem('military_medal', 'Hero Medal', '🎖️', '🎯 Badges & Tags'),
+    StickerItem('shield_protect', 'Security Shield', '🛡️', '🎯 Badges & Tags'),
+    StickerItem('lock_closed', 'Private Lock', '🔒', '🎯 Badges & Tags'),
+    StickerItem('key_gold', 'VIP Key', '🔑', '🎯 Badges & Tags'),
+    StickerItem('lightbulb_idea', 'Smart Idea', '💡', '🎯 Badges & Tags'),
+    StickerItem('megaphone_shout', 'Announcement', '📢', '🎯 Badges & Tags'),
 
     // 🍕 Food & Drinks
-    StickerItem('pizza', 'Cheese Pizza', '🍕', '🍕 Food & Drinks'),
-    StickerItem('burger', 'Juicy Burger', '🍔', '🍕 Food & Drinks'),
-    StickerItem('boba_tea', 'Boba Milk Tea', '🧋', '🍕 Food & Drinks'),
-    StickerItem('coffee', 'Hot Espresso', '☕', '🍕 Food & Drinks'),
-    StickerItem('ice_cream', 'Sweet Cone', '🍦', '🍕 Food & Drinks'),
-    StickerItem('donut', 'Glazed Donut', '🍩', '🍕 Food & Drinks'),
-    StickerItem('taco', 'Mexican Taco', '🌮', '🍕 Food & Drinks'),
-    StickerItem('cake', 'Birthday Cake', '🎂', '🍕 Food & Drinks'),
-    StickerItem('sushi', 'Fresh Sushi', '🍣', '🍕 Food & Drinks'),
-    StickerItem('avocado', 'Healthy Avo', '🥑', '🍕 Food & Drinks'),
-    StickerItem('fries', 'Crispy Fries', '🍟', '🍕 Food & Drinks'),
-    StickerItem('ramen', 'Hot Noodles', '🍜', '🍕 Food & Drinks'),
+    StickerItem('pizza_slice', 'Cheese Pizza', '🍕', '🍕 Food & Drinks'),
+    StickerItem('juicy_burger', 'Double Burger', '🍔', '🍕 Food & Drinks'),
+    StickerItem('french_fries', 'Crispy Fries', '🍟', '🍕 Food & Drinks'),
+    StickerItem('hot_dog', 'Classic Hotdog', '🌭', '🍕 Food & Drinks'),
+    StickerItem('popcorn_bucket', 'Movie Popcorn', '🍿', '🍕 Food & Drinks'),
+    StickerItem('sushi_roll', 'Salmon Sushi', '🍣', '🍕 Food & Drinks'),
+    StickerItem('ramen_bowl', 'Noodle Ramen', '🍜', '🍕 Food & Drinks'),
+    StickerItem('boba_cup', 'Boba Milk Tea', '🧋', '🍕 Food & Drinks'),
+    StickerItem('hot_coffee', 'Fresh Espresso', '☕', '🍕 Food & Drinks'),
+    StickerItem('glazed_donut', 'Sweet Donut', '🍩', '🍕 Food & Drinks'),
+    StickerItem('soft_ice_cream', 'Ice Cream Cone', '🍦', '🍕 Food & Drinks'),
+    StickerItem('birthday_cake', 'Party Cake', '🎂', '🍕 Food & Drinks'),
+    StickerItem('fresh_avocado', 'Healthy Avocado', '🥑', '🍕 Food & Drinks'),
+    StickerItem('red_strawberry', 'Ripe Berry', '🍓', '🍕 Food & Drinks'),
+    StickerItem('chocolate_bar', 'Cocoa Chocolate', '🍫', '🍕 Food & Drinks'),
+    StickerItem('crispy_taco', 'Mexican Taco', '🌮', '🍕 Food & Drinks'),
+    StickerItem('fluffy_pancakes', 'Maple Pancakes', '🥞', '🍕 Food & Drinks'),
+    StickerItem('sweet_cookie', 'Choco Cookie', '🍪', '🍕 Food & Drinks'),
+    StickerItem('cupcake', 'Frosted Cupcake', '🧁', '🍕 Food & Drinks'),
+    StickerItem('cocktail_drink', 'Tropical Drink', '🍹', '🍕 Food & Drinks'),
 
-    // 🎮 Gaming & Tech
-    StickerItem('controller', 'Game Controller', '🎮', '🎮 Gaming & Tech'),
-    StickerItem('joystick', 'Arcade Stick', '🕹️', '🎮 Gaming & Tech'),
-    StickerItem('vr_headset', 'VR Metaverse', '🥽', '🎮 Gaming & Tech'),
-    StickerItem('alien', 'Space Invader', '👽', '🎮 Gaming & Tech'),
-    StickerItem('robot', 'Cyber Robot', '🤖', '🎮 Gaming & Tech'),
-    StickerItem('skull', 'GameOver Skull', '💀', '🎮 Gaming & Tech'),
-    StickerItem('sword', 'Pixel Sword', '⚔️', '🎮 Gaming & Tech'),
-    StickerItem('battery', 'Full Charge', '🔋', '🎮 Gaming & Tech'),
-    StickerItem('laptop', 'Developer Rig', '💻', '🎮 Gaming & Tech'),
-    StickerItem('satellite', 'Space Orbital', '🛰️', '🎮 Gaming & Tech'),
-    StickerItem('disc', 'CD Optical', '💿', '🎮 Gaming & Tech'),
-    StickerItem('firewall', 'Shield Protect', '🛡️', '🎮 Gaming & Tech'),
+    // 🐶 Animals & Nature
+    StickerItem('dog_face', 'Puppy Dog', '🐶', '🐶 Animals & Nature'),
+    StickerItem('cat_face', 'Kitty Cat', '🐱', '🐶 Animals & Nature'),
+    StickerItem('panda_face', 'Panda Bear', '🐼', '🐶 Animals & Nature'),
+    StickerItem('lion_face', 'King Lion', '🦁', '🐶 Animals & Nature'),
+    StickerItem('tiger_face', 'Wild Tiger', '🐯', '🐶 Animals & Nature'),
+    StickerItem('bunny_face', 'Cute Bunny', '🐰', '🐶 Animals & Nature'),
+    StickerItem('koala_face', 'Cozy Koala', '🐨', '🐶 Animals & Nature'),
+    StickerItem('fox_face', 'Clever Fox', '🦊', '🐶 Animals & Nature'),
+    StickerItem('unicorn_face', 'Magic Unicorn', '🦄', '🐶 Animals & Nature'),
+    StickerItem('butterfly_blue', 'Blue Butterfly', '🦋', '🐶 Animals & Nature'),
+    StickerItem('dolphin_jump', 'Ocean Dolphin', '🐬', '🐶 Animals & Nature'),
+    StickerItem('cherry_blossom', 'Sakura Blossom', '🌸', '🐶 Animals & Nature'),
+    StickerItem('hibiscus_flower', 'Aloha Flower', '🌺', '🐶 Animals & Nature'),
+    StickerItem('sunflower_bloom', 'Sunny Flower', '🌻', '🐶 Animals & Nature'),
+    StickerItem('palm_tree', 'Tropical Palm', '🌴', '🐶 Animals & Nature'),
+    StickerItem('clover_lucky', 'Lucky Clover', '🍀', '🐶 Animals & Nature'),
+    StickerItem('maple_leaf', 'Autumn Leaf', '🍁', '🐶 Animals & Nature'),
+    StickerItem('mushroom', 'Wild Shroom', '🍄', '🐶 Animals & Nature'),
+    StickerItem('flamingo', 'Pink Flamingo', '🦩', '🐶 Animals & Nature'),
+    StickerItem('honeybee', 'Busy Bee', '🐝', '🐶 Animals & Nature'),
 
-    // ⚡ Neon & Cyber
-    StickerItem('neon_heart', 'Glowing Heart', '💖', '⚡ Neon & Cyber'),
-    StickerItem('neon_skull', 'Neon Cyber Skull', '☠️', '⚡ Neon & Cyber'),
-    StickerItem('neon_lightning', 'Hyper Lightning', '🌩️', '⚡ Neon & Cyber'),
-    StickerItem('cyber_star', 'Cosmic Nova', '🌌', '⚡ Neon & Cyber'),
-    StickerItem('neon_ring', 'Saturn Glow', '🪐', '⚡ Neon & Cyber'),
-    StickerItem('neon_eye', 'Third Eye Cyber', '👁️‍🗨️', '⚡ Neon & Cyber'),
-    StickerItem('neon_crystal', 'Cyber Crystal', '🔮', '⚡ Neon & Cyber'),
-    StickerItem('neon_comet', 'Neon Shooting Star', '☄️', '⚡ Neon & Cyber'),
+    // 🎮 Gaming & Neon
+    StickerItem('controller', 'Game Controller', '🎮', '🎮 Gaming & Neon'),
+    StickerItem('arcade_joystick', 'Arcade Joystick', '🕹️', '🎮 Gaming & Neon'),
+    StickerItem('vr_goggles', 'VR Metaverse', '🥽', '🎮 Gaming & Neon'),
+    StickerItem('laptop_mac', 'Pro Laptop', '💻', '🎮 Gaming & Neon'),
+    StickerItem('iphone_mobile', 'Smart Phone', '📱', '🎮 Gaming & Neon'),
+    StickerItem('studio_headphones', 'Pro Audio Phones', '🎧', '🎮 Gaming & Neon'),
+    StickerItem('studio_mic', 'Broadcasting Mic', '🎙️', '🎮 Gaming & Neon'),
+    StickerItem('cinema_clapper', 'Film Clapper', '🎬', '🎮 Gaming & Neon'),
+    StickerItem('polaroid_camera', 'Instant Camera', '📸', '🎮 Gaming & Neon'),
+    StickerItem('full_battery', 'Full Battery', '🔋', '🎮 Gaming & Neon'),
+    StickerItem('optical_disc', 'Laser CD', '💿', '🎮 Gaming & Neon'),
+    StickerItem('pixel_sword', 'Hero Sword', '⚔️', '🎮 Gaming & Neon'),
+    StickerItem('super_rocket', 'Space Rocket', '🚀', '🎮 Gaming & Neon'),
+    StickerItem('alien_ufo', 'Cosmic UFO', '🛸', '🎮 Gaming & Neon'),
+    StickerItem('space_invader', 'Pixel Invader', '👾', '🎮 Gaming & Neon'),
+    StickerItem('satellite_dish', 'Radio Satellite', '📡', '🎮 Gaming & Neon'),
+    StickerItem('retro_tv', 'Vintage Television', '📺', '🎮 Gaming & Neon'),
+    StickerItem('cassette_tape', 'Synth Cassette', '📼', '🎮 Gaming & Neon'),
 
-    // 🌸 Nature & Vibe
-    StickerItem('cherry_blossom', 'Sakura Blossom', '🌸', '🌸 Nature & Vibe'),
-    StickerItem('sunflower', 'Bright Sunflower', '🌻', '🌸 Nature & Vibe'),
-    StickerItem('palm_tree', 'Tropical Vibe', '🌴', '🌸 Nature & Vibe'),
-    StickerItem('cloud_sun', 'Sunny Sky', '⛅', '🌸 Nature & Vibe'),
-    StickerItem('moon', 'Crescent Night', '🌙', '🌸 Nature & Vibe'),
-    StickerItem('ocean_wave', 'Surf Wave', '🌊', '🌸 Nature & Vibe'),
-    StickerItem('herb_leaf', 'Fresh Leaves', '🌿', '🌸 Nature & Vibe'),
-    StickerItem('hibiscus', 'Island Flower', '🌺', '🌸 Nature & Vibe'),
-
-    // 🏷️ Badges & Labels
-    StickerItem('badge_new', 'NEW Badge', '🆕', '🏷️ Badges & Labels'),
-    StickerItem('badge_hot', 'HOT Tag', '🔥', '🏷️ Badges & Labels'),
-    StickerItem('badge_top', 'TOP Rank', '🔝', '🏷️ Badges & Labels'),
-    StickerItem('badge_free', 'FREE Gift', '🎁', '🏷️ Badges & Labels'),
-    StickerItem('badge_vip', 'VIP Access', '👑', '🏷️ Badges & Labels'),
-    StickerItem('badge_pro', 'PRO Badge', '⚡', '🏷️ Badges & Labels'),
-    StickerItem('badge_cool', 'COOL Vibe', '😎', '🏷️ Badges & Labels'),
-    StickerItem('badge_sale', 'SALE Discount', '🏷️', '🏷️ Badges & Labels'),
+    // ✈️ Travel & Places
+    StickerItem('airplane_flight', 'Jet Airplane', '✈️', '✈️ Travel & Places'),
+    StickerItem('sports_car', 'Red Supercar', '🚗', '✈️ Travel & Places'),
+    StickerItem('beach_umbrella', 'Sunny Beach', '🏖️', '✈️ Travel & Places'),
+    StickerItem('camping_tent', 'Wild Camping', '🏕️', '✈️ Travel & Places'),
+    StickerItem('ferris_wheel', 'Theme Park Wheel', '🎡', '✈️ Travel & Places'),
+    StickerItem('skateboard', 'Street Skater', '🛹', '✈️ Travel & Places'),
+    StickerItem('basketball', 'Hoop Ball', '🏀', '✈️ Travel & Places'),
+    StickerItem('soccer_ball', 'Football Match', '⚽', '✈️ Travel & Places'),
+    StickerItem('weightlifting', 'Gym Fitness', '🏋️', '✈️ Travel & Places'),
+    StickerItem('surfing_wave', 'Surf Ocean', '🏄', '✈️ Travel & Places'),
+    StickerItem('artist_palette', 'Color Palette', '🎨', '✈️ Travel & Places'),
+    StickerItem('musical_notes', 'Melody Symphony', '🎵', '✈️ Travel & Places'),
+    StickerItem('statue_liberty', 'New York City', '🗽', '✈️ Travel & Places'),
+    StickerItem('eiffel_tower', 'Paris Landmark', '🗼', '✈️ Travel & Places'),
+    StickerItem('snow_mountain', 'Alps Mountain', '🏔️', '✈️ Travel & Places'),
+    StickerItem('desert_island', 'Paradise Island', '🏝️', '✈️ Travel & Places'),
+    StickerItem('roller_coaster', 'Roller Coaster', '🎢', '✈️ Travel & Places'),
+    StickerItem('bicycle_ride', 'City Bike', '🚴', '✈️ Travel & Places'),
   ];
 
   @override
@@ -180,36 +254,64 @@ class _StickerPickerSheetState extends State<StickerPickerSheet> {
       final matchesCategory = _searchQuery.isEmpty ? s.category == _activeCategory : true;
       final matchesSearch = _searchQuery.isEmpty ||
           s.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          s.key.toLowerCase().contains(_searchQuery.toLowerCase());
+          s.key.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          s.emojiOrGraphic.contains(_searchQuery);
       return matchesCategory && matchesSearch;
     }).toList();
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.65,
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+      height: MediaQuery.of(context).size.height * 0.70,
+      decoration: const BoxDecoration(
+        color: Color(0xFF141724),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Top Pill Indicator
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+
           // Header Row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 children: [
-                  const Icon(Icons.emoji_emotions, color: AppColors.primary, size: 22),
-                  const SizedBox(width: 8),
-                  Text('Gboard Stickers & Emojis', style: AppTypography.titleMedium),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF00E5FF), Color(0xFF7C4DFF)],
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.emoji_emotions, color: Colors.white, size: 18),
+                  ),
+                  const SizedBox(width: 10),
+                  Text('iOS Stickers & Memojis', style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.bold)),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.2),
+                      color: const Color(0xFF00E5FF).withValues(alpha: 0.18),
                       borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFF00E5FF).withValues(alpha: 0.4), width: 0.8),
                     ),
                     child: Text(
                       '${_allStickers.length}+',
                       style: AppTypography.labelSmall.copyWith(
-                        color: AppColors.primaryLight,
+                        color: const Color(0xFF00E5FF),
                         fontWeight: FontWeight.bold,
                         fontSize: 10,
                       ),
@@ -218,7 +320,7 @@ class _StickerPickerSheetState extends State<StickerPickerSheet> {
                 ],
               ),
               IconButton(
-                icon: const Icon(Icons.close),
+                icon: const Icon(Icons.close, color: Colors.white70),
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ],
@@ -231,7 +333,7 @@ class _StickerPickerSheetState extends State<StickerPickerSheet> {
             onChanged: (val) => setState(() => _searchQuery = val.trim()),
             style: const TextStyle(color: Colors.white, fontSize: 13),
             decoration: InputDecoration(
-              hintText: 'Search stickers & emojis...',
+              hintText: 'Search 180+ iOS stickers, memojis & emojis...',
               hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
               prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 18),
               suffixIcon: _searchQuery.isNotEmpty
@@ -247,8 +349,16 @@ class _StickerPickerSheetState extends State<StickerPickerSheet> {
               filled: true,
               fillColor: AppColors.surface,
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: AppColors.surfaceBorder),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.surfaceBorder),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFF00E5FF), width: 1.5),
               ),
             ),
           ),
@@ -268,10 +378,10 @@ class _StickerPickerSheetState extends State<StickerPickerSheet> {
                       label: Text(cat),
                       selected: isSelected,
                       onSelected: (_) => setState(() => _activeCategory = cat),
-                      selectedColor: AppColors.primary,
+                      selectedColor: const Color(0xFF00E5FF),
                       backgroundColor: AppColors.surface,
                       labelStyle: TextStyle(
-                        color: isSelected ? Colors.white : AppColors.textSecondary,
+                        color: isSelected ? Colors.black : AppColors.textSecondary,
                         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                         fontSize: 11,
                       ),
@@ -298,7 +408,7 @@ class _StickerPickerSheetState extends State<StickerPickerSheet> {
                       crossAxisCount: 4,
                       mainAxisSpacing: 10,
                       crossAxisSpacing: 10,
-                      childAspectRatio: 1.0,
+                      childAspectRatio: 0.95,
                     ),
                     itemBuilder: (context, index) {
                       final sticker = filteredStickers[index];
@@ -311,29 +421,41 @@ class _StickerPickerSheetState extends State<StickerPickerSheet> {
                           );
                           Navigator.of(context).pop();
                         },
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(14),
                         child: Container(
                           decoration: BoxDecoration(
                             color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(14),
                             border: Border.all(color: AppColors.surfaceBorder),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Colors.black26,
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
                           ),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
                                 sticker.emojiOrGraphic,
-                                style: const TextStyle(fontSize: 32),
+                                style: const TextStyle(fontSize: 34),
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                sticker.name,
-                                style: AppTypography.labelSmall.copyWith(
-                                  fontSize: 8,
-                                  color: Colors.white70,
+                              const SizedBox(height: 3),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                child: Text(
+                                  sticker.name,
+                                  style: AppTypography.labelSmall.copyWith(
+                                    fontSize: 8.5,
+                                    color: Colors.white70,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
@@ -347,3 +469,4 @@ class _StickerPickerSheetState extends State<StickerPickerSheet> {
     );
   }
 }
+

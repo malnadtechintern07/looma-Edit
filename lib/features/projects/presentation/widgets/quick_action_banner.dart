@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../app/theme/app_colors.dart';
-import '../../../../app/theme/app_typography.dart';
+
+import '../../../../core/widgets/responsive_tap_button.dart';
 
 class QuickActionBanner extends StatelessWidget {
   final VoidCallback onNewProject;
@@ -19,209 +19,251 @@ class QuickActionBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 1. Large Hero Banner Card (+ New Project)
-        InkWell(
-          onTap: onNewProject,
-          borderRadius: BorderRadius.circular(22),
-          child: Container(
-            height: 140,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(22),
-              gradient: const LinearGradient(
-                colors: [Color(0xFF5B4DFB), Color(0xFF8644FF)],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x3B5B4DFB),
-                  blurRadius: 24,
-                  offset: Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Left Column: + New Project
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.add, color: Colors.white, size: 22),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                'New Project',
-                                style: AppTypography.displayMedium.copyWith(
-                                  color: Colors.white,
-                                  fontSize: 21,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.blur_on, color: Colors.white70, size: 13),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              'Create a new video',
-                              style: AppTypography.bodySmall.copyWith(
-                                color: Colors.white70,
-                                fontSize: 12,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 10),
-
-                // Right Side: Floating Clapperboard Icon Card
-                Container(
-                  width: 72,
-                  height: 72,
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: Colors.white30, width: 1.5),
-                  ),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Icon(
-                        Icons.movie_creation,
-                        color: Colors.white.withValues(alpha: 0.9),
-                        size: 36,
-                      ),
-                      const Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Icon(
-                          Icons.auto_awesome,
-                          color: AppColors.accent,
-                          size: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 18),
-
-        // 2. Three Tools Action Row: Video Edit | Photo Edit | Templates
+        // 1. Two Prominent Action Cards (Side-by-side from Reference UI)
         Row(
           children: [
-            // Video Edit
+            // Left Card: + New video
             Expanded(
-              child: _buildToolCard(
-                icon: Icons.movie_creation_outlined,
-                label: 'Video Edit',
-                iconBgColor: const Color(0xFFF0EDFF),
-                iconColor: const Color(0xFF5B4DFB),
+              child: ResponsiveTapButton(
                 onTap: onNewProject,
+                child: Container(
+                  height: 124,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x0A000000),
+                        blurRadius: 16,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF0F172A),
+                            shape: BoxShape.circle,
+                          ),
+                          alignment: Alignment.center,
+                          child: const Icon(Icons.add, color: Colors.white, size: 24),
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'New video',
+                          style: TextStyle(
+                            color: Color(0xFF0F172A),
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
 
-            // Photo Edit
+            // Right Card: Edit photo
             Expanded(
-              child: _buildToolCard(
-                icon: Icons.photo_library_outlined,
-                label: 'Photo Edit',
-                iconBgColor: const Color(0xFFE6F9FA),
-                iconColor: const Color(0xFF00C2CB),
+              child: ResponsiveTapButton(
                 onTap: onNewPhotoProject,
-              ),
-            ),
-            const SizedBox(width: 12),
-
-            // Templates
-            Expanded(
-              child: _buildToolCard(
-                icon: Icons.auto_awesome_outlined,
-                label: 'Templates',
-                iconBgColor: const Color(0xFFFFF8E6),
-                iconColor: const Color(0xFFFFB800),
-                onTap: onBrowseTemplates,
+                child: Container(
+                  height: 124,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x0A000000),
+                        blurRadius: 16,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0F172A),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          alignment: Alignment.center,
+                          child: const Icon(Icons.image_outlined, color: Colors.white, size: 24),
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'Edit photo',
+                          style: TextStyle(
+                            color: Color(0xFF0F172A),
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
+        ),
+
+        const SizedBox(height: 20),
+
+        // 2. CapCut-Style Quick Tools Grid (3 Columns from Reference UI)
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFF1F5F9), width: 1),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x08000000),
+                blurRadius: 14,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              // Row 1: Post template • AutoCut • Retouch
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildGridToolItem(
+                      icon: Icons.movie_creation_outlined,
+                      label: 'Post template',
+                      onTap: onBrowseTemplates,
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildGridToolItem(
+                      icon: Icons.video_library_outlined,
+                      label: 'AutoCut',
+                      onTap: onNewProject,
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildGridToolItem(
+                      icon: Icons.face_retouching_natural_outlined,
+                      label: 'Retouch',
+                      onTap: onNewPhotoProject,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Row 2: Photo tools • Shoot and record • Auto enhance
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildGridToolItem(
+                      icon: Icons.photo_filter_outlined,
+                      label: 'Photo tools',
+                      onTap: onNewPhotoProject,
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildGridToolItem(
+                      icon: Icons.camera_alt_outlined,
+                      label: 'Shoot & record',
+                      onTap: onRecordVoiceover,
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildGridToolItem(
+                      icon: Icons.auto_awesome_outlined,
+                      label: 'Auto enhance',
+                      onTap: onNewProject,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Row 3: Auto captions • Remove background • Space
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildGridToolItem(
+                      icon: Icons.closed_caption_outlined,
+                      label: 'Auto captions',
+                      onTap: onNewProject,
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildGridToolItem(
+                      icon: Icons.person_pin_circle_outlined,
+                      label: 'Remove bg',
+                      onTap: onNewProject,
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildGridToolItem(
+                      icon: Icons.cloud_outlined,
+                      label: 'Cloud Space',
+                      onTap: onNewProject,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildToolCard({
+  Widget _buildGridToolItem({
     required IconData icon,
     required String label,
-    required Color iconBgColor,
-    required Color iconColor,
     required VoidCallback onTap,
   }) {
-    return InkWell(
+    return ResponsiveTapButton(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFFECEEF5), width: 1),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x0C000000),
-              blurRadius: 16,
-              offset: Offset(0, 4),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 26, color: const Color(0xFF1E293B)),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF334155),
+              letterSpacing: -0.2,
             ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: iconBgColor,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(icon, color: iconColor, size: 26),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              label,
-              style: AppTypography.labelLarge.copyWith(
-                color: const Color(0xFF111827),
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }

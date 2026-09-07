@@ -3,7 +3,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/widgets/looma_button.dart';
 import '../../../media_picker/domain/entities/media_item_entity.dart';
-import '../../../media_picker/presentation/widgets/media_picker_modal.dart';
+import '../../../media_picker/domain/services/device_media_service.dart';
 import '../../domain/entities/aspect_ratio_type.dart';
 
 class CreateProjectDialog extends StatefulWidget {
@@ -26,26 +26,14 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
     super.dispose();
   }
 
-  void _onStartEditing() {
+  Future<void> _onStartEditing() async {
     final title = _titleController.text.trim();
     Navigator.of(context).pop();
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: const Color(0xFF0C0D12),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => MediaPickerModal(
-        title: 'Select Videos & Photos for Project',
-        actionLabel: 'Create Project with Media',
-        onMediaSelected: (selectedMedia) {
-          widget.onCreate(title, _selectedRatio, _selectedFps, selectedMedia);
-        },
-      ),
-    );
+    final selectedMedia = await DeviceMediaService().pickVideosFromDevice();
+    if (selectedMedia.isNotEmpty) {
+      widget.onCreate(title, _selectedRatio, _selectedFps, selectedMedia);
+    }
   }
 
   @override

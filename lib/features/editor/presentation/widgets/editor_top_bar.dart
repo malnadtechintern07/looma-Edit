@@ -109,32 +109,6 @@ class EditorTopBar extends StatelessWidget {
             ),
           ),
 
-          // Undo / Redo
-          IconButton(
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-            visualDensity: VisualDensity.compact,
-            icon: Icon(
-              Icons.undo,
-              size: 18,
-              color: controller.canUndo ? AppColors.textPrimary : AppColors.textDisabled,
-            ),
-            tooltip: 'Undo',
-            onPressed: controller.canUndo ? controller.undo : null,
-          ),
-          IconButton(
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-            visualDensity: VisualDensity.compact,
-            icon: Icon(
-              Icons.redo,
-              size: 18,
-              color: controller.canRedo ? AppColors.textPrimary : AppColors.textDisabled,
-            ),
-            tooltip: 'Redo',
-            onPressed: controller.canRedo ? controller.redo : null,
-          ),
-
           // Save Draft Button
           IconButton(
             padding: EdgeInsets.zero,

@@ -23,6 +23,8 @@ class TimelineState {
   final String? chromaKeyTargetClipId;
   final double chromaKeyCrosshairX; // normalized 0..1
   final double chromaKeyCrosshairY; // normalized 0..1
+  final Map<String, int> clipLanes;
+  final bool isSnappingEnabled;
 
   const TimelineState({
     required this.project,
@@ -36,6 +38,8 @@ class TimelineState {
     this.chromaKeyTargetClipId,
     this.chromaKeyCrosshairX = 0.5,
     this.chromaKeyCrosshairY = 0.5,
+    this.clipLanes = const {},
+    this.isSnappingEnabled = true,
   });
 
   /// Currently active video clip at playhead position (main track)
@@ -161,6 +165,8 @@ class TimelineState {
     bool clearChromaKeyTarget = false,
     double? chromaKeyCrosshairX,
     double? chromaKeyCrosshairY,
+    Map<String, int>? clipLanes,
+    bool? isSnappingEnabled,
   }) {
     final effectiveSelectionType = selectionType ?? this.selectionType;
     final effectiveSelectedItemId = effectiveSelectionType == SelectionType.none
@@ -184,6 +190,8 @@ class TimelineState {
       chromaKeyTargetClipId: effectiveChromaKeyTargetClipId,
       chromaKeyCrosshairX: chromaKeyCrosshairX ?? this.chromaKeyCrosshairX,
       chromaKeyCrosshairY: chromaKeyCrosshairY ?? this.chromaKeyCrosshairY,
+      clipLanes: clipLanes ?? this.clipLanes,
+      isSnappingEnabled: isSnappingEnabled ?? this.isSnappingEnabled,
     );
   }
 }

@@ -8,7 +8,7 @@ import '../../../../core/utils/id_generator.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../cloud_sync/presentation/providers/cloud_sync_provider.dart';
 import '../../../editor/domain/entities/video_clip_entity.dart';
-import '../../../media_picker/domain/services/device_media_service.dart';
+import '../../../media_picker/domain/services/recent_media_service.dart';
 import '../../../media_picker/presentation/widgets/media_picker_modal.dart';
 import '../../domain/entities/aspect_ratio_type.dart';
 import '../../domain/entities/project_entity.dart';
@@ -46,69 +46,22 @@ class _ProjectsOnlyScreenState extends ConsumerState<ProjectsOnlyScreen> {
     super.dispose();
   }
 
-  final DeviceMediaService _mediaService = DeviceMediaService();
-
-  Future<void> _openDirectMediaPicker() async {
-    final selectedMedia = await _mediaService.pickVideosFromDevice();
-
-    if (selectedMedia.isNotEmpty && mounted) {
-      int offsetMs = 0;
-      final List<VideoClipEntity> clips = [];
-
-      for (final m in selectedMedia) {
-        final dur = m.durationMs;
-        clips.add(
-          VideoClipEntity(
-            id: IdGenerator.generate(),
-            mediaPath: m.path,
-            name: m.name,
-            sourceDurationMs: dur,
-            timelineStartMs: offsetMs,
-            timelineEndMs: offsetMs + dur,
-            trimStartMs: 0,
-            trimEndMs: dur,
-          ),
-        );
-        offsetMs += dur;
-      }
-
-      final projectTitle = selectedMedia.first.name.split('.').first;
-      final notifier = ref.read(projectsNotifierProvider.notifier);
-      final project = await notifier.createProject(
-        title: projectTitle,
-        aspectRatio: AspectRatioType.ratio9_16,
-        fps: 30,
-        initialClips: clips,
-      );
-
-      if (mounted) {
-        await context.push(RoutePaths.editorPath(project.id));
-        if (mounted) {
-          ref.read(projectsNotifierProvider.notifier).loadProjects();
-        }
-      }
-      return;
-    }
-
-    if (mounted) {
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        useSafeArea: true,
-        backgroundColor: const Color(0xFF0C0D12),
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
+  void _openDirectMediaPicker() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
         builder: (ctx) => MediaPickerModal(
-          title: 'Select Photos & Videos for Project',
-          actionLabel: 'Create Project & Open Editor',
-          onMediaSelected: (pickedList) async {
-            if (pickedList.isEmpty) return;
+          title: 'Select media',
+          actionLabel: 'Add',
+          onMediaSelected: (selectedMedia) async {
+            if (selectedMedia.isEmpty || !mounted) return;
+
+            RecentMediaService().addRecentMedia(selectedMedia);
             int offsetMs = 0;
             final List<VideoClipEntity> clips = [];
 
-            for (final m in pickedList) {
-              final dur = m.durationMs;
+            for (final m in selectedMedia) {
+              final dur = m.durationMs > 0 ? m.durationMs : 4000;
               clips.add(
                 VideoClipEntity(
                   id: IdGenerator.generate(),
@@ -124,7 +77,7 @@ class _ProjectsOnlyScreenState extends ConsumerState<ProjectsOnlyScreen> {
               offsetMs += dur;
             }
 
-            final projectTitle = pickedList.first.name.split('.').first;
+            final projectTitle = selectedMedia.first.name.split('.').first;
             final notifier = ref.read(projectsNotifierProvider.notifier);
             final project = await notifier.createProject(
               title: projectTitle,
@@ -141,8 +94,8 @@ class _ProjectsOnlyScreenState extends ConsumerState<ProjectsOnlyScreen> {
             }
           },
         ),
-      );
-    }
+      ),
+    );
   }
 
   @override
@@ -157,6 +110,14 @@ class _ProjectsOnlyScreenState extends ConsumerState<ProjectsOnlyScreen> {
       if (searchQuery.isNotEmpty && !p.title.toLowerCase().contains(searchQuery)) return false;
       return true;
     }).toList();
+
+    filteredProjects.sort((a, b) {
+      final cmp = b.updatedAt.compareTo(a.updatedAt);
+      if (cmp != 0) return cmp;
+      final createCmp = b.createdAt.compareTo(a.createdAt);
+      if (createCmp != 0) return createCmp;
+      return b.id.compareTo(a.id);
+    });
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
@@ -178,13 +139,13 @@ class _ProjectsOnlyScreenState extends ConsumerState<ProjectsOnlyScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: const Color(0xFF5B4DFB).withValues(alpha: 0.1),
+                color: AppColors.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
                 '${filteredProjects.length}',
                 style: const TextStyle(
-                  color: Color(0xFF5B4DFB),
+                  color: AppColors.primary,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
@@ -195,7 +156,7 @@ class _ProjectsOnlyScreenState extends ConsumerState<ProjectsOnlyScreen> {
         actions: [
           IconButton(
             tooltip: 'New Project',
-            icon: const Icon(Icons.add_circle, color: Color(0xFF5B4DFB), size: 26),
+            icon: const Icon(Icons.add_circle, color: AppColors.primary, size: 26),
             onPressed: _openDirectMediaPicker,
           ),
           const SizedBox(width: 8),
@@ -354,10 +315,10 @@ class _ProjectsOnlyScreenState extends ConsumerState<ProjectsOnlyScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF5B4DFB) : Colors.white,
+          color: isSelected ? AppColors.primary : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFF5B4DFB) : const Color(0xFFECEEF5),
+            color: isSelected ? AppColors.primary : const Color(0xFFECEEF5),
           ),
         ),
         child: Text(
@@ -396,7 +357,7 @@ class _ProjectsOnlyScreenState extends ConsumerState<ProjectsOnlyScreen> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF5B4DFB),
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
@@ -437,7 +398,7 @@ class _ProjectsOnlyScreenState extends ConsumerState<ProjectsOnlyScreen> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF5B4DFB),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
               ),
               onPressed: () => Navigator.of(ctx).pop(true),

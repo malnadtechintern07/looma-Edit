@@ -32,10 +32,17 @@ class ProjectCard extends StatelessWidget {
     final durationStr = TimecodeFormatter.formatHumanDuration(project.calculatedDurationMs);
     final timeAgoStr = _formatTimeAgo(project.updatedAt);
     final firstMedia = project.videoClips.isNotEmpty ? project.videoClips.first.mediaPath : '';
+    final bool isImage = firstMedia.endsWith('.jpg') ||
+        firstMedia.endsWith('.jpeg') ||
+        firstMedia.endsWith('.png') ||
+        firstMedia.endsWith('.webp') ||
+        firstMedia.endsWith('.heic');
 
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
+      splashColor: AppColors.primary.withValues(alpha: 0.12),
+      highlightColor: AppColors.primary.withValues(alpha: 0.05),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -61,7 +68,7 @@ class ProjectCard extends StatelessWidget {
                 gradient: LinearGradient(
                   colors: [
                     _getGradientStartColor(project.id),
-                    const Color(0xFF5B4DFB),
+                    AppColors.primary,
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -71,10 +78,18 @@ class ProjectCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  if (firstMedia.isNotEmpty && firstMedia.startsWith('assets/'))
-                    Image.asset(firstMedia, fit: BoxFit.cover, errorBuilder: (_, _, _) => const SizedBox())
-                  else if (firstMedia.isNotEmpty && File(firstMedia).existsSync())
-                    Image.file(File(firstMedia), fit: BoxFit.cover, errorBuilder: (_, _, _) => const SizedBox()),
+                  if (firstMedia.isNotEmpty && isImage && firstMedia.startsWith('assets/'))
+                    Image.asset(
+                      firstMedia,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => const SizedBox(),
+                    )
+                  else if (firstMedia.isNotEmpty && isImage)
+                    Image.file(
+                      File(firstMedia),
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => const SizedBox(),
+                    ),
 
                   // Dark tint overlay
                   Container(color: Colors.black.withValues(alpha: 0.25)),
@@ -182,7 +197,7 @@ class ProjectCard extends StatelessWidget {
                             ? Icons.cloud_done
                             : Icons.cloud_upload_outlined,
                         size: 18,
-                        color: const Color(0xFF5B4DFB),
+                        color: AppColors.primary,
                       ),
                       const SizedBox(width: 10),
                       Text(project.syncStatus == SyncStatusType.synced ? 'Re-sync to Cloud' : 'Sync to Cloud'),
@@ -242,8 +257,8 @@ class ProjectCard extends StatelessWidget {
         break;
       case SyncStatusType.syncing:
         icon = Icons.sync;
-        iconColor = const Color(0xFF5B4DFB);
-        bgColor = const Color(0xFFEEECFE);
+        iconColor = AppColors.primary;
+        bgColor = const Color(0xFFEBF3FE);
         label = 'Syncing';
         break;
       case SyncStatusType.error:
