@@ -1,6 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:looma/core/storage/storage_providers.dart';
+import 'package:looma/features/cloud_sync/domain/entities/bunny_storage_config.dart';
 import '../../data/datasources/auth_local_datasource.dart';
+import '../../data/datasources/auth_remote_datasource.dart';
+import '../../data/datasources/bunny_auth_remote_datasource.dart';
+import '../../data/datasources/composite_auth_remote_datasource.dart';
+import '../../data/datasources/global_cloud_auth_remote_datasource.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -50,9 +55,26 @@ final authLocalDataSourceProvider = Provider<AuthLocalDataSource>((ref) {
   return AuthLocalDataSourceImpl(storageService: storage);
 });
 
+final authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>((ref) {
+  final storage = ref.watch(localStorageServiceProvider);
+  final globalCloudDs = GlobalCloudAuthRemoteDataSource(localStorageService: storage);
+  final bunnyDs = BunnyAuthRemoteDataSource(
+    localStorageService: storage,
+    config: BunnyStorageConfig.defaultConfig(),
+  );
+  return CompositeAuthRemoteDataSource(
+    primary: globalCloudDs,
+    secondary: bunnyDs,
+  );
+});
+
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  final ds = ref.watch(authLocalDataSourceProvider);
-  return AuthRepositoryImpl(localDataSource: ds);
+  final localDs = ref.watch(authLocalDataSourceProvider);
+  final remoteDs = ref.watch(authRemoteDataSourceProvider);
+  return AuthRepositoryImpl(
+    localDataSource: localDs,
+    remoteDataSource: remoteDs,
+  );
 });
 
 class AuthNotifier extends StateNotifier<AuthState> {
@@ -60,6 +82,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   AuthNotifier(this._repository) : super(const AuthState(isLoading: true)) {
     checkCurrentSession();
+    _syncLocalAccounts();
+  }
+
+  void _syncLocalAccounts() {
+    _repository.syncLocalAccountsToCloud().catchError((_) {});
   }
 
   Future<void> checkCurrentSession() async {

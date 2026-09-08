@@ -23,4 +23,6 @@ abstract class AuthRepository {
   Future<UserEntity?> getCurrentUser();
 
   Future<UserEntity?> restoreSession();
+
+  Future<void> syncLocalAccountsToCloud();
 }

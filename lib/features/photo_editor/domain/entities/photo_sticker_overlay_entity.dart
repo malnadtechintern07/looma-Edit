@@ -5,6 +5,10 @@ class PhotoStickerOverlayEntity {
   final double positionY;
   final double scale;
   final double rotation;
+  final bool isShape;
+  final String? shapeType;
+  final int colorHex;
+  final double opacity;
 
   const PhotoStickerOverlayEntity({
     required this.id,
@@ -13,6 +17,10 @@ class PhotoStickerOverlayEntity {
     this.positionY = 120.0,
     this.scale = 1.0,
     this.rotation = 0.0,
+    this.isShape = false,
+    this.shapeType,
+    this.colorHex = 0xFFFFFFFF,
+    this.opacity = 1.0,
   });
 
   PhotoStickerOverlayEntity copyWith({
@@ -22,6 +30,10 @@ class PhotoStickerOverlayEntity {
     double? positionY,
     double? scale,
     double? rotation,
+    bool? isShape,
+    String? shapeType,
+    int? colorHex,
+    double? opacity,
   }) {
     return PhotoStickerOverlayEntity(
       id: id ?? this.id,
@@ -30,6 +42,10 @@ class PhotoStickerOverlayEntity {
       positionY: positionY ?? this.positionY,
       scale: scale ?? this.scale,
       rotation: rotation ?? this.rotation,
+      isShape: isShape ?? this.isShape,
+      shapeType: shapeType ?? this.shapeType,
+      colorHex: colorHex ?? this.colorHex,
+      opacity: opacity ?? this.opacity,
     );
   }
 
@@ -41,6 +57,10 @@ class PhotoStickerOverlayEntity {
       'positionY': positionY,
       'scale': scale,
       'rotation': rotation,
+      'isShape': isShape,
+      'shapeType': shapeType,
+      'colorHex': colorHex,
+      'opacity': opacity,
     };
   }
 
@@ -52,6 +72,10 @@ class PhotoStickerOverlayEntity {
       positionY: (json['positionY'] as num?)?.toDouble() ?? 120.0,
       scale: (json['scale'] as num?)?.toDouble() ?? 1.0,
       rotation: (json['rotation'] as num?)?.toDouble() ?? 0.0,
+      isShape: json['isShape'] as bool? ?? false,
+      shapeType: json['shapeType'] as String?,
+      colorHex: json['colorHex'] as int? ?? 0xFFFFFFFF,
+      opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
     );
   }
 }

@@ -97,4 +97,25 @@ class AppActionsService {
       return false;
     }
   }
+
+  /// Share an exported image file using native share sheet or copy path to clipboard
+  static Future<bool> shareImageFile(String filePath, {String? text}) async {
+    final msg = text ?? 'Check out this photo I edited with Looma Photo Editor! ✨📸 $playStoreWebUrl';
+    try {
+      if (Platform.isAndroid) {
+        final res = await _channel.invokeMethod<bool>('shareApp', {
+          'text': '$msg\n$filePath',
+          'subject': 'Looma Photo Creation',
+          'title': 'Share Edited Photo via',
+        });
+        if (res == true) return true;
+      }
+    } catch (_) {}
+    try {
+      await Clipboard.setData(ClipboardData(text: filePath));
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 }

@@ -18,9 +18,14 @@ class PhotoEditorState {
   final String? selectedTextId;
   final String? selectedStickerId;
   final bool isDrawMode;
+  final bool isEraserMode;
+  final String brushType; // 'pen', 'marker', 'neon'
   final Color currentBrushColor;
   final double currentBrushSize;
+  final double brushOpacity;
+  final bool isComparing; // Before/after preview mode
   final bool isExporting;
+  final double zoomScale;
 
   const PhotoEditorState({
     required this.project,
@@ -30,9 +35,14 @@ class PhotoEditorState {
     this.selectedTextId,
     this.selectedStickerId,
     this.isDrawMode = false,
+    this.isEraserMode = false,
+    this.brushType = 'pen',
     this.currentBrushColor = const Color(0xFFFF0055),
     this.currentBrushSize = 5.0,
+    this.brushOpacity = 1.0,
+    this.isComparing = false,
     this.isExporting = false,
+    this.zoomScale = 1.0,
   });
 
   bool get canUndo => history.isNotEmpty;
@@ -46,9 +56,14 @@ class PhotoEditorState {
     String? selectedTextId,
     String? selectedStickerId,
     bool? isDrawMode,
+    bool? isEraserMode,
+    String? brushType,
     Color? currentBrushColor,
     double? currentBrushSize,
+    double? brushOpacity,
+    bool? isComparing,
     bool? isExporting,
+    double? zoomScale,
     bool clearSelection = false,
   }) {
     return PhotoEditorState(
@@ -59,9 +74,14 @@ class PhotoEditorState {
       selectedTextId: clearSelection ? null : (selectedTextId ?? this.selectedTextId),
       selectedStickerId: clearSelection ? null : (selectedStickerId ?? this.selectedStickerId),
       isDrawMode: isDrawMode ?? this.isDrawMode,
+      isEraserMode: isEraserMode ?? this.isEraserMode,
+      brushType: brushType ?? this.brushType,
       currentBrushColor: currentBrushColor ?? this.currentBrushColor,
       currentBrushSize: currentBrushSize ?? this.currentBrushSize,
+      brushOpacity: brushOpacity ?? this.brushOpacity,
+      isComparing: isComparing ?? this.isComparing,
       isExporting: isExporting ?? this.isExporting,
+      zoomScale: zoomScale ?? this.zoomScale,
     );
   }
 }
@@ -76,11 +96,14 @@ class PhotoEditorController extends StateNotifier<PhotoEditorState> {
   final PhotoProjectRepository? _repository;
 
   PhotoEditorController(PhotoProjectEntity initialProject, [this._repository])
-      : super(PhotoEditorState(project: initialProject));
+      : super(PhotoEditorState(
+          project: initialProject,
+          selectedFrameId: initialProject.frames.isNotEmpty ? initialProject.frames.first.id : null,
+        ));
 
   void _recordHistory() {
     final newHistory = List<PhotoProjectEntity>.from(state.history)..add(state.project);
-    if (newHistory.length > 25) {
+    if (newHistory.length > 30) {
       newHistory.removeAt(0);
     }
     state = state.copyWith(
@@ -145,12 +168,32 @@ class PhotoEditorController extends StateNotifier<PhotoEditorState> {
     state = state.copyWith(isDrawMode: enabled, clearSelection: true);
   }
 
+  void toggleEraserMode(bool enabled) {
+    state = state.copyWith(isEraserMode: enabled);
+  }
+
+  void setBrushType(String type) {
+    state = state.copyWith(brushType: type);
+  }
+
   void setBrushColor(Color color) {
     state = state.copyWith(currentBrushColor: color);
   }
 
   void setBrushSize(double size) {
     state = state.copyWith(currentBrushSize: size);
+  }
+
+  void setBrushOpacity(double opacity) {
+    state = state.copyWith(brushOpacity: opacity);
+  }
+
+  void setComparing(bool isComparing) {
+    state = state.copyWith(isComparing: isComparing);
+  }
+
+  void setZoomScale(double scale) {
+    state = state.copyWith(zoomScale: scale);
   }
 
   void setAspectRatio(PhotoAspectRatio ratio) {
@@ -167,12 +210,33 @@ class PhotoEditorController extends StateNotifier<PhotoEditorState> {
     _persist();
   }
 
-  void setCanvasStyle({double? gapSpacing, double? borderRadius, int? backgroundColorHex}) {
+  void setCanvasStyle({
+    double? gapSpacing,
+    double? borderRadius,
+    int? backgroundColorHex,
+    String? backgroundType,
+    List<int>? gradientColorsHex,
+    double? blurBackgroundRadius,
+  }) {
     _recordHistory();
     final updated = state.project.copyWith(
       gapSpacing: gapSpacing ?? state.project.gapSpacing,
       borderRadius: borderRadius ?? state.project.borderRadius,
       backgroundColorHex: backgroundColorHex ?? state.project.backgroundColorHex,
+      backgroundType: backgroundType ?? state.project.backgroundType,
+      gradientColorsHex: gradientColorsHex ?? state.project.gradientColorsHex,
+      blurBackgroundRadius: blurBackgroundRadius ?? state.project.blurBackgroundRadius,
+      updatedAt: DateTime.now(),
+    );
+    state = state.copyWith(project: updated);
+    _persist();
+  }
+
+  void setCustomCanvasDimensions(int width, int height) {
+    _recordHistory();
+    final updated = state.project.copyWith(
+      exportWidth: width,
+      exportHeight: height,
       updatedAt: DateTime.now(),
     );
     state = state.copyWith(project: updated);
@@ -204,6 +268,26 @@ class PhotoEditorController extends StateNotifier<PhotoEditorState> {
     _persist();
   }
 
+  void setPhotoFrameAt(int slotIndex, String imagePath) {
+    _recordHistory();
+    final updatedFrames = List<PhotoFrameEntity>.from(state.project.frames);
+    String targetId;
+    if (slotIndex < updatedFrames.length) {
+      targetId = updatedFrames[slotIndex].id;
+      updatedFrames[slotIndex] = updatedFrames[slotIndex].copyWith(imagePath: imagePath);
+    } else {
+      final newFrame = PhotoFrameEntity(
+        id: IdGenerator.generate(),
+        imagePath: imagePath,
+      );
+      targetId = newFrame.id;
+      updatedFrames.add(newFrame);
+    }
+    final updated = state.project.copyWith(frames: updatedFrames, updatedAt: DateTime.now());
+    state = state.copyWith(project: updated, selectedFrameId: targetId);
+    _persist();
+  }
+
   void updateFrameTransform(
     String frameId, {
     double? scale,
@@ -218,6 +302,267 @@ class PhotoEditorController extends StateNotifier<PhotoEditorState> {
           offsetX: offsetX ?? f.offsetX,
           offsetY: offsetY ?? f.offsetY,
           rotation: rotation ?? f.rotation,
+        );
+      }
+      return f;
+    }).toList();
+    final updated = state.project.copyWith(frames: updatedFrames, updatedAt: DateTime.now());
+    state = state.copyWith(project: updated);
+    _persist();
+  }
+
+  /// Update Crop rect
+  void updateFrameCrop(
+    String frameId, {
+    double? cropLeft,
+    double? cropTop,
+    double? cropRight,
+    double? cropBottom,
+  }) {
+    _recordHistory();
+    final updatedFrames = state.project.frames.map((f) {
+      if (f.id == frameId) {
+        return f.copyWith(
+          cropLeft: cropLeft ?? f.cropLeft,
+          cropTop: cropTop ?? f.cropTop,
+          cropRight: cropRight ?? f.cropRight,
+          cropBottom: cropBottom ?? f.cropBottom,
+        );
+      }
+      return f;
+    }).toList();
+    final updated = state.project.copyWith(frames: updatedFrames, updatedAt: DateTime.now());
+    state = state.copyWith(project: updated);
+    _persist();
+  }
+
+  /// Update Geometry transforms: 90 deg rotate, flip H/V, straighten, perspective tilt
+  void updateFrameTransformGeometry(
+    String frameId, {
+    double? straighten,
+    double? perspectiveX,
+    double? perspectiveY,
+    bool? flipHorizontal,
+    bool? flipVertical,
+    double? rotationDelta,
+  }) {
+    _recordHistory();
+    final updatedFrames = state.project.frames.map((f) {
+      if (f.id == frameId) {
+        return f.copyWith(
+          straighten: straighten ?? f.straighten,
+          perspectiveX: perspectiveX ?? f.perspectiveX,
+          perspectiveY: perspectiveY ?? f.perspectiveY,
+          flipHorizontal: flipHorizontal ?? f.flipHorizontal,
+          flipVertical: flipVertical ?? f.flipVertical,
+          rotation: rotationDelta != null ? (f.rotation + rotationDelta) : f.rotation,
+        );
+      }
+      return f;
+    }).toList();
+    final updated = state.project.copyWith(frames: updatedFrames, updatedAt: DateTime.now());
+    state = state.copyWith(project: updated);
+    _persist();
+  }
+
+  /// Update Light & Color Tone adjustments (continuous, real-time)
+  void updateFrameAdjustments(
+    String frameId, {
+    double? brightness,
+    double? contrast,
+    double? exposure,
+    double? highlights,
+    double? shadows,
+    double? saturation,
+    double? vibrance,
+    double? temperature,
+    double? tint,
+    double? sharpness,
+    bool recordHistory = false,
+  }) {
+    if (recordHistory) _recordHistory();
+    final updatedFrames = state.project.frames.map((f) {
+      if (f.id == frameId) {
+        return f.copyWith(
+          brightness: brightness ?? f.brightness,
+          contrast: contrast ?? f.contrast,
+          exposure: exposure ?? f.exposure,
+          highlights: highlights ?? f.highlights,
+          shadows: shadows ?? f.shadows,
+          saturation: saturation ?? f.saturation,
+          vibrance: vibrance ?? f.vibrance,
+          temperature: temperature ?? f.temperature,
+          tint: tint ?? f.tint,
+          sharpness: sharpness ?? f.sharpness,
+        );
+      }
+      return f;
+    }).toList();
+    final updated = state.project.copyWith(frames: updatedFrames, updatedAt: DateTime.now());
+    state = state.copyWith(project: updated);
+    _persist();
+  }
+
+  /// Apply all Auto Enhance computed adjustments with history recording for Undo/Redo
+  void applyAutoEnhanceAdjustments(
+    String frameId, {
+    required double brightness,
+    required double contrast,
+    required double exposure,
+    required double highlights,
+    required double shadows,
+    required double saturation,
+    required double vibrance,
+    required double temperature,
+    required double tint,
+    required double sharpness,
+  }) {
+    _recordHistory();
+    final updatedFrames = state.project.frames.map((f) {
+      if (f.id == frameId) {
+        return f.copyWith(
+          brightness: brightness,
+          contrast: contrast,
+          exposure: exposure,
+          highlights: highlights,
+          shadows: shadows,
+          saturation: saturation,
+          vibrance: vibrance,
+          temperature: temperature,
+          tint: tint,
+          sharpness: sharpness,
+        );
+      }
+      return f;
+    }).toList();
+    final updated = state.project.copyWith(frames: updatedFrames, updatedAt: DateTime.now());
+    state = state.copyWith(project: updated);
+    _persist();
+  }
+
+  /// Update Blur, Vignette, Grain, Fade effects
+  void updateFrameEffects(
+    String frameId, {
+    double? blur,
+    double? vignette,
+    double? grain,
+    double? fade,
+    bool recordHistory = false,
+  }) {
+    if (recordHistory) _recordHistory();
+    final updatedFrames = state.project.frames.map((f) {
+      if (f.id == frameId) {
+        return f.copyWith(
+          blur: blur ?? f.blur,
+          vignette: vignette ?? f.vignette,
+          grain: grain ?? f.grain,
+          fade: fade ?? f.fade,
+        );
+      }
+      return f;
+    }).toList();
+    final updated = state.project.copyWith(frames: updatedFrames, updatedAt: DateTime.now());
+    state = state.copyWith(project: updated);
+    _persist();
+  }
+
+  /// Update HSL adjustments for a specific color channel
+  void updateFrameHsl(
+    String frameId,
+    String channel, {
+    double? hue,
+    double? sat,
+    double? lum,
+    bool recordHistory = false,
+  }) {
+    if (recordHistory) _recordHistory();
+    final updatedFrames = state.project.frames.map((f) {
+      if (f.id == frameId) {
+        final currentHsl = Map<String, Map<String, double>>.from(f.hslAdjustments);
+        final channelMap = Map<String, double>.from(currentHsl[channel] ?? {'hue': 0.0, 'sat': 0.0, 'lum': 0.0});
+        if (hue != null) channelMap['hue'] = hue;
+        if (sat != null) channelMap['sat'] = sat;
+        if (lum != null) channelMap['lum'] = lum;
+        currentHsl[channel] = channelMap;
+        return f.copyWith(hslAdjustments: currentHsl);
+      }
+      return f;
+    }).toList();
+    final updated = state.project.copyWith(frames: updatedFrames, updatedAt: DateTime.now());
+    state = state.copyWith(project: updated);
+    _persist();
+  }
+
+  /// Update Tone Curves for a channel (RGB, Red, Green, Blue)
+  void updateFrameCurves(
+    String frameId,
+    String channel, {
+    double? blacks,
+    double? shadows,
+    double? midtones,
+    double? highlights,
+    double? whites,
+    bool recordHistory = false,
+  }) {
+    if (recordHistory) _recordHistory();
+    final updatedFrames = state.project.frames.map((f) {
+      if (f.id == frameId) {
+        final currentCurves = Map<String, List<double>>.from(f.toneCurves);
+        final list = List<double>.from(currentCurves[channel] ?? [0.0, 0.0, 0.0, 0.0, 0.0]);
+        if (blacks != null) list[0] = blacks;
+        if (shadows != null) list[1] = shadows;
+        if (midtones != null) list[2] = midtones;
+        if (highlights != null) list[3] = highlights;
+        if (whites != null) list[4] = whites;
+        currentCurves[channel] = list;
+        return f.copyWith(toneCurves: currentCurves);
+      }
+      return f;
+    }).toList();
+    final updated = state.project.copyWith(frames: updatedFrames, updatedAt: DateTime.now());
+    state = state.copyWith(project: updated);
+    _persist();
+  }
+
+  /// Reset all Light & Tone adjustments on a frame
+  void resetFrameAdjustments(String frameId) {
+    _recordHistory();
+    final updatedFrames = state.project.frames.map((f) {
+      if (f.id == frameId) {
+        return f.copyWith(
+          brightness: 0.0,
+          contrast: 1.0,
+          exposure: 0.0,
+          highlights: 0.0,
+          shadows: 0.0,
+          saturation: 1.0,
+          vibrance: 0.0,
+          temperature: 0.0,
+          tint: 0.0,
+          sharpness: 0.0,
+          blur: 0.0,
+          vignette: 0.0,
+          grain: 0.0,
+          fade: 0.0,
+          hslAdjustments: const {},
+          toneCurves: const {},
+        );
+      }
+      return f;
+    }).toList();
+    final updated = state.project.copyWith(frames: updatedFrames, updatedAt: DateTime.now());
+    state = state.copyWith(project: updated);
+    _persist();
+  }
+
+  /// Reset everything (crop, transforms, adjustments, filters) on a frame
+  void resetAll(String frameId) {
+    _recordHistory();
+    final updatedFrames = state.project.frames.map((f) {
+      if (f.id == frameId) {
+        return PhotoFrameEntity(
+          id: f.id,
+          imagePath: f.imagePath,
         );
       }
       return f;
@@ -334,11 +679,51 @@ class PhotoEditorController extends StateNotifier<PhotoEditorState> {
     _persist();
   }
 
+  void removeDrawingStrokeAt(int index) {
+    if (index < 0 || index >= state.project.drawingStrokes.length) return;
+    _recordHistory();
+    final updated = List<DrawingStrokeEntity>.from(state.project.drawingStrokes)..removeAt(index);
+    final proj = state.project.copyWith(drawingStrokes: updated, updatedAt: DateTime.now());
+    state = state.copyWith(project: proj);
+    _persist();
+  }
+
+  void eraseStrokesNear(Offset point, double radius) {
+    final strokes = state.project.drawingStrokes;
+    final remaining = <DrawingStrokeEntity>[];
+    bool erasedAny = false;
+
+    for (final stroke in strokes) {
+      bool hit = false;
+      for (final p in stroke.points) {
+        if ((p - point).distance <= radius) {
+          hit = true;
+          break;
+        }
+      }
+      if (hit) {
+        erasedAny = true;
+      } else {
+        remaining.add(stroke);
+      }
+    }
+
+    if (erasedAny) {
+      final proj = state.project.copyWith(drawingStrokes: remaining, updatedAt: DateTime.now());
+      state = state.copyWith(project: proj);
+      _persist();
+    }
+  }
+
   void clearDrawingStrokes() {
     _recordHistory();
     final proj = state.project.copyWith(drawingStrokes: [], updatedAt: DateTime.now());
     state = state.copyWith(project: proj);
     _persist();
+  }
+
+  Future<void> saveProject() async {
+    await _persist();
   }
 
   Future<void> _persist() async {

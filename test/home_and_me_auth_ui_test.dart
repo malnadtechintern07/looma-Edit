@@ -195,4 +195,7 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<UserEntity?> restoreSession() async => null;
+
+  @override
+  Future<void> syncLocalAccountsToCloud() async {}
 }

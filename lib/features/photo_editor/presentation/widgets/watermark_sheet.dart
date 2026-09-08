@@ -58,130 +58,157 @@ class _WatermarkSheetState extends State<WatermarkSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Watermark & Branding', style: AppTypography.titleMedium),
-              Switch(
-                value: _isEnabled,
-                activeTrackColor: AppColors.primary,
-                activeThumbColor: Colors.white,
-                inactiveTrackColor: const Color(0xFFCBD5E1),
-                inactiveThumbColor: Colors.white,
-                trackOutlineColor: WidgetStateProperty.resolveWith((states) =>
-                  states.contains(WidgetState.selected) ? Colors.transparent : const Color(0xFF94A3B8),
-                ),
-                onChanged: (val) => setState(() => _isEnabled = val),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          if (_isEnabled) ...[
-            // Text Input
-            TextField(
-              controller: _textController,
-              style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-              decoration: InputDecoration(
-                hintText: 'Enter brand watermark text...',
-                filled: true,
-                fillColor: AppColors.surfaceElevated,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: AppColors.primary),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Position Selectors
-            Text('POSITION', style: AppTypography.labelSmall.copyWith(color: AppColors.textSecondary)),
-            const SizedBox(height: 8),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: WatermarkPosition.values.map((pos) {
-                  final isSelected = _position == pos;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: ChoiceChip(
-                      label: Text(pos.label),
-                      selected: isSelected,
-                      onSelected: (_) => setState(() => _position = pos),
-                      selectedColor: AppColors.primary,
-                      backgroundColor: AppColors.surfaceElevated,
-                      labelStyle: TextStyle(
-                        color: isSelected ? Colors.white : AppColors.textSecondary,
-                        fontSize: 11,
-                      ),
+    return SafeArea(
+      top: false,
+      bottom: true,
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 12,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    'Watermark & Branding',
+                    style: AppTypography.titleMedium.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.bold,
                     ),
-                  );
-                }).toList(),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Switch(
+                  value: _isEnabled,
+                  activeTrackColor: AppColors.primary,
+                  activeThumbColor: Colors.white,
+                  inactiveTrackColor: const Color(0xFFCBD5E1),
+                  inactiveThumbColor: Colors.white,
+                  trackOutlineColor: WidgetStateProperty.resolveWith((states) =>
+                    states.contains(WidgetState.selected) ? Colors.transparent : const Color(0xFF94A3B8),
+                  ),
+                  onChanged: (val) => setState(() => _isEnabled = val),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            if (_isEnabled) ...[
+              // Text Input
+              TextField(
+                controller: _textController,
+                style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: 'Enter brand watermark text...',
+                  hintStyle: const TextStyle(color: AppColors.textSecondary),
+                  filled: true,
+                  fillColor: AppColors.surfaceElevated,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppColors.primary),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppColors.surfaceBorder),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Position Selectors
+              Text('POSITION', style: AppTypography.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: WatermarkPosition.values.map((pos) {
+                    final isSelected = _position == pos;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: ChoiceChip(
+                        label: Text(pos.label),
+                        selected: isSelected,
+                        onSelected: (_) => setState(() => _position = pos),
+                        selectedColor: AppColors.primary,
+                        backgroundColor: AppColors.surfaceElevated,
+                        labelStyle: TextStyle(
+                          color: isSelected ? Colors.white : AppColors.textPrimary,
+                          fontSize: 11,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Opacity Slider
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('OPACITY', style: AppTypography.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
+                  Text('${(_opacity * 100).round()}%', style: AppTypography.labelSmall.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              Slider(
+                value: _opacity.clamp(0.2, 1.0),
+                min: 0.2,
+                max: 1.0,
+                activeColor: AppColors.primary,
+                onChanged: (val) => setState(() => _opacity = val),
+              ),
+
+              // Scale Slider
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('SCALE', style: AppTypography.labelSmall.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
+                  Text('${(_scale * 100).round()}%', style: AppTypography.labelSmall.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              Slider(
+                value: _scale.clamp(0.5, 2.0),
+                min: 0.5,
+                max: 2.0,
+                activeColor: AppColors.primary,
+                onChanged: (val) => setState(() => _scale = val),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // Save Action
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.check, color: Colors.white),
+                label: Text(
+                  _isEnabled ? 'Save Watermark' : 'Disable Watermark',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: _apply,
               ),
             ),
-            const SizedBox(height: 16),
-
-            // Opacity Slider
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('OPACITY', style: AppTypography.labelSmall.copyWith(color: AppColors.textSecondary)),
-                Text('${(_opacity * 100).round()}%', style: AppTypography.labelSmall),
-              ],
-            ),
-            Slider(
-              value: _opacity.clamp(0.2, 1.0),
-              min: 0.2,
-              max: 1.0,
-              activeColor: AppColors.primaryLight,
-              onChanged: (val) => setState(() => _opacity = val),
-            ),
-
-            // Scale Slider
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('SCALE', style: AppTypography.labelSmall.copyWith(color: AppColors.textSecondary)),
-                Text('${(_scale * 100).round()}%', style: AppTypography.labelSmall),
-              ],
-            ),
-            Slider(
-              value: _scale.clamp(0.5, 2.0),
-              min: 0.5,
-              max: 2.0,
-              activeColor: AppColors.primaryLight,
-              onChanged: (val) => setState(() => _scale = val),
-            ),
-            const SizedBox(height: 16),
           ],
-
-          // Save Action
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              icon: const Icon(Icons.check),
-              label: Text(_isEnabled ? 'Save Watermark' : 'Disable Watermark'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              onPressed: _apply,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

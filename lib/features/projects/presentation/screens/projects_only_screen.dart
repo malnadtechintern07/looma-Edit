@@ -8,6 +8,8 @@ import '../../../../core/utils/id_generator.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../cloud_sync/presentation/providers/cloud_sync_provider.dart';
 import '../../../editor/domain/entities/video_clip_entity.dart';
+import '../../../media_picker/domain/entities/media_item_entity.dart';
+import '../../../media_picker/domain/services/device_media_service.dart';
 import '../../../media_picker/domain/services/recent_media_service.dart';
 import '../../../media_picker/presentation/widgets/media_picker_modal.dart';
 import '../../domain/entities/aspect_ratio_type.dart';
@@ -26,6 +28,7 @@ class ProjectsOnlyScreen extends ConsumerStatefulWidget {
 
 class _ProjectsOnlyScreenState extends ConsumerState<ProjectsOnlyScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final DeviceMediaService _mediaService = DeviceMediaService();
 
   @override
   void initState() {
@@ -46,56 +49,71 @@ class _ProjectsOnlyScreenState extends ConsumerState<ProjectsOnlyScreen> {
     super.dispose();
   }
 
-  void _openDirectMediaPicker() {
+  Future<void> _createVideoProjectAndNavigate(List<MediaItemEntity> pickedList) async {
+    if (pickedList.isEmpty || !mounted) return;
+
+    await RecentMediaService().addRecentMedia(pickedList);
+    int offsetMs = 0;
+    final List<VideoClipEntity> clips = [];
+
+    for (final m in pickedList) {
+      final dur = m.durationMs > 0 ? m.durationMs : 4000;
+      clips.add(
+        VideoClipEntity(
+          id: IdGenerator.generate(),
+          mediaPath: m.path,
+          name: m.name,
+          sourceDurationMs: dur,
+          timelineStartMs: offsetMs,
+          timelineEndMs: offsetMs + dur,
+          trimStartMs: 0,
+          trimEndMs: dur,
+        ),
+      );
+      offsetMs += dur;
+    }
+
+    final projectTitle = pickedList.first.name.split('.').first;
+    final notifier = ref.read(projectsNotifierProvider.notifier);
+    final project = await notifier.createProject(
+      title: projectTitle,
+      aspectRatio: AspectRatioType.ratio9_16,
+      fps: 30,
+      initialClips: clips,
+    );
+
+    if (mounted) {
+      await context.push(RoutePaths.editorPath(project.id));
+      if (mounted) {
+        ref.read(projectsNotifierProvider.notifier).loadProjects();
+      }
+    }
+  }
+
+  void _openRecentMediaModal() {
     Navigator.of(context).push(
       MaterialPageRoute(
         fullscreenDialog: true,
         builder: (ctx) => MediaPickerModal(
           title: 'Select media',
           actionLabel: 'Add',
-          onMediaSelected: (selectedMedia) async {
-            if (selectedMedia.isEmpty || !mounted) return;
-
-            RecentMediaService().addRecentMedia(selectedMedia);
-            int offsetMs = 0;
-            final List<VideoClipEntity> clips = [];
-
-            for (final m in selectedMedia) {
-              final dur = m.durationMs > 0 ? m.durationMs : 4000;
-              clips.add(
-                VideoClipEntity(
-                  id: IdGenerator.generate(),
-                  mediaPath: m.path,
-                  name: m.name,
-                  sourceDurationMs: dur,
-                  timelineStartMs: offsetMs,
-                  timelineEndMs: offsetMs + dur,
-                  trimStartMs: 0,
-                  trimEndMs: dur,
-                ),
-              );
-              offsetMs += dur;
-            }
-
-            final projectTitle = selectedMedia.first.name.split('.').first;
-            final notifier = ref.read(projectsNotifierProvider.notifier);
-            final project = await notifier.createProject(
-              title: projectTitle,
-              aspectRatio: AspectRatioType.ratio9_16,
-              fps: 30,
-              initialClips: clips,
-            );
-
-            if (mounted) {
-              await context.push(RoutePaths.editorPath(project.id));
-              if (mounted) {
-                ref.read(projectsNotifierProvider.notifier).loadProjects();
-              }
-            }
-          },
+          onMediaSelected: (selectedMedia) => _createVideoProjectAndNavigate(selectedMedia),
         ),
       ),
     );
+  }
+
+  Future<void> _openDirectMediaPicker() async {
+    // Open system gallery directly first, matching how photo edit works
+    final picked = await _mediaService.pickVideosFromDevice();
+    if (!mounted) return;
+
+    if (picked.isNotEmpty) {
+      await _createVideoProjectAndNavigate(picked);
+    } else {
+      // Fallback: If gallery cancelled/dismissed, open recent media modal
+      _openRecentMediaModal();
+    }
   }
 
   @override

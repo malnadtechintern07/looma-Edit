@@ -9,6 +9,11 @@ class PhotoTextOverlayEntity {
   final double positionY;
   final double scale;
   final double rotation;
+  final String textAlign; // 'left', 'center', 'right'
+  final double letterSpacing; // -2.0 to 10.0
+  final double lineHeight; // 0.8 to 2.5
+  final double opacity; // 0.0 to 1.0
+  final int? backgroundColorHex;
 
   const PhotoTextOverlayEntity({
     required this.id,
@@ -21,6 +26,11 @@ class PhotoTextOverlayEntity {
     this.positionY = 100.0,
     this.scale = 1.0,
     this.rotation = 0.0,
+    this.textAlign = 'center',
+    this.letterSpacing = 0.0,
+    this.lineHeight = 1.2,
+    this.opacity = 1.0,
+    this.backgroundColorHex,
   });
 
   PhotoTextOverlayEntity copyWith({
@@ -34,6 +44,12 @@ class PhotoTextOverlayEntity {
     double? positionY,
     double? scale,
     double? rotation,
+    String? textAlign,
+    double? letterSpacing,
+    double? lineHeight,
+    double? opacity,
+    int? backgroundColorHex,
+    bool clearBackground = false,
   }) {
     return PhotoTextOverlayEntity(
       id: id ?? this.id,
@@ -46,6 +62,11 @@ class PhotoTextOverlayEntity {
       positionY: positionY ?? this.positionY,
       scale: scale ?? this.scale,
       rotation: rotation ?? this.rotation,
+      textAlign: textAlign ?? this.textAlign,
+      letterSpacing: letterSpacing ?? this.letterSpacing,
+      lineHeight: lineHeight ?? this.lineHeight,
+      opacity: opacity ?? this.opacity,
+      backgroundColorHex: clearBackground ? null : (backgroundColorHex ?? this.backgroundColorHex),
     );
   }
 
@@ -61,6 +82,11 @@ class PhotoTextOverlayEntity {
       'positionY': positionY,
       'scale': scale,
       'rotation': rotation,
+      'textAlign': textAlign,
+      'letterSpacing': letterSpacing,
+      'lineHeight': lineHeight,
+      'opacity': opacity,
+      'backgroundColorHex': backgroundColorHex,
     };
   }
 
@@ -76,6 +102,11 @@ class PhotoTextOverlayEntity {
       positionY: (json['positionY'] as num?)?.toDouble() ?? 100.0,
       scale: (json['scale'] as num?)?.toDouble() ?? 1.0,
       rotation: (json['rotation'] as num?)?.toDouble() ?? 0.0,
+      textAlign: json['textAlign'] as String? ?? 'center',
+      letterSpacing: (json['letterSpacing'] as num?)?.toDouble() ?? 0.0,
+      lineHeight: (json['lineHeight'] as num?)?.toDouble() ?? 1.2,
+      opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
+      backgroundColorHex: json['backgroundColorHex'] as int?,
     );
   }
 }

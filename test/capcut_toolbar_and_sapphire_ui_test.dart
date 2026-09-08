@@ -12,6 +12,7 @@ import 'package:looma/features/editor/presentation/widgets/canvas_preview.dart';
 import 'package:looma/features/media_picker/presentation/widgets/media_picker_modal.dart';
 import 'package:looma/features/projects/domain/entities/aspect_ratio_type.dart';
 import 'package:looma/features/projects/domain/entities/project_entity.dart';
+import 'package:flutter/services.dart';
 import 'package:looma/features/projects/domain/repositories/project_repository.dart';
 import 'package:looma/features/projects/domain/usecases/project_usecases.dart';
 import 'package:looma/features/projects/presentation/providers/projects_provider.dart';
@@ -22,6 +23,20 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/image_picker'),
+      (MethodCall methodCall) async {
+        return null;
+      },
+    );
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/image_picker_android'),
+      (MethodCall methodCall) async {
+        return null;
+      },
+    );
   });
 
   group('CapCut-Style Toolbar & Middle Options Tests (Image 1)', () {
@@ -189,6 +204,8 @@ void main() {
       final newVideoFinder = find.text('New video');
       expect(newVideoFinder, findsOneWidget);
       await tester.tap(newVideoFinder);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       await tester.pumpAndSettle();
 
       // 2. Directly opens MediaPickerModal matching Image 1
@@ -295,4 +312,7 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<UserEntity?> restoreSession() async => null;
+
+  @override
+  Future<void> syncLocalAccountsToCloud() async {}
 }

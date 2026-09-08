@@ -1076,7 +1076,10 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
             errorBuilder: (_, _, _) => _buildFallbackThumbnail(item),
           );
         } else {
-          final file = File(item.thumbnailPath!);
+          final cleanThumb = item.thumbnailPath!.startsWith('file://')
+              ? item.thumbnailPath!.substring(7)
+              : item.thumbnailPath!;
+          final file = File(cleanThumb);
           if (file.existsSync() && file.lengthSync() > 0) {
             return Image.file(
               file,
@@ -1086,7 +1089,18 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
           }
         }
       }
-      return _buildFallbackThumbnail(item);
+      // Display real video frame preview for device video or asset video
+      if (item.path.startsWith('assets/')) {
+        return _AssetVideoThumbnail(
+          assetPath: item.path,
+          fallback: _buildFallbackThumbnail(item),
+        );
+      } else {
+        return _DeviceVideoThumbnail(
+          filePath: item.path,
+          fallback: _buildFallbackThumbnail(item),
+        );
+      }
     } else {
       if (item.path.startsWith('assets/')) {
         return Image.asset(
@@ -1095,7 +1109,8 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
           errorBuilder: (_, _, _) => _buildFallbackThumbnail(item),
         );
       } else {
-        final file = File(item.path);
+        final cleanPhoto = item.path.startsWith('file://') ? item.path.substring(7) : item.path;
+        final file = File(cleanPhoto);
         if (file.existsSync() && file.lengthSync() > 0) {
           return Image.file(
             file,
@@ -1158,8 +1173,13 @@ class _DeviceVideoThumbnail extends StatefulWidget {
 }
 
 class _DeviceVideoThumbnailState extends State<_DeviceVideoThumbnail> {
+  static int _activeDecoders = 0;
+  static const int _maxConcurrentDecoders = 3;
+
   VideoPlayerController? _controller;
   bool _initialized = false;
+  bool _hasError = false;
+  bool _countedActive = false;
 
   @override
   void initState() {
@@ -1169,37 +1189,83 @@ class _DeviceVideoThumbnailState extends State<_DeviceVideoThumbnail> {
 
   Future<void> _initThumbnail() async {
     try {
-      final file = File(widget.filePath);
-      if (!file.existsSync()) return;
-      final controller = VideoPlayerController.file(file);
+      final path = widget.filePath;
+      final cleanPath = path.startsWith('file://') ? path.substring(7) : path;
+
+      // Throttle concurrent decoders so Android MediaCodec hardware limit is never exceeded
+      if (_activeDecoders >= _maxConcurrentDecoders) {
+        await Future.delayed(const Duration(milliseconds: 250));
+        if (!mounted) return;
+        if (_activeDecoders >= _maxConcurrentDecoders) {
+          if (mounted) setState(() => _hasError = true);
+          return;
+        }
+      }
+
+      VideoPlayerController controller;
+      if (path.startsWith('assets/')) {
+        controller = VideoPlayerController.asset(path);
+      } else if (path.startsWith('content://') || path.startsWith('http://') || path.startsWith('https://')) {
+        controller = VideoPlayerController.networkUrl(Uri.parse(path));
+      } else if (File(cleanPath).existsSync()) {
+        controller = VideoPlayerController.file(File(cleanPath));
+      } else {
+        if (mounted) setState(() => _hasError = true);
+        return;
+      }
+
+      _activeDecoders++;
+      _countedActive = true;
+
       await controller.initialize();
+      await controller.setVolume(0);
+      await controller.seekTo(Duration.zero);
+      await controller.pause();
       if (mounted) {
         setState(() {
           _controller = controller;
           _initialized = true;
         });
       } else {
+        if (_countedActive) {
+          _activeDecoders = (_activeDecoders - 1).clamp(0, 999);
+          _countedActive = false;
+        }
         await controller.dispose();
       }
-    } catch (_) {}
+    } catch (_) {
+      if (_countedActive) {
+        _activeDecoders = (_activeDecoders - 1).clamp(0, 999);
+        _countedActive = false;
+      }
+      if (mounted) {
+        setState(() => _hasError = true);
+      }
+    }
   }
 
   @override
   void dispose() {
+    if (_countedActive) {
+      _activeDecoders = (_activeDecoders - 1).clamp(0, 999);
+      _countedActive = false;
+    }
     _controller?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_initialized && _controller != null) {
-      return FittedBox(
-        fit: BoxFit.cover,
-        clipBehavior: Clip.hardEdge,
-        child: SizedBox(
-          width: _controller!.value.size.width,
-          height: _controller!.value.size.height,
-          child: VideoPlayer(_controller!),
+    if (_initialized && _controller != null && !_hasError) {
+      return SizedBox.expand(
+        child: FittedBox(
+          fit: BoxFit.cover,
+          clipBehavior: Clip.hardEdge,
+          child: SizedBox(
+            width: _controller!.value.size.width > 0 ? _controller!.value.size.width : 160,
+            height: _controller!.value.size.height > 0 ? _controller!.value.size.height : 90,
+            child: VideoPlayer(_controller!),
+          ),
         ),
       );
     }
@@ -1221,6 +1287,7 @@ class _AssetVideoThumbnail extends StatefulWidget {
 class _AssetVideoThumbnailState extends State<_AssetVideoThumbnail> {
   VideoPlayerController? _controller;
   bool _initialized = false;
+  bool _hasError = false;
 
   @override
   void initState() {
@@ -1232,6 +1299,9 @@ class _AssetVideoThumbnailState extends State<_AssetVideoThumbnail> {
     try {
       final controller = VideoPlayerController.asset(widget.assetPath);
       await controller.initialize();
+      await controller.setVolume(0);
+      await controller.seekTo(Duration.zero);
+      await controller.pause();
       if (mounted) {
         setState(() {
           _controller = controller;
@@ -1240,7 +1310,11 @@ class _AssetVideoThumbnailState extends State<_AssetVideoThumbnail> {
       } else {
         await controller.dispose();
       }
-    } catch (_) {}
+    } catch (_) {
+      if (mounted) {
+        setState(() => _hasError = true);
+      }
+    }
   }
 
   @override
@@ -1251,14 +1325,16 @@ class _AssetVideoThumbnailState extends State<_AssetVideoThumbnail> {
 
   @override
   Widget build(BuildContext context) {
-    if (_initialized && _controller != null) {
-      return FittedBox(
-        fit: BoxFit.cover,
-        clipBehavior: Clip.hardEdge,
-        child: SizedBox(
-          width: _controller!.value.size.width,
-          height: _controller!.value.size.height,
-          child: VideoPlayer(_controller!),
+    if (_initialized && _controller != null && !_hasError) {
+      return SizedBox.expand(
+        child: FittedBox(
+          fit: BoxFit.cover,
+          clipBehavior: Clip.hardEdge,
+          child: SizedBox(
+            width: _controller!.value.size.width > 0 ? _controller!.value.size.width : 160,
+            height: _controller!.value.size.height > 0 ? _controller!.value.size.height : 90,
+            child: VideoPlayer(_controller!),
+          ),
         ),
       );
     }
@@ -1286,6 +1362,7 @@ class _MediaPreviewModalDialogState extends State<_MediaPreviewModalDialog> {
   VideoPlayerController? _videoController;
   bool _isPlaying = false;
   bool _isInitialized = false;
+  bool _hasError = false;
 
   @override
   void initState() {
@@ -1298,12 +1375,16 @@ class _MediaPreviewModalDialogState extends State<_MediaPreviewModalDialog> {
   Future<void> _initVideo() async {
     try {
       final path = widget.item.path;
+      final cleanPath = path.startsWith('file://') ? path.substring(7) : path;
       VideoPlayerController controller;
       if (path.startsWith('assets/')) {
         controller = VideoPlayerController.asset(path);
-      } else if (File(path).existsSync()) {
-        controller = VideoPlayerController.file(File(path));
+      } else if (path.startsWith('content://') || path.startsWith('http://') || path.startsWith('https://')) {
+        controller = VideoPlayerController.networkUrl(Uri.parse(path));
+      } else if (File(cleanPath).existsSync()) {
+        controller = VideoPlayerController.file(File(cleanPath));
       } else {
+        if (mounted) setState(() => _hasError = true);
         return;
       }
 
@@ -1321,6 +1402,9 @@ class _MediaPreviewModalDialogState extends State<_MediaPreviewModalDialog> {
       }
     } catch (e) {
       debugPrint('Media preview init error: $e');
+      if (mounted) {
+        setState(() => _hasError = true);
+      }
     }
   }
 
@@ -1393,7 +1477,9 @@ class _MediaPreviewModalDialogState extends State<_MediaPreviewModalDialog> {
                               children: [
                                 Center(
                                   child: AspectRatio(
-                                    aspectRatio: _videoController!.value.aspectRatio,
+                                    aspectRatio: _videoController!.value.aspectRatio > 0
+                                        ? _videoController!.value.aspectRatio
+                                        : (16 / 9),
                                     child: VideoPlayer(_videoController!),
                                   ),
                                 ),
@@ -1409,13 +1495,24 @@ class _MediaPreviewModalDialogState extends State<_MediaPreviewModalDialog> {
                               ],
                             ),
                           )
-                        : const Center(
-                            child: CircularProgressIndicator(color: Color(0xFF00C2CB)),
-                          ))
+                        : (_hasError
+                            ? const Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.videocam_off, color: Colors.white38, size: 36),
+                                    SizedBox(height: 6),
+                                    Text('Preview unavailable', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                                  ],
+                                ),
+                              )
+                            : const Center(
+                                child: CircularProgressIndicator(color: Color(0xFF00C2CB)),
+                              )))
                     : (widget.item.path.startsWith('assets/')
                         ? Image.asset(widget.item.path, fit: BoxFit.contain)
-                        : (File(widget.item.path).existsSync()
-                            ? Image.file(File(widget.item.path), fit: BoxFit.contain)
+                        : (File(widget.item.path.startsWith('file://') ? widget.item.path.substring(7) : widget.item.path).existsSync()
+                            ? Image.file(File(widget.item.path.startsWith('file://') ? widget.item.path.substring(7) : widget.item.path), fit: BoxFit.contain)
                             : const Center(child: Icon(Icons.photo, color: Colors.white30, size: 48)))),
               ),
             ),

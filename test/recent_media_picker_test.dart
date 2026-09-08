@@ -239,5 +239,48 @@ void main() {
       // Verify "Device Gallery (Open Directly)" is present in the album modal
       expect(find.text('Device Gallery (Open Directly)'), findsOneWidget);
     });
+
+    testWidgets('Video tile renders video preview thumbnail with duration badge and preview button', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MediaPickerModal(
+              onMediaSelected: (_) {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Find first video tile
+      final firstVideoTile = find.byKey(const ValueKey('media_tile_assets/branding/demo_vid1.mp4'));
+      expect(firstVideoTile, findsOneWidget);
+
+      // Verify duration badge is present on video tile (00:04 for demo_vid1)
+      expect(find.descendant(of: firstVideoTile, matching: find.text('00:04')), findsOneWidget);
+
+      // Verify preview eye button is present on video tile
+      expect(find.descendant(of: firstVideoTile, matching: find.byIcon(Icons.remove_red_eye_outlined)), findsOneWidget);
+
+      // Tap eye preview icon to open the full interactive preview dialog
+      final eyeButton = find.descendant(of: firstVideoTile, matching: find.byIcon(Icons.remove_red_eye_outlined));
+      await tester.tap(eyeButton);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // Verify preview dialog opened showing title and select action
+      expect(find.text('Lake Horizon Scene'), findsOneWidget);
+      expect(find.text('Select Media'), findsOneWidget);
+
+      // Dismiss preview dialog
+      final closeButton = find.byIcon(Icons.close);
+      expect(closeButton, findsWidgets);
+      await tester.tap(closeButton.last);
+      await tester.pumpAndSettle();
+    });
   });
 }

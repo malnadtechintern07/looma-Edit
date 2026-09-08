@@ -254,7 +254,8 @@ class RecentMediaService {
                   bool exists = true;
                   if (!mediaPath.startsWith('assets/')) {
                     try {
-                      exists = File(mediaPath).existsSync();
+                      final clean = mediaPath.startsWith('file://') ? mediaPath.substring(7) : mediaPath;
+                      exists = File(clean).existsSync();
                     } catch (_) {
                       exists = false;
                     }
@@ -264,7 +265,8 @@ class RecentMediaService {
                     DateTime modified = DateTime.now();
                     try {
                       if (!mediaPath.startsWith('assets/')) {
-                        modified = File(mediaPath).statSync().modified;
+                        final clean = mediaPath.startsWith('file://') ? mediaPath.substring(7) : mediaPath;
+                        modified = File(clean).statSync().modified;
                       }
                     } catch (_) {}
 

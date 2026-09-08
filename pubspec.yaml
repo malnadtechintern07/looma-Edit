@@ -46,6 +46,7 @@ dependencies:
   video_player: ^2.14.0
   shared_preferences: ^2.5.5
   crypto: ^3.0.7
+  image: ^4.5.4
 
 dev_dependencies:
   flutter_test:

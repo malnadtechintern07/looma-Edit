@@ -23,11 +23,13 @@ class MainActivity : FlutterActivity() {
             when (call.method) {
                 "scanFile" -> {
                     val path = call.argument<String>("path")
+                    val mimeType = call.argument<String>("mimeType")
                     if (path != null) {
+                        val mimeTypes = if (mimeType != null) arrayOf(mimeType) else null
                         MediaScannerConnection.scanFile(
                             context,
                             arrayOf(path),
-                            arrayOf("video/mp4")
+                            mimeTypes
                         ) { scannedPath, uri ->
                             runOnUiThread {
                                 result.success(uri?.toString() ?: scannedPath)
@@ -35,6 +37,75 @@ class MainActivity : FlutterActivity() {
                         }
                     } else {
                         result.error("INVALID_PATH", "Path cannot be null", null)
+                    }
+                }
+                "saveImageToGallery" -> {
+                    val sourcePath = call.argument<String>("sourcePath")
+                    val fileName = call.argument<String>("fileName") ?: "looma_${System.currentTimeMillis()}.png"
+                    val isPng = fileName.lowercase().endsWith(".png")
+                    val mimeType = if (isPng) "image/png" else "image/jpeg"
+                    if (sourcePath == null) {
+                        result.error("INVALID_PATH", "Source path cannot be null", null)
+                        return@setMethodCallHandler
+                    }
+
+                    try {
+                        val sourceFile = File(sourcePath)
+                        if (!sourceFile.exists()) {
+                            result.error("FILE_NOT_FOUND", "Source file does not exist: $sourcePath", null)
+                            return@setMethodCallHandler
+                        }
+
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            val values = ContentValues().apply {
+                                put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
+                                put(MediaStore.Images.Media.MIME_TYPE, mimeType)
+                                put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Looma")
+                                put(MediaStore.Images.Media.IS_PENDING, 1)
+                            }
+
+                            val resolver = contentResolver
+                            val collection = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+                            val itemUri = resolver.insert(collection, values)
+
+                            if (itemUri != null) {
+                                resolver.openOutputStream(itemUri)?.use { out ->
+                                    FileInputStream(sourceFile).use { input ->
+                                        input.copyTo(out)
+                                    }
+                                }
+                                values.clear()
+                                values.put(MediaStore.Images.Media.IS_PENDING, 0)
+                                resolver.update(itemUri, values, null, null)
+
+                                MediaScannerConnection.scanFile(
+                                    context,
+                                    arrayOf(sourceFile.absolutePath),
+                                    arrayOf(mimeType),
+                                    null
+                                )
+                                result.success(itemUri.toString())
+                            } else {
+                                result.error("INSERT_FAILED", "Failed to create MediaStore image entry", null)
+                            }
+                        } else {
+                            val picturesDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "Looma")
+                            if (!picturesDir.exists()) picturesDir.mkdirs()
+                            val destFile = File(picturesDir, fileName)
+                            sourceFile.copyTo(destFile, overwrite = true)
+
+                            MediaScannerConnection.scanFile(
+                                context,
+                                arrayOf(destFile.absolutePath),
+                                arrayOf(mimeType)
+                            ) { _, uri ->
+                                runOnUiThread {
+                                    result.success(destFile.absolutePath)
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        result.error("SAVE_FAILED", e.message, null)
                     }
                 }
                 "saveVideoToGallery" -> {

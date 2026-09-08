@@ -40,6 +40,11 @@ class PhotoProjectEntity {
   final double gapSpacing;
   final double borderRadius;
   final int backgroundColorHex;
+  final String backgroundType; // 'color', 'gradient', 'blur', 'transparent'
+  final List<int> gradientColorsHex;
+  final double blurBackgroundRadius;
+  final int? exportWidth;
+  final int? exportHeight;
   final WatermarkEntity watermark;
   final List<PhotoTextOverlayEntity> textOverlays;
   final List<PhotoStickerOverlayEntity> stickerOverlays;
@@ -56,6 +61,11 @@ class PhotoProjectEntity {
     this.gapSpacing = 4.0,
     this.borderRadius = 8.0,
     this.backgroundColorHex = 0xFF0F172A,
+    this.backgroundType = 'color',
+    this.gradientColorsHex = const [0xFF0F172A, 0xFF1E293B],
+    this.blurBackgroundRadius = 20.0,
+    this.exportWidth,
+    this.exportHeight,
     this.watermark = const WatermarkEntity(),
     this.textOverlays = const [],
     this.stickerOverlays = const [],
@@ -73,6 +83,11 @@ class PhotoProjectEntity {
     double? gapSpacing,
     double? borderRadius,
     int? backgroundColorHex,
+    String? backgroundType,
+    List<int>? gradientColorsHex,
+    double? blurBackgroundRadius,
+    int? exportWidth,
+    int? exportHeight,
     WatermarkEntity? watermark,
     List<PhotoTextOverlayEntity>? textOverlays,
     List<PhotoStickerOverlayEntity>? stickerOverlays,
@@ -89,6 +104,11 @@ class PhotoProjectEntity {
       gapSpacing: gapSpacing ?? this.gapSpacing,
       borderRadius: borderRadius ?? this.borderRadius,
       backgroundColorHex: backgroundColorHex ?? this.backgroundColorHex,
+      backgroundType: backgroundType ?? this.backgroundType,
+      gradientColorsHex: gradientColorsHex ?? this.gradientColorsHex,
+      blurBackgroundRadius: blurBackgroundRadius ?? this.blurBackgroundRadius,
+      exportWidth: exportWidth ?? this.exportWidth,
+      exportHeight: exportHeight ?? this.exportHeight,
       watermark: watermark ?? this.watermark,
       textOverlays: textOverlays ?? this.textOverlays,
       stickerOverlays: stickerOverlays ?? this.stickerOverlays,
@@ -108,6 +128,11 @@ class PhotoProjectEntity {
       'gapSpacing': gapSpacing,
       'borderRadius': borderRadius,
       'backgroundColorHex': backgroundColorHex,
+      'backgroundType': backgroundType,
+      'gradientColorsHex': gradientColorsHex,
+      'blurBackgroundRadius': blurBackgroundRadius,
+      'exportWidth': exportWidth,
+      'exportHeight': exportHeight,
       'watermark': watermark.toJson(),
       'textOverlays': textOverlays.map((t) => t.toJson()).toList(),
       'stickerOverlays': stickerOverlays.map((s) => s.toJson()).toList(),
@@ -118,6 +143,11 @@ class PhotoProjectEntity {
   }
 
   factory PhotoProjectEntity.fromJson(Map<String, dynamic> json) {
+    final rawGradients = json['gradientColorsHex'] as List<dynamic>?;
+    final parsedGradients = rawGradients != null
+        ? rawGradients.map((c) => (c as num).toInt()).toList()
+        : const [0xFF0F172A, 0xFF1E293B];
+
     return PhotoProjectEntity(
       id: json['id'] as String,
       title: json['title'] as String,
@@ -136,6 +166,11 @@ class PhotoProjectEntity {
       gapSpacing: (json['gapSpacing'] as num?)?.toDouble() ?? 4.0,
       borderRadius: (json['borderRadius'] as num?)?.toDouble() ?? 8.0,
       backgroundColorHex: json['backgroundColorHex'] as int? ?? 0xFF0F172A,
+      backgroundType: json['backgroundType'] as String? ?? 'color',
+      gradientColorsHex: parsedGradients,
+      blurBackgroundRadius: (json['blurBackgroundRadius'] as num?)?.toDouble() ?? 20.0,
+      exportWidth: json['exportWidth'] as int?,
+      exportHeight: json['exportHeight'] as int?,
       watermark: json['watermark'] != null
           ? WatermarkEntity.fromJson(json['watermark'] as Map<String, dynamic>)
           : const WatermarkEntity(),

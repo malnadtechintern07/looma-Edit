@@ -5,6 +5,7 @@ import '../../../../app/router/route_paths.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/services/app_actions_service.dart';
+import '../../../../core/widgets/permissions_primer_dialog.dart';
 import '../../../../core/widgets/rate_us_dialog.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../projects/presentation/providers/projects_provider.dart';
@@ -265,6 +266,23 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
+                            if (isAuthenticated) ...[
+                              const SizedBox(height: 4),
+                              Row(
+                                children: const [
+                                  Icon(Icons.cloud_done_rounded, color: Color(0xFF10B981), size: 13),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Cloud Synced • Log in on any device',
+                                    style: TextStyle(
+                                      color: Color(0xFF10B981),
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                             const SizedBox(height: 6),
                             Text(
                               _bio,
@@ -547,6 +565,20 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
                             ),
                             actions: [
                               TextButton(
+                                onPressed: () {
+                                  Navigator.of(ctx).pop();
+                                  context.push(RoutePaths.privacyPolicy);
+                                },
+                                child: const Text('Privacy Policy', style: TextStyle(color: AppColors.primary)),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(ctx).pop();
+                                  context.push(RoutePaths.helpCenter);
+                                },
+                                child: const Text('Help Center', style: TextStyle(color: AppColors.primary)),
+                              ),
+                              TextButton(
                                 onPressed: () => Navigator.of(ctx).pop(),
                                 child: const Text('Close'),
                               ),
@@ -561,7 +593,7 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
             ),
             const SizedBox(height: 24),
 
-            // 4. Community & Support (Rate Us & Share App)
+            // 4. Community & Support
             Text(
               'Community & Support',
               style: AppTypography.titleMedium.copyWith(
@@ -583,6 +615,52 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
                 ),
                 child: Column(
                   children: [
+                    ListTile(
+                      key: const Key('me_help_center_tile'),
+                      leading: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.menu_book_rounded, color: AppColors.primary, size: 20),
+                      ),
+                      title: const Text(
+                        'Help Center & User Guides',
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF111827)),
+                      ),
+                      subtitle: const Text(
+                        'Master multi-track timeline, cinematic FX & export tutorials',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                      ),
+                      trailing: const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
+                      onTap: () => context.push(RoutePaths.helpCenter),
+                    ),
+                    const Divider(height: 1, color: Color(0xFFF3F4F6)),
+                    ListTile(
+                      key: const Key('me_contact_support_tile'),
+                      leading: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.support_agent_rounded, color: Color(0xFF10B981), size: 20),
+                      ),
+                      title: const Text(
+                        'Contact Us & Support',
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF111827)),
+                      ),
+                      subtitle: const Text(
+                        'Direct email support, ticket submission & diagnostics',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                      ),
+                      trailing: const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
+                      onTap: () => context.push(RoutePaths.contactSupport),
+                    ),
+                    const Divider(height: 1, color: Color(0xFFF3F4F6)),
                     ListTile(
                       key: const Key('me_rate_us_tile'),
                       leading: Container(
@@ -612,10 +690,10 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
                         width: 36,
                         height: 36,
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.12),
+                          color: const Color(0xFF00C2CB).withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.share_rounded, color: AppColors.primary, size: 20),
+                        child: const Icon(Icons.share_rounded, color: Color(0xFF00C2CB), size: 20),
                       ),
                       title: const Text(
                         'Share App',
@@ -627,6 +705,79 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
                       ),
                       trailing: const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
                       onTap: _handleShareApp,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // 5. Legal & Privacy
+            Text(
+              'Legal & Privacy',
+              style: AppTypography.titleMedium.copyWith(
+                color: const Color(0xFF111827),
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            Material(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              clipBehavior: Clip.antiAlias,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFECEEF5)),
+                ),
+                child: Column(
+                  children: [
+                    ListTile(
+                      key: const Key('me_privacy_policy_tile'),
+                      leading: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF084298).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.privacy_tip_outlined, color: Color(0xFF084298), size: 20),
+                      ),
+                      title: const Text(
+                        'Privacy Policy',
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF111827)),
+                      ),
+                      subtitle: const Text(
+                        'Offline-first media processing, zero ad tracking & data rights',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                      ),
+                      trailing: const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
+                      onTap: () => context.push(RoutePaths.privacyPolicy),
+                    ),
+                    const Divider(height: 1, color: Color(0xFFF3F4F6)),
+                    ListTile(
+                      key: const Key('me_app_permissions_tile'),
+                      leading: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF00C2CB).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.security_rounded, color: Color(0xFF00C2CB), size: 20),
+                      ),
+                      title: const Text(
+                        'App Permissions',
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF111827)),
+                      ),
+                      subtitle: const Text(
+                        'Review Camera, Photos, Microphone, Notifications & Location access',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                      ),
+                      trailing: const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
+                      onTap: () => showPermissionsPrimerDialog(context),
                     ),
                   ],
                 ),

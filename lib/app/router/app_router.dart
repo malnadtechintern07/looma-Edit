@@ -6,6 +6,9 @@ import '../../features/cloud_sync/presentation/screens/cloud_sync_screen.dart';
 import '../../features/editor/presentation/screens/editor_screen.dart';
 import '../../features/photo_editor/presentation/screens/photo_editor_screen.dart';
 import '../../features/export/presentation/screens/export_screen.dart';
+import '../../features/profile/presentation/screens/contact_support_screen.dart';
+import '../../features/profile/presentation/screens/help_center_screen.dart';
+import '../../features/profile/presentation/screens/privacy_policy_screen.dart';
 import '../../features/projects/presentation/screens/home_screen.dart';
 import 'route_names.dart';
 import 'route_paths.dart';
@@ -62,6 +65,21 @@ final GoRouter appRouter = GoRouter(
         final projectId = state.pathParameters['projectId'] ?? '';
         return ExportScreen(projectId: projectId);
       },
+    ),
+    GoRoute(
+      path: RoutePaths.privacyPolicy,
+      name: RouteNames.privacyPolicy,
+      builder: (context, state) => const PrivacyPolicyScreen(),
+    ),
+    GoRoute(
+      path: RoutePaths.helpCenter,
+      name: RouteNames.helpCenter,
+      builder: (context, state) => const HelpCenterScreen(),
+    ),
+    GoRoute(
+      path: RoutePaths.contactSupport,
+      name: RouteNames.contactSupport,
+      builder: (context, state) => const ContactSupportScreen(),
     ),
   ],
 );

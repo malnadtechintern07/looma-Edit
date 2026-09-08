@@ -3,12 +3,17 @@ import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/services/password_hasher.dart';
 import '../datasources/auth_local_datasource.dart';
+import '../datasources/auth_remote_datasource.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthLocalDataSource localDataSource;
+  final AuthRemoteDataSource? remoteDataSource;
   UserEntity? _currentUser;
 
-  AuthRepositoryImpl({required this.localDataSource});
+  AuthRepositoryImpl({
+    required this.localDataSource,
+    this.remoteDataSource,
+  });
 
   @override
   Future<UserEntity?> getCurrentUser() async {
@@ -32,9 +37,18 @@ class AuthRepositoryImpl implements AuthRepository {
       throw Exception('Please enter your name or creator handle');
     }
 
-    final existing = await localDataSource.getAccountByEmail(cleanEmail);
-    if (existing != null) {
+    final existingLocal = await localDataSource.getAccountByEmail(cleanEmail);
+    if (existingLocal != null) {
       throw Exception('An account with this email already exists. Please log in.');
+    }
+
+    // Check cloud storage to prevent duplicate registrations across devices
+    if (remoteDataSource != null) {
+      final existingRemote = await remoteDataSource!.getAccountByEmail(cleanEmail);
+      if (existingRemote != null) {
+        await localDataSource.saveAccount(existingRemote);
+        throw Exception('An account with this email already exists. Please log in.');
+      }
     }
 
     final salt = PasswordHasher.generateSalt();
@@ -57,7 +71,14 @@ class AuthRepositoryImpl implements AuthRepository {
       'salt': salt,
     };
 
+    // Save locally on this device
     await localDataSource.saveAccount(accountMap);
+
+    // Sync to cloud storage so user can log in on all devices
+    if (remoteDataSource != null) {
+      await remoteDataSource!.saveAccount(accountMap);
+    }
+
     await localDataSource.saveSession(userId, true);
     _currentUser = newUser;
     return newUser;
@@ -72,19 +93,50 @@ class AuthRepositoryImpl implements AuthRepository {
     final cleanEmail = email.trim().toLowerCase();
     _validateEmail(cleanEmail);
 
-    final account = await localDataSource.getAccountByEmail(cleanEmail);
+    // 1. Look up account in local storage first
+    var account = await localDataSource.getAccountByEmail(cleanEmail);
+
+    // 2. If not found on this device, fetch from cloud remote
+    if (account == null && remoteDataSource != null) {
+      account = await remoteDataSource!.getAccountByEmail(cleanEmail);
+      if (account != null) {
+        // Sync down to local storage on this device
+        await localDataSource.saveAccount(account);
+      }
+    }
+
     if (account == null) {
       throw Exception('No account found with this email. Please register.');
     }
 
-    final salt = account['salt'] as String?;
-    final expectedHash = account['passwordHash'] as String?;
+    var salt = account['salt'] as String?;
+    var expectedHash = account['passwordHash'] as String?;
 
     if (salt == null || expectedHash == null) {
       throw Exception('Corrupted account credentials. Please reset password.');
     }
 
-    final isValid = PasswordHasher.verifyPassword(password, salt, expectedHash);
+    var isValid = PasswordHasher.verifyPassword(password, salt, expectedHash);
+
+    // 3. If password failed locally, check cloud remote in case password was changed from another device
+    if (!isValid && remoteDataSource != null) {
+      final remoteAccount = await remoteDataSource!.getAccountByEmail(cleanEmail);
+      if (remoteAccount != null) {
+        final remoteSalt = remoteAccount['salt'] as String?;
+        final remoteHash = remoteAccount['passwordHash'] as String?;
+        if (remoteSalt != null && remoteHash != null) {
+          final remoteValid = PasswordHasher.verifyPassword(password, remoteSalt, remoteHash);
+          if (remoteValid) {
+            account = remoteAccount;
+            salt = remoteSalt;
+            expectedHash = remoteHash;
+            isValid = true;
+            await localDataSource.updateAccount(account);
+          }
+        }
+      }
+    }
+
     if (!isValid) {
       throw Exception('Incorrect password. Please try again or reset your password.');
     }
@@ -93,11 +145,16 @@ class AuthRepositoryImpl implements AuthRepository {
       lastLoginAt: DateTime.now(),
     );
 
-    // Update last login
-    await localDataSource.updateAccount({
+    final updatedAccount = {
       ...account,
       'lastLoginAt': user.lastLoginAt.toIso8601String(),
-    });
+    };
+
+    // Update last login locally and in the cloud
+    await localDataSource.updateAccount(updatedAccount);
+    if (remoteDataSource != null) {
+      await remoteDataSource!.updateAccount(updatedAccount);
+    }
 
     await localDataSource.saveSession(user.id, rememberMe);
     _currentUser = user;
@@ -113,7 +170,11 @@ class AuthRepositoryImpl implements AuthRepository {
     _validateEmail(cleanEmail);
     _validatePassword(newPassword);
 
-    final account = await localDataSource.getAccountByEmail(cleanEmail);
+    var account = await localDataSource.getAccountByEmail(cleanEmail);
+    if (account == null && remoteDataSource != null) {
+      account = await remoteDataSource!.getAccountByEmail(cleanEmail);
+    }
+
     if (account == null) {
       throw Exception('No account found with this email address.');
     }
@@ -128,6 +189,9 @@ class AuthRepositoryImpl implements AuthRepository {
     };
 
     await localDataSource.updateAccount(updated);
+    if (remoteDataSource != null) {
+      await remoteDataSource!.updateAccount(updated);
+    }
   }
 
   @override
@@ -144,7 +208,14 @@ class AuthRepositoryImpl implements AuthRepository {
       return null;
     }
 
-    final account = await localDataSource.getAccountById(activeId);
+    var account = await localDataSource.getAccountById(activeId);
+    if (account == null && remoteDataSource != null) {
+      account = await remoteDataSource!.getAccountById(activeId);
+      if (account != null) {
+        await localDataSource.saveAccount(account);
+      }
+    }
+
     if (account == null) {
       _currentUser = null;
       await localDataSource.clearSession();
@@ -153,6 +224,20 @@ class AuthRepositoryImpl implements AuthRepository {
 
     _currentUser = UserEntity.fromJson(account);
     return _currentUser;
+  }
+
+  @override
+  Future<void> syncLocalAccountsToCloud() async {
+    if (remoteDataSource == null) return;
+    try {
+      final localAccounts = await localDataSource.getAccounts();
+      for (final acc in localAccounts) {
+        final email = (acc['email'] as String? ?? '').trim().toLowerCase();
+        if (email.isNotEmpty) {
+          await remoteDataSource!.saveAccount(acc);
+        }
+      }
+    } catch (_) {}
   }
 
   void _validateEmail(String email) {

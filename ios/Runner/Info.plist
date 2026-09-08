@@ -66,5 +66,15 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Looma requires camera access to record videos and capture photos directly into your project timeline.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Looma requires microphone access to record voiceovers and audio commentary for your video projects.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Looma requires photo library access to import video clips, images, and audio tracks for editing.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Looma requires permission to save rendered and exported videos directly to your photo library.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Looma uses location data to optionally tag video and photo project media with location metadata.</string>
 </dict>
 </plist>

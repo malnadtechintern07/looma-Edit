@@ -308,7 +308,36 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         height: 1.3,
                       ),
                     ),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 10),
+
+                    // Multi-Device Cloud Sync Pill
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.devices_rounded, color: Color(0xFF10B981), size: 14),
+                          SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              'One account • Log in on all your devices',
+                              style: TextStyle(
+                                color: Color(0xFF10B981),
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
 
                     // 2. Tab Segment Switch (Sign In / Register)
                     Container(
