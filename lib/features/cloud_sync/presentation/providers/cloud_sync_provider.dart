@@ -5,6 +5,8 @@ import 'package:looma/features/auth/presentation/providers/auth_provider.dart';
 import 'package:looma/features/projects/presentation/providers/projects_provider.dart';
 import '../../data/datasources/bunny_cloud_storage_datasource.dart';
 import '../../data/datasources/cloud_storage_datasource.dart';
+import '../../data/datasources/composite_cloud_storage_datasource.dart';
+import '../../data/datasources/global_cloud_storage_datasource.dart';
 import '../../data/repositories/cloud_sync_repository_impl.dart';
 import '../../domain/entities/bunny_storage_config.dart';
 import '../../domain/entities/cloud_backup_record.dart';
@@ -43,12 +45,22 @@ final bunnyStorageConfigProvider =
   return BunnyStorageConfigNotifier(storage);
 });
 
+final globalCloudStorageDataSourceProvider = Provider<GlobalCloudStorageDataSource>((ref) {
+  final storage = ref.watch(localStorageServiceProvider);
+  return GlobalCloudStorageDataSource(localStorageService: storage);
+});
+
 final cloudStorageDataSourceProvider = Provider<CloudStorageDataSource>((ref) {
   final storage = ref.watch(localStorageServiceProvider);
   final bunnyConfig = ref.watch(bunnyStorageConfigProvider);
-  return BunnyCloudStorageDataSource(
+  final globalDs = ref.watch(globalCloudStorageDataSourceProvider);
+  final bunnyDs = BunnyCloudStorageDataSource(
     localStorageService: storage,
     config: bunnyConfig,
+  );
+  return CompositeCloudStorageDataSource(
+    primary: globalDs,
+    secondary: bunnyDs,
   );
 });
 
@@ -198,4 +210,32 @@ class SyncNotifier extends StateNotifier<SyncState> {
 
 final syncNotifierProvider = StateNotifierProvider<SyncNotifier, SyncState>((ref) {
   return SyncNotifier(ref.watch(cloudSyncRepositoryProvider), ref);
+});
+
+/// Automatically tracks project changes and backs them up to the cloud if authenticated.
+final projectAutoSyncProvider = Provider<void>((ref) {
+  final repo = ref.watch(cloudSyncRepositoryProvider);
+  final auth = ref.watch(authNotifierProvider);
+
+  ref.listen<ProjectsState>(projectsNotifierProvider, (previous, next) {
+    if (!auth.isAuthenticated || auth.user == null) return;
+    if (ref.read(syncNotifierProvider).isSyncing) return;
+    if (previous == null) return;
+
+    // Detect created or updated projects
+    for (final project in next.projects) {
+      final prevMatch = previous.projects.where((p) => p.id == project.id).firstOrNull;
+      if (prevMatch == null || project.updatedAt.isAfter(prevMatch.updatedAt)) {
+        repo.backupProject(project.id).catchError((_) {});
+      }
+    }
+
+    // Detect deleted projects
+    for (final prevProj in previous.projects) {
+      final stillExists = next.projects.any((p) => p.id == prevProj.id);
+      if (!stillExists) {
+        repo.deleteCloudProject(prevProj.id).catchError((_) {});
+      }
+    }
+  });
 });

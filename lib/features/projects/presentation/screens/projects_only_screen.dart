@@ -118,6 +118,13 @@ class _ProjectsOnlyScreenState extends ConsumerState<ProjectsOnlyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(projectAutoSyncProvider);
+    ref.listen<AuthState>(authNotifierProvider, (prev, next) {
+      if ((prev == null || !prev.isAuthenticated) && next.isAuthenticated) {
+        ref.read(syncNotifierProvider.notifier).triggerSync();
+      }
+    });
+
     final state = ref.watch(projectsNotifierProvider);
     final allProjects = state.projects;
     final selectedRatio = ref.watch(projectFilterRatioProvider);

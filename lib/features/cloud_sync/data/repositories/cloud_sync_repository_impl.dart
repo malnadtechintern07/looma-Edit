@@ -111,10 +111,16 @@ class CloudSyncRepositoryImpl implements CloudSyncRepository {
     final cloudProjects = await cloudDataSource.getCloudProjects(user.id);
     final cloudProjectMap = {for (final p in cloudProjects) p.id: p};
 
-    // 3. Upload local projects to cloud if newer or unsynced
+    // 3. Reconcile local and cloud projects
     for (final local in localProjects) {
       final cloud = cloudProjectMap[local.id];
-      if (cloud == null || local.updatedAt.isAfter(cloud.updatedAt)) {
+      if (cloud != null && cloud.updatedAt.isAfter(local.updatedAt)) {
+        // Cloud is newer: update local copy with cloud data
+        await projectLocalDataSource.saveProject(
+          cloud.copyWith(syncStatus: SyncStatusType.synced),
+        );
+      } else if (cloud == null || local.updatedAt.isAfter(cloud.updatedAt)) {
+        // Local is newer or not yet in cloud: upload to cloud
         try {
           await cloudDataSource.backupProject(user.id, local);
           await projectLocalDataSource.saveProject(
@@ -126,7 +132,7 @@ class CloudSyncRepositoryImpl implements CloudSyncRepository {
           );
         }
       } else {
-        // Keep synced status
+        // Both are in sync
         if (local.syncStatus != SyncStatusType.synced) {
           await projectLocalDataSource.saveProject(
             local.copyWith(syncStatus: SyncStatusType.synced),

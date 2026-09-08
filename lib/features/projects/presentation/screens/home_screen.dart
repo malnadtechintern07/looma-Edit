@@ -161,6 +161,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(projectAutoSyncProvider);
+    ref.listen<AuthState>(authNotifierProvider, (prev, next) {
+      if ((prev == null || !prev.isAuthenticated) && next.isAuthenticated) {
+        ref.read(syncNotifierProvider.notifier).triggerSync();
+      }
+    });
+
     return Scaffold(
       body: IndexedStack(
         index: _currentNavIndex,

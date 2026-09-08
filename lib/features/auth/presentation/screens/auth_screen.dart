@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
+import 'package:looma/features/cloud_sync/presentation/providers/cloud_sync_provider.dart';
 import '../providers/auth_provider.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
@@ -66,6 +67,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
 
     if (success && mounted) {
+      // Synchronize projects from cloud so projects saved on any other device show up immediately
+      try {
+        await ref.read(syncNotifierProvider.notifier).triggerSync();
+      } catch (_) {}
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: AppColors.success,

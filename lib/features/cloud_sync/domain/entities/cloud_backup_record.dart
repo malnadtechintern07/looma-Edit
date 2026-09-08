@@ -16,6 +16,25 @@ class CloudBackupRecord {
     required this.cloudChecksum,
   });
 
+  Map<String, dynamic> toJson() => {
+        'projectId': projectId,
+        'projectTitle': projectTitle,
+        'fileSizeBytes': fileSizeBytes,
+        'backedUpAt': backedUpAt.toIso8601String(),
+        'cloudChecksum': cloudChecksum,
+      };
+
+  factory CloudBackupRecord.fromJson(Map<String, dynamic> json) => CloudBackupRecord(
+        projectId: json['projectId'] as String? ?? '',
+        projectTitle: json['projectTitle'] as String? ?? '',
+        fileSizeBytes: (json['fileSizeBytes'] as num?)?.toInt() ?? 0,
+        backedUpAt: json['backedUpAt'] != null
+            ? DateTime.tryParse(json['backedUpAt'] as String) ?? DateTime.now()
+            : DateTime.now(),
+        cloudChecksum: json['cloudChecksum'] as String? ?? '',
+      );
+
   String get formattedSize =>
       '${(fileSizeBytes / (1024 * 1024)).toStringAsFixed(1)} MB';
 }
+
