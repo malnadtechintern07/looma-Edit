@@ -3,18 +3,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:looma/core/services/gallery_saver_service.dart';
-import 'package:looma/features/photo_editor/data/datasources/photo_exporter_service.dart';
-import 'package:looma/features/photo_editor/domain/entities/photo_frame_entity.dart';
-import 'package:looma/features/photo_editor/domain/entities/photo_project_entity.dart';
-import 'package:looma/features/photo_editor/domain/entities/photo_sticker_overlay_entity.dart';
-import 'package:looma/features/photo_editor/domain/entities/photo_text_overlay_entity.dart';
-import 'package:looma/features/photo_editor/presentation/providers/photo_editor_controller.dart';
-import 'package:looma/features/photo_editor/presentation/widgets/photo_adjust_sheet.dart';
-import 'package:looma/features/photo_editor/presentation/widgets/photo_canvas.dart';
-import 'package:looma/features/photo_editor/presentation/widgets/photo_crop_sheet.dart';
-import 'package:looma/features/photo_editor/presentation/widgets/photo_layout_sheet.dart';
-import 'package:looma/features/photo_editor/presentation/widgets/photo_text_sheet.dart';
+import 'package:procut/core/services/gallery_saver_service.dart';
+import 'package:procut/features/photo_editor/data/datasources/photo_exporter_service.dart';
+import 'package:procut/features/photo_editor/domain/entities/photo_frame_entity.dart';
+import 'package:procut/features/photo_editor/domain/entities/photo_project_entity.dart';
+import 'package:procut/features/photo_editor/domain/entities/photo_sticker_overlay_entity.dart';
+import 'package:procut/features/photo_editor/domain/entities/photo_text_overlay_entity.dart';
+import 'package:procut/features/photo_editor/presentation/providers/photo_editor_controller.dart';
+import 'package:procut/features/photo_editor/presentation/widgets/photo_adjust_sheet.dart';
+import 'package:procut/features/photo_editor/presentation/widgets/photo_canvas.dart';
+import 'package:procut/features/photo_editor/presentation/widgets/photo_crop_sheet.dart';
+import 'package:procut/features/photo_editor/presentation/widgets/photo_layout_sheet.dart';
+import 'package:procut/features/photo_editor/presentation/widgets/photo_text_sheet.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -45,7 +45,7 @@ void main() {
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      const MethodChannel('looma/gallery_saver'),
+      const MethodChannel('procut/gallery_saver'),
       (MethodCall methodCall) async {
         channelCalls.add(methodCall);
         if (methodCall.method == 'saveImageToGallery') {
@@ -379,8 +379,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Typography Preview'), findsNothing); // Has default text LOOMA CREATIVE
-      expect(find.text('LOOMA CREATIVE'), findsWidgets);
+      expect(find.text('Typography Preview'), findsNothing); // Has default text PROCUT CREATIVE
+      expect(find.text('PROCUT CREATIVE'), findsWidgets);
       expect(tester.takeException(), isNull);
     });
   });

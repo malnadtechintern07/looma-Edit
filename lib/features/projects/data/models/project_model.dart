@@ -1,24 +1,24 @@
-import 'package:looma/core/utils/id_generator.dart';
-import 'package:looma/features/audio/domain/entities/audio_clip_entity.dart';
-import 'package:looma/features/editor/domain/entities/animation_clip_entity.dart';
-import 'package:looma/features/editor/domain/entities/chroma_key_config_entity.dart';
-import 'package:looma/features/editor/domain/entities/clip_animation_type.dart';
-import 'package:looma/features/editor/domain/entities/crop_rect_entity.dart';
-import 'package:looma/features/editor/domain/entities/keyframe_entity.dart';
-import 'package:looma/features/editor/domain/entities/mask_config_entity.dart';
-import 'package:looma/features/editor/domain/entities/speed_curve_type.dart';
-import 'package:looma/features/editor/domain/entities/subtitle_entity.dart';
-import 'package:looma/features/editor/domain/entities/transition_type.dart';
-import 'package:looma/features/editor/domain/entities/video_clip_entity.dart';
-import 'package:looma/features/filters_effects/domain/entities/effect_clip_entity.dart';
-import 'package:looma/features/filters_effects/domain/entities/filter_preset.dart';
-import 'package:looma/features/filters_effects/domain/entities/video_effect_type.dart';
-import 'package:looma/features/projects/domain/entities/aspect_ratio_type.dart';
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
-import 'package:looma/features/projects/domain/entities/sync_status_type.dart';
-import 'package:looma/features/text_stickers/domain/entities/overlay_animation_type.dart';
-import 'package:looma/features/text_stickers/domain/entities/sticker_overlay_entity.dart';
-import 'package:looma/features/text_stickers/domain/entities/text_overlay_entity.dart';
+import 'package:procut/core/utils/id_generator.dart';
+import 'package:procut/features/audio/domain/entities/audio_clip_entity.dart';
+import 'package:procut/features/editor/domain/entities/animation_clip_entity.dart';
+import 'package:procut/features/editor/domain/entities/chroma_key_config_entity.dart';
+import 'package:procut/features/editor/domain/entities/clip_animation_type.dart';
+import 'package:procut/features/editor/domain/entities/crop_rect_entity.dart';
+import 'package:procut/features/editor/domain/entities/keyframe_entity.dart';
+import 'package:procut/features/editor/domain/entities/mask_config_entity.dart';
+import 'package:procut/features/editor/domain/entities/speed_curve_type.dart';
+import 'package:procut/features/editor/domain/entities/subtitle_entity.dart';
+import 'package:procut/features/editor/domain/entities/transition_type.dart';
+import 'package:procut/features/editor/domain/entities/video_clip_entity.dart';
+import 'package:procut/features/filters_effects/domain/entities/effect_clip_entity.dart';
+import 'package:procut/features/filters_effects/domain/entities/filter_preset.dart';
+import 'package:procut/features/filters_effects/domain/entities/video_effect_type.dart';
+import 'package:procut/features/projects/domain/entities/aspect_ratio_type.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/features/projects/domain/entities/sync_status_type.dart';
+import 'package:procut/features/text_stickers/domain/entities/overlay_animation_type.dart';
+import 'package:procut/features/text_stickers/domain/entities/sticker_overlay_entity.dart';
+import 'package:procut/features/text_stickers/domain/entities/text_overlay_entity.dart';
 
 /// Data Model with serialization/deserialization for ProjectEntity
 class ProjectModel {
@@ -36,6 +36,8 @@ class ProjectModel {
       'durationMs': entity.durationMs,
       'syncStatus': entity.syncStatus.name,
       'lastPlayheadPositionMs': entity.lastPlayheadPositionMs,
+      if (entity.userId != null) 'userId': entity.userId,
+      if (entity.userEmail != null) 'userEmail': entity.userEmail,
       'videoClips': entity.videoClips.map((v) => _videoClipToJson(v)).toList(),
       'audioClips': entity.audioClips.map((a) => _audioClipToJson(a)).toList(),
       'textOverlays': entity.textOverlays.map((t) => _textOverlayToJson(t)).toList(),
@@ -64,6 +66,8 @@ class ProjectModel {
       durationMs: json['durationMs'] as int? ?? 15000,
       syncStatus: SyncStatusType.fromString(json['syncStatus'] as String?),
       lastPlayheadPositionMs: (json['lastPlayheadPositionMs'] as num?)?.toInt() ?? 0,
+      userId: json['userId'] as String?,
+      userEmail: json['userEmail'] as String?,
       videoClips: (json['videoClips'] as List<dynamic>?)
               ?.map((v) => _videoClipFromJson(v as Map<String, dynamic>))
               .toList() ??

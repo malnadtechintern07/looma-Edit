@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:looma/core/storage/local_storage_service.dart';
-import 'package:looma/features/projects/data/datasources/project_local_datasource.dart';
-import 'package:looma/features/projects/data/repositories/project_repository_impl.dart';
-import 'package:looma/features/projects/domain/entities/aspect_ratio_type.dart';
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/core/storage/local_storage_service.dart';
+import 'package:procut/features/projects/data/datasources/project_local_datasource.dart';
+import 'package:procut/features/projects/data/repositories/project_repository_impl.dart';
+import 'package:procut/features/projects/domain/entities/aspect_ratio_type.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -25,10 +25,9 @@ void main() {
   });
 
   group('ProjectRepository Tests', () {
-    test('Initial getProjects returns default seeded sample projects', () async {
+    test('Initial getProjects returns clean empty list before projects are created', () async {
       final projects = await repository.getProjects();
-      expect(projects.isNotEmpty, isTrue);
-      expect(projects.any((p) => p.id == 'sample-tokyo-vlog'), isTrue);
+      expect(projects.isEmpty, isTrue);
     });
 
     test('Save and retrieve a new project', () async {
@@ -49,15 +48,32 @@ void main() {
     });
 
     test('Duplicate project creates copy with unique ID', () async {
-      final duplicated = await repository.duplicateProject('sample-tokyo-vlog');
-      expect(duplicated.id, isNot('sample-tokyo-vlog'));
+      final project = ProjectEntity(
+        id: 'test-proj-dup',
+        title: 'My Vlog',
+        aspectRatio: AspectRatioType.ratio9_16,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      await repository.saveProject(project);
+
+      final duplicated = await repository.duplicateProject('test-proj-dup');
+      expect(duplicated.id, isNot('test-proj-dup'));
       expect(duplicated.title, contains('(Copy)'));
-      expect(duplicated.videoClips.length, 2);
     });
 
     test('Delete project removes it from catalog', () async {
-      await repository.deleteProject('sample-tokyo-vlog');
-      final deleted = await repository.getProjectById('sample-tokyo-vlog');
+      final project = ProjectEntity(
+        id: 'test-proj-del',
+        title: 'To Delete',
+        aspectRatio: AspectRatioType.ratio9_16,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      await repository.saveProject(project);
+
+      await repository.deleteProject('test-proj-del');
+      final deleted = await repository.getProjectById('test-proj-del');
       expect(deleted, isNull);
     });
   });

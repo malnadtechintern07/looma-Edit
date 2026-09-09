@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:looma/app/app.dart';
-import 'package:looma/core/storage/local_storage_service.dart';
-import 'package:looma/core/storage/storage_providers.dart';
-import 'package:looma/features/auth/domain/entities/user_entity.dart';
-import 'package:looma/features/auth/domain/repositories/auth_repository.dart';
-import 'package:looma/features/auth/presentation/providers/auth_provider.dart';
-import 'package:looma/features/editor/presentation/providers/editor_controller.dart';
-import 'package:looma/features/editor/presentation/widgets/canvas_preview.dart';
-import 'package:looma/features/media_picker/presentation/widgets/media_picker_modal.dart';
-import 'package:looma/features/projects/domain/entities/aspect_ratio_type.dart';
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/app/app.dart';
+import 'package:procut/core/storage/local_storage_service.dart';
+import 'package:procut/core/storage/storage_providers.dart';
+import 'package:procut/features/auth/domain/entities/user_entity.dart';
+import 'package:procut/features/auth/domain/repositories/auth_repository.dart';
+import 'package:procut/features/auth/presentation/providers/auth_provider.dart';
+import 'package:procut/features/editor/presentation/providers/editor_controller.dart';
+import 'package:procut/features/editor/presentation/widgets/canvas_preview.dart';
+import 'package:procut/features/media_picker/presentation/widgets/media_picker_modal.dart';
+import 'package:procut/features/projects/domain/entities/aspect_ratio_type.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
 import 'package:flutter/services.dart';
-import 'package:looma/features/projects/domain/repositories/project_repository.dart';
-import 'package:looma/features/projects/domain/usecases/project_usecases.dart';
-import 'package:looma/features/projects/presentation/providers/projects_provider.dart';
+import 'package:procut/features/projects/domain/repositories/project_repository.dart';
+import 'package:procut/features/projects/domain/usecases/project_usecases.dart';
+import 'package:procut/features/projects/presentation/providers/projects_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -118,7 +118,7 @@ void main() {
   });
 
   group('Royal Sapphire UI & Home Dashboard Tests (Image 2)', () {
-    testWidgets('Home page renders LOOMA Ultra frosted badge, search button, and New video / Edit photo cards',
+    testWidgets('Home page renders PROCUT Ultra frosted badge, search button, and New video / Edit photo cards',
         (WidgetTester tester) async {
       final storage = LocalStorageService();
 
@@ -133,7 +133,7 @@ void main() {
               ),
             ),
           ],
-          child: const LoomaApp(),
+          child: const ProCutApp(),
         ),
       );
 
@@ -142,7 +142,7 @@ void main() {
       }
 
       // 1. Frosted Glass Ultra Badge in AppBar
-      expect(find.text('LOOMA'), findsOneWidget);
+      expect(find.text('PROCUT'), findsOneWidget);
       expect(find.text('Ultra'), findsOneWidget);
       expect(find.byIcon(Icons.auto_awesome), findsWidgets);
 
@@ -192,7 +192,7 @@ void main() {
               ),
             ),
           ],
-          child: const LoomaApp(),
+          child: const ProCutApp(),
         ),
       );
 
@@ -276,6 +276,9 @@ class _FakeProjectsRepository implements ProjectRepository {
 
   @override
   Future<void> deleteProject(String id) async {}
+
+  @override
+  Future<void> claimGuestProjects(String userId) async {}
 }
 
 class _FakeAuthNotifier extends AuthNotifier {

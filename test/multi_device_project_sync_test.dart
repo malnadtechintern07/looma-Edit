@@ -1,24 +1,24 @@
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:looma/core/storage/local_storage_service.dart';
-import 'package:looma/features/auth/data/datasources/auth_local_datasource.dart';
-import 'package:looma/features/auth/data/datasources/auth_remote_datasource.dart';
-import 'package:looma/features/auth/data/repositories/auth_repository_impl.dart';
-import 'package:looma/features/auth/domain/entities/user_entity.dart';
-import 'package:looma/features/cloud_sync/data/datasources/cloud_storage_datasource.dart';
-import 'package:looma/features/cloud_sync/data/datasources/composite_cloud_storage_datasource.dart';
-import 'package:looma/features/cloud_sync/data/datasources/global_cloud_storage_datasource.dart';
-import 'package:looma/features/cloud_sync/data/repositories/cloud_sync_repository_impl.dart';
-import 'package:looma/features/cloud_sync/domain/entities/cloud_backup_record.dart';
-import 'package:looma/features/editor/domain/entities/video_clip_entity.dart';
-import 'package:looma/features/photo_editor/domain/entities/photo_frame_entity.dart';
-import 'package:looma/features/photo_editor/domain/entities/photo_project_entity.dart';
-import 'package:looma/features/projects/data/datasources/project_local_datasource.dart';
-import 'package:looma/features/projects/data/models/project_model.dart';
-import 'package:looma/features/projects/domain/entities/aspect_ratio_type.dart';
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
-import 'package:looma/features/projects/domain/entities/sync_status_type.dart';
+import 'package:procut/core/storage/local_storage_service.dart';
+import 'package:procut/features/auth/data/datasources/auth_local_datasource.dart';
+import 'package:procut/features/auth/data/datasources/auth_remote_datasource.dart';
+import 'package:procut/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:procut/features/auth/domain/entities/user_entity.dart';
+import 'package:procut/features/cloud_sync/data/datasources/cloud_storage_datasource.dart';
+import 'package:procut/features/cloud_sync/data/datasources/composite_cloud_storage_datasource.dart';
+import 'package:procut/features/cloud_sync/data/datasources/global_cloud_storage_datasource.dart';
+import 'package:procut/features/cloud_sync/data/repositories/cloud_sync_repository_impl.dart';
+import 'package:procut/features/cloud_sync/domain/entities/cloud_backup_record.dart';
+import 'package:procut/features/editor/domain/entities/video_clip_entity.dart';
+import 'package:procut/features/photo_editor/domain/entities/photo_frame_entity.dart';
+import 'package:procut/features/photo_editor/domain/entities/photo_project_entity.dart';
+import 'package:procut/features/projects/data/datasources/project_local_datasource.dart';
+import 'package:procut/features/projects/data/models/project_model.dart';
+import 'package:procut/features/projects/domain/entities/aspect_ratio_type.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/features/projects/domain/entities/sync_status_type.dart';
 
 /// In-memory cloud simulation that models the global cloud registry shared between devices
 class _SimulatedSharedCloudStorageDataSource implements CloudStorageDataSource {
@@ -438,6 +438,100 @@ void main() {
       await globalDs.deleteCloudProject(userId, 'proj_offline_1');
       final afterDelete = await globalDs.getCloudProject(userId, 'proj_offline_1');
       expect(afterDelete, isNull);
+    });
+
+    test(
+        'User-based project storage guarantees isolation between users and claims guest projects',
+        () async {
+      final storage = LocalStorageService();
+      await storage.clearAll();
+
+      // 1. Guest creates a project before logging in
+      final guestDataSource = ProjectLocalDataSourceImpl(storageService: storage);
+      final guestProject = ProjectEntity(
+        id: 'proj_guest_001',
+        title: 'Guest Summer Memories',
+        aspectRatio: AspectRatioType.ratio9_16,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      await guestDataSource.saveProject(guestProject);
+
+      final guestList = await guestDataSource.getProjects();
+      expect(guestList.any((p) => p.id == 'proj_guest_001'), isTrue);
+
+      // 2. User A registers / logs in
+      final authLocal = AuthLocalDataSourceImpl(storageService: storage);
+      final authRepo = AuthRepositoryImpl(
+        localDataSource: authLocal,
+        remoteDataSource: sharedCloudAuth,
+      );
+      final userA = await authRepo.register(
+        email: 'creator_a@procut.app',
+        password: 'Password123!',
+        displayName: 'Creator A',
+      );
+
+      // Claim guest projects for User A
+      final userADataSource = ProjectLocalDataSourceImpl(
+        storageService: storage,
+        activeUserId: userA.id,
+      );
+      await userADataSource.claimGuestProjects(userA.id);
+
+      final userAProjects = await userADataSource.getProjects();
+      expect(userAProjects.any((p) => p.id == 'proj_guest_001'), isTrue);
+      expect(userAProjects.firstWhere((p) => p.id == 'proj_guest_001').userId, userA.id);
+
+      // User A creates another project
+      final projA2 = ProjectEntity(
+        id: 'proj_a_exclusive',
+        title: 'User A Exclusive Masterpiece',
+        aspectRatio: AspectRatioType.ratio16_9,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        userId: userA.id,
+      );
+      await userADataSource.saveProject(projA2);
+
+      // 3. User B registers / logs in
+      final userB = await authRepo.register(
+        email: 'creator_b@procut.app',
+        password: 'Password123!',
+        displayName: 'Creator B',
+      );
+
+      final userBDataSource = ProjectLocalDataSourceImpl(
+        storageService: storage,
+        activeUserId: userB.id,
+      );
+
+      // User B should NOT see User A's projects!
+      final userBProjects = await userBDataSource.getProjects();
+      expect(userBProjects.any((p) => p.id == 'proj_guest_001'), isFalse);
+      expect(userBProjects.any((p) => p.id == 'proj_a_exclusive'), isFalse);
+
+      // User B creates a project
+      final projB1 = ProjectEntity(
+        id: 'proj_b_reel',
+        title: 'User B Viral Reel',
+        aspectRatio: AspectRatioType.ratio9_16,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        userId: userB.id,
+      );
+      await userBDataSource.saveProject(projB1);
+
+      // User B sees only User B project
+      final userBUpdated = await userBDataSource.getProjects();
+      expect(userBUpdated.any((p) => p.id == 'proj_b_reel'), isTrue);
+      expect(userBUpdated.any((p) => p.id == 'proj_a_exclusive'), isFalse);
+
+      // User A still sees User A projects
+      final userARechecked = await userADataSource.getProjects();
+      expect(userARechecked.any((p) => p.id == 'proj_guest_001'), isTrue);
+      expect(userARechecked.any((p) => p.id == 'proj_a_exclusive'), isTrue);
+      expect(userARechecked.any((p) => p.id == 'proj_b_reel'), isFalse);
     });
   });
 }

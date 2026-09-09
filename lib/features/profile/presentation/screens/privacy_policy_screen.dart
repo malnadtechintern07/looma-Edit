@@ -4,11 +4,11 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
 
-/// Comprehensive Privacy Policy screen for Looma Video Editor
+/// Comprehensive Privacy Policy screen for ProCut Video Editor
 class PrivacyPolicyScreen extends StatelessWidget {
   const PrivacyPolicyScreen({super.key});
 
-  static const String privacyContactEmail = 'privacy@looma.video';
+  static const String privacyContactEmail = 'privacy@procut.video';
 
   @override
   Widget build(BuildContext context) {
@@ -89,7 +89,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Looma Privacy Commitment',
+                              'ProCut Privacy Commitment',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w900,
@@ -112,7 +112,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'Your media belongs to you. Looma is engineered with a strict offline-first architecture: your videos, voiceovers, photos, and edits are processed on-device and never uploaded to public clouds without your explicit direction.',
+                    'Your media belongs to you. ProCut is engineered with a strict offline-first architecture: your videos, voiceovers, photos, and edits are processed on-device and never uploaded to public clouds without your explicit direction.',
                     style: TextStyle(
                       color: Color(0xFFE0E7FF),
                       fontSize: 13,
@@ -140,7 +140,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               color: AppColors.primary,
               title: '1. Offline-First Processing & Media Storage',
               content:
-                  'All video trimming, timeline slicing, multi-track layering, filter rendering, and audio ducking take place strictly within your mobile device’s native hardware. Looma does not transmit your source video clips, photos, or voiceover recordings to our servers for processing.',
+                  'All video trimming, timeline slicing, multi-track layering, filter rendering, and audio ducking take place strictly within your mobile device’s native hardware. ProCut does not transmit your source video clips, photos, or voiceover recordings to our servers for processing.',
             ),
             const SizedBox(height: 14),
 
@@ -163,7 +163,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               color: const Color(0xFF10B981),
               title: '3. Optional Cloud Sync & Account Data',
               content:
-                  'If you register for a Looma Cloud account, we store your account email, hashed password, and project metadata securely. When you choose to back up a project, your project JSON draft is transmitted over TLS 1.3 encryption and stored in a private storage vault accessible only by your authenticated session.',
+                  'If you register for a ProCut Cloud account, we store your account email, hashed password, and project metadata securely. When you choose to back up a project, your project JSON draft is transmitted over TLS 1.3 encryption and stored in a private storage vault accessible only by your authenticated session.',
             ),
             const SizedBox(height: 14),
 
@@ -183,7 +183,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               color: const Color(0xFFEC4899),
               title: '5. Zero Advertising & Third-Party Selling',
               content:
-                  'Looma contains no advertising tracking SDKs, no behavioral trackers, and no third-party data brokers. We never sell, rent, or monetize your creative media, exported clips, email addresses, or personal information under any circumstance.',
+                  'ProCut contains no advertising tracking SDKs, no behavioral trackers, and no third-party data brokers. We never sell, rent, or monetize your creative media, exported clips, email addresses, or personal information under any circumstance.',
             ),
             const SizedBox(height: 14),
 
@@ -193,7 +193,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               color: const Color(0xFFEF4444),
               title: '6. User Rights & Complete Data Deletion',
               content:
-                  'You have the full right to delete your local projects, clear all cloud backups, or delete your Looma account entirely at any time. Deleting a cloud project immediately purges its files from our cloud storage vaults.',
+                  'You have the full right to delete your local projects, clear all cloud backups, or delete your ProCut account entirely at any time. Deleting a cloud project immediately purges its files from our cloud storage vaults.',
             ),
             const SizedBox(height: 14),
 

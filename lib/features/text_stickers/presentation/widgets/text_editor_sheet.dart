@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/font_helper.dart';
-import '../../../../core/widgets/looma_button.dart';
-import '../../../../core/widgets/looma_slider.dart';
+import '../../../../core/widgets/procut_button.dart';
+import '../../../../core/widgets/procut_slider.dart';
 import '../../../media_picker/domain/services/device_media_service.dart';
 import '../../domain/entities/overlay_animation_type.dart';
 import '../../domain/entities/text_overlay_entity.dart';
@@ -541,7 +541,7 @@ class _TextEditorSheetState extends State<TextEditorSheet>
             const SizedBox(height: 20),
 
             // 6. Save Action CTA Button
-            LoomaButton(
+            ProCutButton(
               label: widget.initialText != null
                   ? 'Update Overlay'
                   : 'Add to Timeline',
@@ -841,7 +841,7 @@ class _TextEditorSheetState extends State<TextEditorSheet>
         const SizedBox(height: 16),
 
         // Font Size Slider
-        LoomaSlider(
+        ProCutSlider(
           label: 'Font Size',
           value: _fontSize,
           min: 14,

@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
-import 'package:looma/core/storage/local_storage_service.dart';
-import 'package:looma/features/projects/data/models/project_model.dart';
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
-import 'package:looma/features/projects/domain/entities/sync_status_type.dart';
+import 'package:procut/core/storage/local_storage_service.dart';
+import 'package:procut/features/projects/data/models/project_model.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/features/projects/domain/entities/sync_status_type.dart';
 import '../../domain/entities/bunny_storage_config.dart';
 import '../../domain/entities/cloud_backup_record.dart';
 import 'bunny_storage_service.dart';
@@ -24,7 +24,7 @@ class BunnyCloudStorageDataSource implements CloudStorageDataSource {
   }) : bunnyService = bunnyStorageService ?? BunnyStorageService(config: config);
 
   // Bunny.net remote paths
-  String _userBunnyDir(String userId) => 'looma/users/$userId';
+  String _userBunnyDir(String userId) => 'procut/users/$userId';
   String _userProjectsBunnyDir(String userId) => '${_userBunnyDir(userId)}/projects';
   String _userProjectBunnyFile(String userId, String projectId) =>
       '${_userProjectsBunnyDir(userId)}/project_$projectId.json';

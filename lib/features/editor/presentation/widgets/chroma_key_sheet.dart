@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/widgets/looma_slider.dart';
+import '../../../../core/widgets/procut_slider.dart';
 import '../../domain/entities/chroma_key_config_entity.dart';
 
 class ChromaKeySheet extends StatefulWidget {
@@ -311,7 +311,7 @@ class _ChromaKeySheetState extends State<ChromaKeySheet> {
               const SizedBox(height: 14),
 
               // 1. Strength / Tolerance Slider (0-100)
-              LoomaSlider(
+              ProCutSlider(
                 key: const ValueKey('chroma_strength_slider'),
                 label: 'Strength / Tolerance',
                 icon: Icons.tune,
@@ -327,7 +327,7 @@ class _ChromaKeySheetState extends State<ChromaKeySheet> {
               const SizedBox(height: 10),
 
               // 2. Edge Softness / Feather Slider (0-100)
-              LoomaSlider(
+              ProCutSlider(
                 key: const ValueKey('chroma_feather_slider'),
                 label: 'Edge Softness / Feather',
                 icon: Icons.blur_on,
@@ -343,7 +343,7 @@ class _ChromaKeySheetState extends State<ChromaKeySheet> {
               const SizedBox(height: 10),
 
               // 3. Spill Suppression Slider (0-100)
-              LoomaSlider(
+              ProCutSlider(
                 key: const ValueKey('chroma_spill_slider'),
                 label: 'Spill Suppression',
                 icon: Icons.cleaning_services,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
-import '../../../../core/widgets/looma_slider.dart';
+import '../../../../core/widgets/procut_slider.dart';
 import '../../domain/entities/transition_type.dart';
 
 class TransitionPickerSheet extends StatefulWidget {
@@ -128,7 +128,7 @@ class _TransitionPickerSheetState extends State<TransitionPickerSheet> {
 
             // Transition Duration Slider
             if (_selectedTransition != TransitionType.none) ...[
-              LoomaSlider(
+              ProCutSlider(
                 label: 'Transition Duration',
                 icon: Icons.timer_outlined,
                 value: _durationSec,

@@ -3,12 +3,12 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:looma/core/constants/app_constants.dart';
-import 'package:looma/core/services/valid_mp4_generator.dart';
-import 'package:looma/features/export/domain/entities/export_config_entity.dart';
-import 'package:looma/features/export/domain/entities/render_progress_entity.dart';
-import 'package:looma/features/projects/domain/entities/aspect_ratio_type.dart';
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/core/constants/app_constants.dart';
+import 'package:procut/core/services/valid_mp4_generator.dart';
+import 'package:procut/features/export/domain/entities/export_config_entity.dart';
+import 'package:procut/features/export/domain/entities/render_progress_entity.dart';
+import 'package:procut/features/projects/domain/entities/aspect_ratio_type.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
 
 abstract class VideoRenderingEngine {
   Stream<RenderProgressEntity> executeRenderPipeline({
@@ -18,7 +18,7 @@ abstract class VideoRenderingEngine {
 }
 
 class VideoRenderingEngineImpl implements VideoRenderingEngine {
-  static const MethodChannel _composerChannel = MethodChannel('looma/video_composer');
+  static const MethodChannel _composerChannel = MethodChannel('procut/video_composer');
 
   @override
   Stream<RenderProgressEntity> executeRenderPipeline({
@@ -67,7 +67,7 @@ class VideoRenderingEngineImpl implements VideoRenderingEngine {
       renderHeight = ((renderHeight * 1.5) / 16).round() * 16;
     }
 
-    final outFileName = 'looma_${project.title.replaceAll(' ', '_').toLowerCase()}_${DateTime.now().millisecondsSinceEpoch}.mp4';
+    final outFileName = 'procut_${project.title.replaceAll(' ', '_').toLowerCase()}_${DateTime.now().millisecondsSinceEpoch}.mp4';
     String finalPath = '${AppConstants.exportDirectory}/$outFileName';
 
     File? realOutFile;

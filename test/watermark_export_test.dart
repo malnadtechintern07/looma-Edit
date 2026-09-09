@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:looma/core/widgets/looma_watermark.dart';
-import 'package:looma/features/editor/domain/entities/video_clip_entity.dart';
-import 'package:looma/features/export/domain/entities/export_config_entity.dart';
-import 'package:looma/features/export/presentation/screens/export_screen.dart';
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
-import 'package:looma/features/projects/domain/usecases/project_usecases.dart';
-import 'package:looma/features/projects/presentation/providers/projects_provider.dart';
+import 'package:procut/core/widgets/procut_watermark.dart';
+import 'package:procut/features/editor/domain/entities/video_clip_entity.dart';
+import 'package:procut/features/export/domain/entities/export_config_entity.dart';
+import 'package:procut/features/export/presentation/screens/export_screen.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/features/projects/domain/usecases/project_usecases.dart';
+import 'package:procut/features/projects/presentation/providers/projects_provider.dart';
 
 class FakeGetProjectByIdUseCase extends Fake implements GetProjectByIdUseCase {
   final ProjectEntity project;
@@ -20,7 +20,7 @@ class FakeGetProjectByIdUseCase extends Fake implements GetProjectByIdUseCase {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('Looma Watermark Feature Tests', () {
+  group('ProCut Watermark Feature Tests', () {
     test('ExportConfigEntity defaults includeWatermark to true', () {
       const config = ExportConfigEntity(projectId: 'test_project');
       expect(config.includeWatermark, isTrue);
@@ -30,16 +30,16 @@ void main() {
       expect(updated.projectId, 'test_project');
     });
 
-    testWidgets('LoomaWatermark renders logo icon and Looma text with subtle styling', (tester) async {
+    testWidgets('ProCutWatermark renders logo icon and ProCut text with subtle styling', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: LoomaWatermark(opacity: 0.65),
+            body: ProCutWatermark(opacity: 0.65),
           ),
         ),
       );
 
-      expect(find.text('Looma'), findsOneWidget);
+      expect(find.text('ProCut'), findsOneWidget);
       expect(find.text('✦'), findsOneWidget);
 
       final opacityFinder = find.byType(Opacity);
@@ -48,7 +48,7 @@ void main() {
       expect(opacityWidget.opacity, 0.65);
     });
 
-    testWidgets('ExportScreen shows Looma Watermark toggle enabled by default', (tester) async {
+    testWidgets('ExportScreen shows ProCut Watermark toggle enabled by default', (tester) async {
       final mockProject = ProjectEntity(
         id: 'proj_watermark_1',
         title: 'Watermark Test Video',
@@ -84,8 +84,8 @@ void main() {
       // Wait for project load
       await tester.pumpAndSettle();
 
-      // Find Looma Watermark section
-      expect(find.text('Looma Watermark'), findsOneWidget);
+      // Find ProCut Watermark section
+      expect(find.text('ProCut Watermark'), findsOneWidget);
       expect(find.text('Clean watermark in bottom-right corner'), findsOneWidget);
 
       // Verify switch is present and enabled by default

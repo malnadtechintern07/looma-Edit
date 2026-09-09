@@ -21,7 +21,7 @@ class WatermarkEntity {
 
   const WatermarkEntity({
     this.isEnabled = false,
-    this.text = 'LOOMA',
+    this.text = 'PROCUT',
     this.imagePath,
     this.position = WatermarkPosition.bottomRight,
     this.scale = 1.0,
@@ -68,7 +68,7 @@ class WatermarkEntity {
   factory WatermarkEntity.fromJson(Map<String, dynamic> json) {
     return WatermarkEntity(
       isEnabled: json['isEnabled'] as bool? ?? false,
-      text: json['text'] as String? ?? 'LOOMA',
+      text: json['text'] as String? ?? 'PROCUT',
       imagePath: json['imagePath'] as String?,
       position: WatermarkPosition.values.firstWhere(
         (p) => p.name == json['position'],

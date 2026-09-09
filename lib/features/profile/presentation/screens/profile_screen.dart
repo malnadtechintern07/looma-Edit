@@ -18,9 +18,9 @@ class ProfileMeScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
-  String _displayName = 'Looma Creator';
-  String _username = '@loomacreator';
-  String _bio = '🎬 Mobile Filmmaker & Content Creator ✨ Creating aesthetic reels with LOOMA PRO';
+  String _displayName = 'ProCut Creator';
+  String _username = '@procutcreator';
+  String _bio = '🎬 Mobile Filmmaker & Content Creator ✨ Creating aesthetic reels with PROCUT PRO';
   bool _autoSaveToGallery = true;
   bool _hardwareAcceleration = true;
   String _defaultResolution = '1080p (FHD)';
@@ -114,7 +114,7 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
     if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Looma download link copied to clipboard!'),
+          content: Text('ProCut download link copied to clipboard!'),
           duration: Duration(seconds: 2),
         ),
       );
@@ -128,7 +128,7 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
     final isAuthenticated = authState.isAuthenticated;
     final currentDisplayName = user != null
         ? (user.displayName.isNotEmpty ? user.displayName : user.email.split('@').first)
-        : 'Looma Creator (Guest)';
+        : 'ProCut Creator (Guest)';
     final currentHandle = user != null ? user.email : 'Not signed in';
 
     final projects = ref.watch(projectsNotifierProvider).projects;
@@ -521,7 +521,7 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
                     const Divider(height: 1, color: Color(0xFFF3F4F6)),
                     ListTile(
                       leading: const Icon(Icons.cloud_sync_outlined, color: Color(0xFF00C2CB)),
-                      title: const Text('Looma Cloud Backup', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                      title: const Text('ProCut Cloud Backup', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                       subtitle: const Text('Sync projects across devices', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
                       trailing: const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
                       onTap: () => context.push(RoutePaths.cloud),
@@ -532,7 +532,7 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
                         borderRadius: BorderRadius.circular(8),
                         child: Image.asset('assets/icon/app_icon.png', width: 28, height: 28),
                       ),
-                      title: const Text('About Looma Video Editor', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                      title: const Text('About ProCut Video Editor', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                       subtitle: const Text('Version 2.4.0 (Build 240) • Offline Pro Engine', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
                       onTap: () {
                         showDialog(
@@ -547,7 +547,7 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
                                 Image.asset('assets/icon/app_icon.png', width: 68, height: 68),
                                 const SizedBox(height: 12),
                                 const Text(
-                                  'LOOMA',
+                                  'PROCUT',
                                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1),
                                 ),
                                 const SizedBox(height: 4),
@@ -700,7 +700,7 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
                         style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF111827)),
                       ),
                       subtitle: const Text(
-                        'Share Looma via WhatsApp, Instagram, Messages & more',
+                        'Share ProCut via WhatsApp, Instagram, Messages & more',
                         style: TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
                       ),
                       trailing: const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
@@ -820,7 +820,7 @@ class _ProfileMeScreenState extends ConsumerState<ProfileMeScreen> {
                       ListTile(
                         key: const Key('me_account_status_list_tile'),
                         leading: const Icon(Icons.verified_user_outlined, color: Color(0xFF10B981)),
-                        title: const Text('Looma Cloud Account', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                        title: const Text('ProCut Cloud Account', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                         subtitle: Text('Signed in as ${user?.email}', style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
                         trailing: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),

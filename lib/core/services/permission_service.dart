@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum LoomaPermissionType {
+enum ProCutPermissionType {
   camera,
   photosAndVideos,
   microphone,
@@ -9,8 +9,11 @@ enum LoomaPermissionType {
   location,
 }
 
+/// Backward compatibility alias
+typedef LoomaPermissionType = ProCutPermissionType;
+
 class PermissionDetail {
-  final LoomaPermissionType type;
+  final ProCutPermissionType type;
   final String title;
   final String description;
   final IconData icon;
@@ -63,11 +66,11 @@ class PermissionService {
     } catch (_) {}
   }
 
-  /// Detailed catalog of all permissions requested by Looma
+  /// Detailed catalog of all permissions requested by ProCut
   List<PermissionDetail> getRequestedPermissions() {
     return const [
       PermissionDetail(
-        type: LoomaPermissionType.camera,
+        type: ProCutPermissionType.camera,
         title: 'Camera',
         description: 'Capture live video footage and photos directly into your project timeline.',
         icon: Icons.videocam_rounded,
@@ -75,7 +78,7 @@ class PermissionService {
         isRequired: true,
       ),
       PermissionDetail(
-        type: LoomaPermissionType.photosAndVideos,
+        type: ProCutPermissionType.photosAndVideos,
         title: 'Photos & Videos',
         description: 'Import clips from your device gallery and save exported 4K / HD videos to camera roll.',
         icon: Icons.photo_library_rounded,
@@ -83,7 +86,7 @@ class PermissionService {
         isRequired: true,
       ),
       PermissionDetail(
-        type: LoomaPermissionType.microphone,
+        type: ProCutPermissionType.microphone,
         title: 'Microphone',
         description: 'Record voiceovers, commentary, and narration onto timeline audio tracks.',
         icon: Icons.mic_rounded,
@@ -91,7 +94,7 @@ class PermissionService {
         isRequired: true,
       ),
       PermissionDetail(
-        type: LoomaPermissionType.notifications,
+        type: ProCutPermissionType.notifications,
         title: 'Notifications',
         description: 'Alert you when long video exports, render batches, and cloud sync are finished.',
         icon: Icons.notifications_active_rounded,
@@ -99,7 +102,7 @@ class PermissionService {
         isRequired: false,
       ),
       PermissionDetail(
-        type: LoomaPermissionType.location,
+        type: ProCutPermissionType.location,
         title: 'Location (Optional)',
         description: 'Optionally add geotags, city location stickers, and metadata to your travel videos.',
         icon: Icons.location_on_rounded,

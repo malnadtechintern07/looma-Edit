@@ -14,7 +14,7 @@ void main() async {
       overrides: [
         localStorageServiceProvider.overrideWithValue(storageService),
       ],
-      child: const LoomaApp(),
+      child: const ProCutApp(),
     ),
   );
 }

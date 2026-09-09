@@ -3,7 +3,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/utils/id_generator.dart';
 import '../../../../core/utils/timecode_formatter.dart';
-import '../../../../core/widgets/looma_slider.dart';
+import '../../../../core/widgets/procut_slider.dart';
 import '../../../media_picker/domain/services/device_media_service.dart';
 import '../../domain/entities/audio_clip_entity.dart';
 import '../../domain/services/audio_extraction_service.dart';
@@ -336,7 +336,7 @@ class _AudioMixerSheetState extends State<AudioMixerSheet> {
           const Divider(height: 16),
 
           // 1. Volume Gain Slider (0% to 200%)
-          LoomaSlider(
+          ProCutSlider(
             label: 'Track Volume',
             value: audio.volume,
             min: 0.0,
@@ -355,7 +355,7 @@ class _AudioMixerSheetState extends State<AudioMixerSheet> {
           Row(
             children: [
               Expanded(
-                child: LoomaSlider(
+                child: ProCutSlider(
                   label: 'Fade In',
                   value: (audio.fadeInMs / 1000).toDouble(),
                   min: 0.0,
@@ -371,7 +371,7 @@ class _AudioMixerSheetState extends State<AudioMixerSheet> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: LoomaSlider(
+                child: ProCutSlider(
                   label: 'Fade Out',
                   value: (audio.fadeOutMs / 1000).toDouble(),
                   min: 0.0,

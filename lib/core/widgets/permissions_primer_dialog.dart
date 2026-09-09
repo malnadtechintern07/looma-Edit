@@ -104,7 +104,7 @@ class PermissionsPrimerDialog extends StatelessWidget {
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          'Review features Looma uses for video editing',
+                          'Review features ProCut uses for video editing',
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.65),
                             fontSize: 12.5,
@@ -155,7 +155,7 @@ class PermissionsPrimerDialog extends StatelessWidget {
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              'Looma respects your privacy. Media files are processed locally on your device and are never shared or uploaded without your explicit request.',
+                              'ProCut respects your privacy. Media files are processed locally on your device and are never shared or uploaded without your explicit request.',
                               style: TextStyle(
                                 color: Colors.white.withValues(alpha: 0.75),
                                 fontSize: 11.5,

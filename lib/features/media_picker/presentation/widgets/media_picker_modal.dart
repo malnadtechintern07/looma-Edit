@@ -324,7 +324,7 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Enter a story or prompt. Looma AI will generate cinematic storyboard clips for your timeline.',
+              'Enter a story or prompt. ProCut AI will generate cinematic storyboard clips for your timeline.',
               style: TextStyle(color: Colors.white70, fontSize: 13),
             ),
             const SizedBox(height: 12),

@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/router/route_paths.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
-import '../../../../core/widgets/looma_button.dart';
+import '../../../../core/widgets/procut_button.dart';
 import '../../../projects/domain/entities/aspect_ratio_type.dart';
 import '../providers/editor_controller.dart';
 
@@ -147,7 +147,7 @@ class EditorTopBar extends StatelessWidget {
           const SizedBox(width: 4),
 
           // Export Button CTA
-          LoomaButton(
+          ProCutButton(
             label: 'Export',
             icon: Icons.ios_share,
             height: 32,

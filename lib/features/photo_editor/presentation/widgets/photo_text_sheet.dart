@@ -72,7 +72,7 @@ class _PhotoTextSheetState extends State<PhotoTextSheet> {
   void initState() {
     super.initState();
     fontFamilies = List.from(FontHelper.availableFonts);
-    _textController = TextEditingController(text: widget.existingText?.text ?? 'LOOMA CREATIVE');
+    _textController = TextEditingController(text: widget.existingText?.text ?? 'PROCUT CREATIVE');
     _textController.addListener(_onTextChanged);
     _fontSize = widget.existingText?.fontSize ?? 28.0;
     _colorHex = widget.existingText?.colorHex ?? 0xFFFFFFFF;

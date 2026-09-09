@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
-import 'package:looma/core/storage/local_storage_service.dart';
-import 'package:looma/features/projects/data/models/project_model.dart';
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
-import 'package:looma/features/projects/domain/entities/sync_status_type.dart';
+import 'package:procut/core/storage/local_storage_service.dart';
+import 'package:procut/features/projects/data/models/project_model.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/features/projects/domain/entities/sync_status_type.dart';
 import '../../domain/entities/cloud_backup_record.dart';
 import 'cloud_storage_datasource.dart';
 
@@ -317,6 +317,9 @@ class GlobalCloudStorageDataSource implements CloudStorageDataSource {
           userData['projects'] = projectsMap;
           users[userId] = userData;
 
+          _cachedRegistry = {'users': users};
+          _cacheTimestamp = DateTime.now();
+
           await _saveCloudRegistry(users, client);
         }
       } finally {
@@ -447,7 +450,18 @@ class GlobalCloudStorageDataSource implements CloudStorageDataSource {
 
   // --- Internal Cloud Registry Helpers ---
 
-  Future<Map<String, dynamic>?> _fetchCloudRegistry() async {
+  static Map<String, dynamic>? _cachedRegistry;
+  static DateTime? _cacheTimestamp;
+  static const Duration _cacheTtl = Duration(seconds: 30);
+
+  Future<Map<String, dynamic>?> _fetchCloudRegistry({bool forceRefresh = false}) async {
+    if (!forceRefresh &&
+        _cachedRegistry != null &&
+        _cacheTimestamp != null &&
+        DateTime.now().difference(_cacheTimestamp!) < _cacheTtl) {
+      return _cachedRegistry;
+    }
+
     final client = _createHttpClient();
     try {
       final uri = Uri.parse('$apiBaseUrl/$primaryRegistryObjectId');
@@ -461,15 +475,17 @@ class GlobalCloudStorageDataSource implements CloudStorageDataSource {
         if (decoded is Map<String, dynamic>) {
           final data = decoded['data'];
           if (data is Map<String, dynamic>) {
-            return data;
+            _cachedRegistry = Map<String, dynamic>.from(data);
+            _cacheTimestamp = DateTime.now();
+            return _cachedRegistry;
           }
         }
       }
       await response.drain();
-      return null;
+      return _cachedRegistry;
     } catch (e) {
       debugPrint('GlobalCloudStorageDataSource._fetchCloudRegistry error: $e');
-      return null;
+      return _cachedRegistry;
     } finally {
       if (_customHttpClient == null) client.close();
     }
@@ -483,7 +499,7 @@ class GlobalCloudStorageDataSource implements CloudStorageDataSource {
   ) async {
     final client = _createHttpClient();
     try {
-      final registry = await _fetchCloudRegistry() ?? {'users': <String, dynamic>{}};
+      final registry = await _fetchCloudRegistry(forceRefresh: true) ?? {'users': <String, dynamic>{}};
       final usersRaw = registry['users'];
       final users = usersRaw is Map ? Map<String, dynamic>.from(usersRaw) : <String, dynamic>{};
       final userDataRaw = users[userId];
@@ -507,6 +523,9 @@ class GlobalCloudStorageDataSource implements CloudStorageDataSource {
       userData['lastSyncAt'] = DateTime.now().toIso8601String();
       users[userId] = userData;
 
+      _cachedRegistry = {'users': users};
+      _cacheTimestamp = DateTime.now();
+
       return await _saveCloudRegistry(users, client);
     } catch (e) {
       debugPrint('GlobalCloudStorageDataSource._uploadProjectToCloudRegistry error: $e');
@@ -518,7 +537,7 @@ class GlobalCloudStorageDataSource implements CloudStorageDataSource {
 
   Future<bool> _saveCloudRegistry(Map<String, dynamic> users, HttpClient client) async {
     final payload = {
-      'name': 'looma_global_projects_registry_v1',
+      'name': 'procut_global_projects_registry_v1',
       'data': {
         'users': users,
         'lastUpdatedAt': DateTime.now().toIso8601String(),

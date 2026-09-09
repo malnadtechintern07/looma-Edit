@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:looma/features/editor/domain/entities/keyframe_entity.dart';
-import 'package:looma/features/editor/domain/entities/timeline_state.dart';
-import 'package:looma/features/editor/domain/entities/video_clip_entity.dart';
-import 'package:looma/features/editor/domain/usecases/editor_usecases.dart';
-import 'package:looma/features/editor/presentation/providers/editor_controller.dart';
-import 'package:looma/features/editor/presentation/widgets/editor_action_bar.dart';
-import 'package:looma/features/editor/presentation/widgets/video_track_item.dart';
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/features/editor/domain/entities/keyframe_entity.dart';
+import 'package:procut/features/editor/domain/entities/timeline_state.dart';
+import 'package:procut/features/editor/domain/entities/video_clip_entity.dart';
+import 'package:procut/features/editor/domain/usecases/editor_usecases.dart';
+import 'package:procut/features/editor/presentation/providers/editor_controller.dart';
+import 'package:procut/features/editor/presentation/widgets/editor_action_bar.dart';
+import 'package:procut/features/editor/presentation/widgets/video_track_item.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

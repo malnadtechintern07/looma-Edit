@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/utils/timecode_formatter.dart';
-import '../../../../core/widgets/looma_button.dart';
-import '../../../../core/widgets/looma_card.dart';
+import '../../../../core/widgets/procut_button.dart';
+import '../../../../core/widgets/procut_card.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../domain/entities/store_template_entity.dart';
 
@@ -23,7 +23,7 @@ class TemplateCard extends StatelessWidget {
     final endColorInt = int.tryParse(template.previewGradientEnd) ?? 0xFF06B6D4;
     final durationStr = TimecodeFormatter.formatHumanDuration(template.durationMs);
 
-    return LoomaCard(
+    return ProCutCard(
       padding: EdgeInsets.zero,
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -164,7 +164,7 @@ class TemplateCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    LoomaButton(
+                    ProCutButton(
                       label: 'Use Template',
                       icon: Icons.download,
                       height: 34,

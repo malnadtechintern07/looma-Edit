@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/utils/timecode_formatter.dart';
-import '../../../../core/widgets/looma_button.dart';
+import '../../../../core/widgets/procut_button.dart';
 import '../../../../core/widgets/waveform_painter.dart';
 import '../../domain/entities/royalty_free_music_entity.dart';
 
@@ -84,11 +84,11 @@ class _MusicPreviewTileState extends State<MusicPreviewTile> {
               Text(durationStr, style: AppTypography.labelSmall),
               const SizedBox(width: 12),
 
-              LoomaButton(
+              ProCutButton(
                 label: 'Add',
                 icon: Icons.add,
                 height: 32,
-                type: LoomaButtonType.secondary,
+                type: ProCutButtonType.secondary,
                 onPressed: widget.onAddToProject,
               ),
             ],

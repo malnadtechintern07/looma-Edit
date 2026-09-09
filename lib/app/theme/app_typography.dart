@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
-/// Typography definitions for LOOMA
+/// Typography definitions for ProCut
 abstract class AppTypography {
   static TextStyle get displayLarge => GoogleFonts.inter(
         fontSize: 32,

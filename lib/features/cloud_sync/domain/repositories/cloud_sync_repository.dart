@@ -1,4 +1,4 @@
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
 import '../entities/cloud_backup_record.dart';
 import '../entities/user_account_entity.dart';
 

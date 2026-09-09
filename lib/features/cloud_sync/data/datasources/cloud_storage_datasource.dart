@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
-import 'package:looma/core/storage/local_storage_service.dart';
-import 'package:looma/features/projects/data/models/project_model.dart';
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
-import 'package:looma/features/projects/domain/entities/sync_status_type.dart';
+import 'package:procut/core/storage/local_storage_service.dart';
+import 'package:procut/features/projects/data/models/project_model.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/features/projects/domain/entities/sync_status_type.dart';
 import '../../domain/entities/cloud_backup_record.dart';
 
 abstract class CloudStorageDataSource {

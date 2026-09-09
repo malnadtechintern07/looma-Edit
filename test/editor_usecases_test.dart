@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:looma/features/editor/domain/entities/video_clip_entity.dart';
-import 'package:looma/features/editor/domain/usecases/editor_usecases.dart';
-import 'package:looma/features/filters_effects/domain/entities/video_effect_type.dart';
-import 'package:looma/features/projects/domain/entities/aspect_ratio_type.dart';
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/features/editor/domain/entities/video_clip_entity.dart';
+import 'package:procut/features/editor/domain/usecases/editor_usecases.dart';
+import 'package:procut/features/filters_effects/domain/entities/video_effect_type.dart';
+import 'package:procut/features/projects/domain/entities/aspect_ratio_type.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
 
 void main() {
   group('Editor UseCases Tests', () {

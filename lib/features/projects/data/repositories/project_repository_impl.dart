@@ -1,6 +1,6 @@
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
-import 'package:looma/features/projects/domain/repositories/project_repository.dart';
-import 'package:looma/features/projects/data/datasources/project_local_datasource.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/features/projects/domain/repositories/project_repository.dart';
+import 'package:procut/features/projects/data/datasources/project_local_datasource.dart';
 
 class ProjectRepositoryImpl implements ProjectRepository {
   final ProjectLocalDataSource localDataSource;
@@ -35,5 +35,10 @@ class ProjectRepositoryImpl implements ProjectRepository {
   @override
   Future<void> deleteProject(String id) async {
     await localDataSource.deleteProject(id);
+  }
+
+  @override
+  Future<void> claimGuestProjects(String userId) async {
+    await localDataSource.claimGuestProjects(userId);
   }
 }

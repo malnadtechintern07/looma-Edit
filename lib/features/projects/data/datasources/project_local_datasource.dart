@@ -1,38 +1,55 @@
 import 'dart:convert';
-import 'package:looma/core/constants/app_constants.dart';
-import 'package:looma/core/storage/local_storage_service.dart';
-import 'package:looma/core/utils/id_generator.dart';
-import 'package:looma/features/audio/domain/entities/audio_clip_entity.dart';
-import 'package:looma/features/editor/domain/entities/transition_type.dart';
-import 'package:looma/features/editor/domain/entities/video_clip_entity.dart';
-import 'package:looma/features/filters_effects/domain/entities/filter_preset.dart';
-import 'package:looma/features/projects/data/models/project_model.dart';
-import 'package:looma/features/projects/domain/entities/aspect_ratio_type.dart';
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
-import 'package:looma/features/projects/domain/entities/sync_status_type.dart';
-import 'package:looma/features/text_stickers/domain/entities/overlay_animation_type.dart';
-import 'package:looma/features/text_stickers/domain/entities/sticker_overlay_entity.dart';
-import 'package:looma/features/text_stickers/domain/entities/text_overlay_entity.dart';
+import 'package:procut/core/constants/app_constants.dart';
+import 'package:procut/core/storage/local_storage_service.dart';
+import 'package:procut/core/utils/id_generator.dart';
+import 'package:procut/features/projects/data/models/project_model.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/features/projects/domain/entities/sync_status_type.dart';
 
 abstract class ProjectLocalDataSource {
+  String? get activeUserId;
+  void setActiveUserId(String? userId);
   Future<List<ProjectEntity>> getProjects();
   Future<ProjectEntity?> getProjectById(String id);
   Future<void> saveProject(ProjectEntity project);
   Future<void> updateProject(ProjectEntity project);
   Future<ProjectEntity> duplicateProject(String id);
   Future<void> deleteProject(String id);
+  Future<void> claimGuestProjects(String userId);
 }
 
 class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
   final LocalStorageService storageService;
+  @override
+  String? activeUserId;
 
-  ProjectLocalDataSourceImpl({required this.storageService});
+  @override
+  void setActiveUserId(String? userId) {
+    activeUserId = userId;
+  }
 
-  String _getProjectPath(String id) => '${AppConstants.projectsDirectory}/project_$id.json';
+  ProjectLocalDataSourceImpl({
+    required this.storageService,
+    this.activeUserId,
+  });
+
+  String get _userDir => (activeUserId != null && activeUserId!.trim().isNotEmpty)
+      ? '${AppConstants.projectsDirectory}/users/${activeUserId!.trim()}'
+      : AppConstants.projectsDirectory;
+
+  String _getProjectPath(String id) => '$_userDir/project_$id.json';
+
+  String get _catalogFile => (activeUserId != null && activeUserId!.trim().isNotEmpty)
+      ? '$_userDir/projects_catalog.json'
+      : AppConstants.projectsCatalogFile;
+
+  String get _seededFlag => (activeUserId != null && activeUserId!.trim().isNotEmpty)
+      ? 'app_seeded_${activeUserId!.trim()}.flag'
+      : 'app_seeded.flag';
 
   @override
   Future<List<ProjectEntity>> getProjects() async {
-    final catalogRaw = await storageService.readString(AppConstants.projectsCatalogFile);
+    final catalogRaw = await storageService.readString(_catalogFile);
     final Set<String> projectIds = {};
 
     if (catalogRaw != null && catalogRaw.isNotEmpty) {
@@ -46,9 +63,12 @@ class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
       } catch (_) {}
     }
 
-    // Auto-discover all project files stored in the projects directory on disk
-    final diskFiles = await storageService.listProjectFiles();
+    // Auto-discover project files stored in the active user's projects directory
+    final diskFiles = await storageService.listProjectFiles(directoryPrefix: _userDir);
     for (final filePath in diskFiles) {
+      if ((activeUserId == null || activeUserId!.trim().isEmpty) && filePath.contains('/users/')) {
+        continue;
+      }
       final fileName = filePath.split('/').last;
       if (fileName.startsWith('project_') && fileName.endsWith('.json')) {
         final id = fileName.substring('project_'.length, fileName.length - '.json'.length);
@@ -58,28 +78,35 @@ class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
       }
     }
 
-    // Seed default starter projects ONLY on very first install when nothing exists
-    final seededFlag = await storageService.readString('app_seeded.flag');
-    if (projectIds.isEmpty && seededFlag == null) {
-      await storageService.writeString('app_seeded.flag', 'true');
-      final initialProjects = _getSampleInitialProjects();
-      initialProjects.sort((a, b) {
-        final cmp = b.updatedAt.compareTo(a.updatedAt);
-        if (cmp != 0) return cmp;
-        return b.createdAt.compareTo(a.createdAt);
-      });
-      for (final p in initialProjects.reversed) {
-        await saveProject(p);
+    // When in user workspace, check for existing projects claimed or legacy root projects
+    if (activeUserId != null && activeUserId!.trim().isNotEmpty && projectIds.isEmpty) {
+      // Check legacy root directory for projects assigned specifically to this user
+      final rootFiles = await storageService.listProjectFiles(directoryPrefix: AppConstants.projectsDirectory);
+      for (final filePath in rootFiles) {
+        if (filePath.contains('/users/')) continue;
+        final fileName = filePath.split('/').last;
+        if (fileName.startsWith('project_') && fileName.endsWith('.json')) {
+          final rawMap = await storageService.readJson(filePath);
+          if (rawMap != null) {
+            try {
+              final p = ProjectModel.fromJson(rawMap);
+              if (p.userId == activeUserId) {
+                // Move to user directory
+                await saveProject(p);
+                projectIds.add(p.id);
+                await storageService.deleteFile(filePath);
+              }
+            } catch (_) {}
+          }
+        }
       }
-      await storageService.writeString(
-        AppConstants.projectsCatalogFile,
-        jsonEncode(initialProjects.map((p) => p.id).toList()),
-      );
-      return initialProjects;
     }
 
+    // Do not seed dummy sample projects; before login and new users start completely clean.
+    projectIds.removeWhere((id) => id == 'sample-tokyo-vlog' || id == 'sample-cinematic-trailer');
+    final seededFlag = await storageService.readString(_seededFlag);
     if (seededFlag == null) {
-      await storageService.writeString('app_seeded.flag', 'true');
+      await storageService.writeString(_seededFlag, 'true');
     }
 
     final loadedProjects = await Future.wait(
@@ -97,25 +124,33 @@ class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
 
     // Always keep catalog strictly in sync with sorted valid project files
     final sortedIds = results.map((p) => p.id).toList();
-    await storageService.writeString(AppConstants.projectsCatalogFile, jsonEncode(sortedIds));
+    await storageService.writeString(_catalogFile, jsonEncode(sortedIds));
 
     return results;
   }
 
   @override
   Future<ProjectEntity?> getProjectById(String id) async {
-    final jsonMap = await storageService.readJson(_getProjectPath(id));
+    var jsonMap = await storageService.readJson(_getProjectPath(id));
+    if (jsonMap == null && activeUserId != null && activeUserId!.trim().isNotEmpty) {
+      // Fallback check in root directory
+      jsonMap = await storageService.readJson('${AppConstants.projectsDirectory}/project_$id.json');
+    }
     if (jsonMap == null) return null;
     return ProjectModel.fromJson(jsonMap);
   }
 
   @override
   Future<void> saveProject(ProjectEntity project) async {
-    final path = _getProjectPath(project.id);
-    await storageService.writeJson(path, ProjectModel.toJson(project));
+    final projectToSave = (activeUserId != null && activeUserId!.trim().isNotEmpty && project.userId == null)
+        ? project.copyWith(userId: activeUserId)
+        : project;
+
+    final path = _getProjectPath(projectToSave.id);
+    await storageService.writeJson(path, ProjectModel.toJson(projectToSave));
 
     // Update catalog
-    final catalogRaw = await storageService.readString(AppConstants.projectsCatalogFile);
+    final catalogRaw = await storageService.readString(_catalogFile);
     List<String> projectIds = [];
     if (catalogRaw != null && catalogRaw.isNotEmpty) {
       try {
@@ -123,10 +158,10 @@ class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
         projectIds = decoded.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList();
       } catch (_) {}
     }
-    projectIds.remove(project.id);
-    projectIds.insert(0, project.id);
-    await storageService.writeString(AppConstants.projectsCatalogFile, jsonEncode(projectIds));
-    await storageService.writeString('app_seeded.flag', 'true');
+    projectIds.remove(projectToSave.id);
+    projectIds.insert(0, projectToSave.id);
+    await storageService.writeString(_catalogFile, jsonEncode(projectIds));
+    await storageService.writeString(_seededFlag, 'true');
   }
 
   @override
@@ -148,6 +183,7 @@ class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
       syncStatus: SyncStatusType.localOnly,
+      userId: activeUserId ?? original.userId,
     );
 
     await saveProject(duplicated);
@@ -157,172 +193,79 @@ class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
   @override
   Future<void> deleteProject(String id) async {
     await storageService.deleteFile(_getProjectPath(id));
+    if (activeUserId != null && activeUserId!.trim().isNotEmpty) {
+      await storageService.deleteFile('${AppConstants.projectsDirectory}/project_$id.json');
+    }
 
-    final catalogRaw = await storageService.readString(AppConstants.projectsCatalogFile);
+    final catalogRaw = await storageService.readString(_catalogFile);
     if (catalogRaw != null && catalogRaw.isNotEmpty) {
       try {
         final decoded = jsonDecode(catalogRaw) as List<dynamic>;
         final projectIds = decoded.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList();
         projectIds.remove(id);
-        await storageService.writeString(AppConstants.projectsCatalogFile, jsonEncode(projectIds));
+        await storageService.writeString(_catalogFile, jsonEncode(projectIds));
       } catch (_) {}
     }
   }
 
-  List<ProjectEntity> _getSampleInitialProjects() {
-    final now = DateTime.now();
-    return [
-      ProjectEntity(
-        id: 'sample-tokyo-vlog',
-        title: 'Tokyo Night Cyberpunk Reel',
-        aspectRatio: AspectRatioType.ratio9_16,
-        fps: 60,
-        resolutionWidth: 1080,
-        resolutionHeight: 1920,
-        durationMs: 12000,
-        createdAt: now.subtract(const Duration(hours: 3)),
-        updatedAt: now.subtract(const Duration(minutes: 15)),
-        syncStatus: SyncStatusType.synced,
-        videoClips: [
-          const VideoClipEntity(
-            id: 'vclip-1',
-            mediaPath: 'assets/demo/tokyo_street.mp4',
-            name: 'Neon Shinjuku Crossing',
-            sourceDurationMs: 6000,
-            timelineStartMs: 0,
-            timelineEndMs: 5000,
-            trimStartMs: 0,
-            trimEndMs: 5000,
-            speed: 1.0,
-            filterType: FilterType.cyberpunk,
-            contrast: 1.15,
-            saturation: 1.25,
-            transitionIn: TransitionType.none,
-          ),
-          const VideoClipEntity(
-            id: 'vclip-2',
-            mediaPath: 'assets/demo/ramen_bar.mp4',
-            name: 'Late Night Ramen Steam',
-            sourceDurationMs: 8000,
-            timelineStartMs: 5000,
-            timelineEndMs: 12000,
-            trimStartMs: 1000,
-            trimEndMs: 8000,
-            speed: 1.0,
-            filterType: FilterType.cyberpunk,
-            contrast: 1.1,
-            saturation: 1.2,
-            transitionIn: TransitionType.glitch,
-            transitionDurationMs: 400,
-          ),
-        ],
-        audioClips: [
-          const AudioClipEntity(
-            id: 'aclip-1',
-            mediaPath: 'assets/audio/synthwave_beat.mp3',
-            title: 'Midnight Synth Wave',
-            category: AudioCategory.music,
-            timelineStartMs: 0,
-            timelineEndMs: 12000,
-            trimStartMs: 0,
-            trimEndMs: 12000,
-            volume: 0.8,
-            fadeInMs: 500,
-            fadeOutMs: 1000,
-            waveformSamples: [
-              0.2, 0.4, 0.7, 0.9, 0.6, 0.8, 0.95, 0.7, 0.5, 0.85, 0.9, 0.4, 0.6, 0.8, 0.75,
-              0.3, 0.5, 0.8, 0.9, 0.65, 0.7, 0.85, 0.6, 0.4, 0.7, 0.8, 0.3, 0.2
-            ],
-          ),
-        ],
-        textOverlays: [
-          const TextOverlayEntity(
-            id: 'text-1',
-            text: 'TOKYO VLOG // 01',
-            fontFamily: 'Inter',
-            fontSize: 28.0,
-            colorHex: 0xFF00FFFF,
-            outlineColorHex: 0xFF000000,
-            outlineWidth: 2.0,
-            posX: 0.5,
-            posY: 0.25,
-            timelineStartMs: 500,
-            timelineEndMs: 4500,
-            animationType: OverlayAnimationType.typewriter,
-          ),
-        ],
-        stickerOverlays: [
-          const StickerOverlayEntity(
-            id: 'sticker-1',
-            stickerKey: 'neon_fire',
-            stickerName: 'Fire Flame',
-            assetEmojiOrPath: '🔥',
-            posX: 0.8,
-            posY: 0.25,
-            scale: 1.3,
-            timelineStartMs: 1000,
-            timelineEndMs: 4500,
-          ),
-        ],
-      ),
-      ProjectEntity(
-        id: 'sample-cinematic-trailer',
-        title: 'Cinematic Mountain Drone',
-        aspectRatio: AspectRatioType.ratio16_9,
-        fps: 24,
-        resolutionWidth: 1920,
-        resolutionHeight: 1080,
-        durationMs: 15000,
-        createdAt: now.subtract(const Duration(days: 2)),
-        updatedAt: now.subtract(const Duration(hours: 18)),
-        syncStatus: SyncStatusType.localOnly,
-        videoClips: [
-          const VideoClipEntity(
-            id: 'vclip-drone',
-            mediaPath: 'assets/demo/alps_drone.mp4',
-            name: 'Alps Sunrise Fog',
-            sourceDurationMs: 15000,
-            timelineStartMs: 0,
-            timelineEndMs: 15000,
-            trimStartMs: 0,
-            trimEndMs: 15000,
-            speed: 1.0,
-            filterType: FilterType.cinematic,
-            contrast: 1.2,
-            saturation: 1.1,
-          ),
-        ],
-        audioClips: [
-          const AudioClipEntity(
-            id: 'aclip-ambient',
-            mediaPath: 'assets/audio/epic_orchestral.mp3',
-            title: 'Epic Awakening Orchestral',
-            category: AudioCategory.music,
-            timelineStartMs: 0,
-            timelineEndMs: 15000,
-            trimStartMs: 0,
-            trimEndMs: 15000,
-            volume: 1.0,
-            waveformSamples: [
-              0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.85, 0.95, 0.8, 0.85, 0.9, 0.7, 0.5, 0.3, 0.1
-            ],
-          ),
-        ],
-        textOverlays: [
-          const TextOverlayEntity(
-            id: 'text-cinematic',
-            text: 'THE ASCENT',
-            fontFamily: 'Inter',
-            fontSize: 36.0,
-            colorHex: 0xFFFFFFFF,
-            posX: 0.5,
-            posY: 0.5,
-            timelineStartMs: 2000,
-            timelineEndMs: 8000,
-            animationType: OverlayAnimationType.fadeIn,
-          ),
-        ],
-      ),
-    ];
+  @override
+  Future<void> claimGuestProjects(String userId) async {
+    final cleanUid = userId.trim();
+    if (cleanUid.isEmpty) return;
+    activeUserId = cleanUid;
+
+    final rootFiles = await storageService.listProjectFiles(directoryPrefix: AppConstants.projectsDirectory);
+    final List<String> claimedIds = [];
+
+    for (final filePath in rootFiles) {
+      if (filePath.contains('/users/')) continue;
+      final fileName = filePath.split('/').last;
+      if (fileName.startsWith('project_') && fileName.endsWith('.json')) {
+        final rawMap = await storageService.readJson(filePath);
+        if (rawMap != null) {
+          try {
+            final p = ProjectModel.fromJson(rawMap);
+            if (p.id == 'sample-tokyo-vlog' || p.id == 'sample-cinematic-trailer') {
+              await storageService.deleteFile(filePath);
+              continue;
+            }
+            if (p.userId == null || p.userId == cleanUid) {
+              final claimed = p.copyWith(userId: cleanUid);
+              final userPath = '${AppConstants.projectsDirectory}/users/$cleanUid/project_${claimed.id}.json';
+              await storageService.writeJson(userPath, ProjectModel.toJson(claimed));
+
+              final userCatFile = '${AppConstants.projectsDirectory}/users/$cleanUid/projects_catalog.json';
+              final userCatRaw = await storageService.readString(userCatFile);
+              final List<String> userCat = [];
+              if (userCatRaw != null && userCatRaw.isNotEmpty) {
+                try {
+                  userCat.addAll((jsonDecode(userCatRaw) as List<dynamic>).map((e) => e.toString().trim()));
+                } catch (_) {}
+              }
+              if (!userCat.contains(claimed.id)) {
+                userCat.insert(0, claimed.id);
+                await storageService.writeString(userCatFile, jsonEncode(userCat));
+              }
+
+              // Remove from root guest directory so other users do not claim it
+              await storageService.deleteFile(filePath);
+              claimedIds.add(claimed.id);
+            }
+          } catch (_) {}
+        }
+      }
+    }
+
+    if (claimedIds.isNotEmpty) {
+      final rootCatRaw = await storageService.readString(AppConstants.projectsCatalogFile);
+      if (rootCatRaw != null && rootCatRaw.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(rootCatRaw) as List<dynamic>;
+          final updatedRoot = decoded.map((e) => e.toString().trim()).where((id) => !claimedIds.contains(id)).toList();
+          await storageService.writeString(AppConstants.projectsCatalogFile, jsonEncode(updatedRoot));
+        } catch (_) {}
+      }
+    }
   }
 }
+

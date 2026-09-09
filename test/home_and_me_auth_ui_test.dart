@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:looma/app/app.dart';
-import 'package:looma/core/storage/local_storage_service.dart';
-import 'package:looma/core/storage/storage_providers.dart';
-import 'package:looma/features/auth/domain/entities/user_entity.dart';
-import 'package:looma/features/auth/domain/repositories/auth_repository.dart';
-import 'package:looma/features/auth/presentation/providers/auth_provider.dart';
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
-import 'package:looma/features/projects/domain/repositories/project_repository.dart';
-import 'package:looma/features/projects/domain/usecases/project_usecases.dart';
-import 'package:looma/features/projects/presentation/providers/projects_provider.dart';
+import 'package:procut/app/app.dart';
+import 'package:procut/core/storage/local_storage_service.dart';
+import 'package:procut/core/storage/storage_providers.dart';
+import 'package:procut/features/auth/domain/entities/user_entity.dart';
+import 'package:procut/features/auth/domain/repositories/auth_repository.dart';
+import 'package:procut/features/auth/presentation/providers/auth_provider.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/features/projects/domain/repositories/project_repository.dart';
+import 'package:procut/features/projects/domain/usecases/project_usecases.dart';
+import 'package:procut/features/projects/presentation/providers/projects_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -41,7 +41,7 @@ void main() {
             ),
           ),
         ],
-        child: const LoomaApp(),
+        child: const ProCutApp(),
       ),
     );
 
@@ -95,7 +95,7 @@ void main() {
             ),
           ),
         ],
-        child: const LoomaApp(),
+        child: const ProCutApp(),
       ),
     );
 
@@ -159,6 +159,9 @@ class _FakeProjectsRepository implements ProjectRepository {
 
   @override
   Future<void> deleteProject(String id) async {}
+
+  @override
+  Future<void> claimGuestProjects(String userId) async {}
 }
 
 class _FakeAuthNotifier extends AuthNotifier {

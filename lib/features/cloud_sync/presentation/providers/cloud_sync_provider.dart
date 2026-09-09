@@ -1,12 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:looma/core/storage/local_storage_service.dart';
-import 'package:looma/core/storage/storage_providers.dart';
-import 'package:looma/features/auth/presentation/providers/auth_provider.dart';
-import 'package:looma/features/projects/presentation/providers/projects_provider.dart';
+import 'package:procut/core/storage/local_storage_service.dart';
+import 'package:procut/core/storage/storage_providers.dart';
+import 'package:procut/features/auth/presentation/providers/auth_provider.dart';
+import 'package:procut/features/projects/presentation/providers/projects_provider.dart';
 import '../../data/datasources/bunny_cloud_storage_datasource.dart';
 import '../../data/datasources/cloud_storage_datasource.dart';
 import '../../data/datasources/composite_cloud_storage_datasource.dart';
 import '../../data/datasources/global_cloud_storage_datasource.dart';
+import '../../data/datasources/mysql_cloud_storage_datasource.dart';
+import '../../data/datasources/ntfy_cloud_storage_datasource.dart';
 import '../../data/repositories/cloud_sync_repository_impl.dart';
 import '../../domain/entities/bunny_storage_config.dart';
 import '../../domain/entities/cloud_backup_record.dart';
@@ -45,6 +47,16 @@ final bunnyStorageConfigProvider =
   return BunnyStorageConfigNotifier(storage);
 });
 
+final mysqlCloudStorageDataSourceProvider = Provider<MySqlCloudStorageDataSource>((ref) {
+  final storage = ref.watch(localStorageServiceProvider);
+  return MySqlCloudStorageDataSource(localStorageService: storage);
+});
+
+final ntfyCloudStorageDataSourceProvider = Provider<NtfyCloudStorageDataSource>((ref) {
+  final storage = ref.watch(localStorageServiceProvider);
+  return NtfyCloudStorageDataSource(localStorageService: storage);
+});
+
 final globalCloudStorageDataSourceProvider = Provider<GlobalCloudStorageDataSource>((ref) {
   final storage = ref.watch(localStorageServiceProvider);
   return GlobalCloudStorageDataSource(localStorageService: storage);
@@ -53,14 +65,15 @@ final globalCloudStorageDataSourceProvider = Provider<GlobalCloudStorageDataSour
 final cloudStorageDataSourceProvider = Provider<CloudStorageDataSource>((ref) {
   final storage = ref.watch(localStorageServiceProvider);
   final bunnyConfig = ref.watch(bunnyStorageConfigProvider);
+  final mysqlDs = ref.watch(mysqlCloudStorageDataSourceProvider);
+  final ntfyDs = ref.watch(ntfyCloudStorageDataSourceProvider);
   final globalDs = ref.watch(globalCloudStorageDataSourceProvider);
   final bunnyDs = BunnyCloudStorageDataSource(
     localStorageService: storage,
     config: bunnyConfig,
   );
   return CompositeCloudStorageDataSource(
-    primary: globalDs,
-    secondary: bunnyDs,
+    dataSources: [mysqlDs, ntfyDs, globalDs, bunnyDs],
   );
 });
 
@@ -123,22 +136,26 @@ class SyncNotifier extends StateNotifier<SyncState> {
   SyncNotifier(this._repository, this._ref) : super(const SyncState());
 
   Future<bool> triggerSync() async {
+    if (!mounted) return false;
     state = state.copyWith(
       isSyncing: true,
-      statusMessage: 'Synchronizing with Looma Cloud...',
+      statusMessage: 'Synchronizing with ProCut Cloud...',
       clearError: true,
     );
     try {
       await _repository.syncAllProjects();
+      if (!mounted) return true;
       _ref.invalidate(cloudBackupsFutureProvider);
       _ref.invalidate(userProfileFutureProvider);
       await _ref.read(projectsNotifierProvider.notifier).loadProjects();
+      if (!mounted) return true;
       state = state.copyWith(
         isSyncing: false,
         statusMessage: 'Sync completed successfully',
       );
       return true;
     } catch (e) {
+      if (!mounted) return false;
       final msg = e.toString().replaceFirst('Exception: ', '');
       state = state.copyWith(
         isSyncing: false,
@@ -150,6 +167,7 @@ class SyncNotifier extends StateNotifier<SyncState> {
   }
 
   Future<bool> syncSingleProject(String projectId) async {
+    if (!mounted) return false;
     state = state.copyWith(
       isSyncing: true,
       activeProjectId: projectId,
@@ -158,9 +176,11 @@ class SyncNotifier extends StateNotifier<SyncState> {
     );
     try {
       await _repository.backupProject(projectId);
+      if (!mounted) return true;
       _ref.invalidate(cloudBackupsFutureProvider);
       _ref.invalidate(userProfileFutureProvider);
       await _ref.read(projectsNotifierProvider.notifier).loadProjects();
+      if (!mounted) return true;
       state = state.copyWith(
         isSyncing: false,
         activeProjectId: null,
@@ -168,6 +188,7 @@ class SyncNotifier extends StateNotifier<SyncState> {
       );
       return true;
     } catch (e) {
+      if (!mounted) return false;
       final msg = e.toString().replaceFirst('Exception: ', '');
       state = state.copyWith(
         isSyncing: false,
@@ -179,14 +200,18 @@ class SyncNotifier extends StateNotifier<SyncState> {
   }
 
   Future<bool> restoreProject(String projectId) async {
+    if (!mounted) return false;
     state = state.copyWith(isSyncing: true, statusMessage: 'Restoring project...');
     try {
       await _repository.restoreProject(projectId);
+      if (!mounted) return true;
       await _ref.read(projectsNotifierProvider.notifier).loadProjects();
+      if (!mounted) return true;
       _ref.invalidate(cloudBackupsFutureProvider);
       state = state.copyWith(isSyncing: false, statusMessage: 'Project restored');
       return true;
     } catch (e) {
+      if (!mounted) return false;
       final msg = e.toString().replaceFirst('Exception: ', '');
       state = state.copyWith(isSyncing: false, errorMessage: msg);
       return false;
@@ -196,11 +221,13 @@ class SyncNotifier extends StateNotifier<SyncState> {
   Future<bool> deleteCloudBackup(String projectId) async {
     try {
       await _repository.deleteCloudProject(projectId);
+      if (!mounted) return true;
       _ref.invalidate(cloudBackupsFutureProvider);
       _ref.invalidate(userProfileFutureProvider);
       await _ref.read(projectsNotifierProvider.notifier).loadProjects();
       return true;
     } catch (e) {
+      if (!mounted) return false;
       final msg = e.toString().replaceFirst('Exception: ', '');
       state = state.copyWith(errorMessage: msg);
       return false;

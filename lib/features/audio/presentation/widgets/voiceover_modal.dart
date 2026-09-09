@@ -5,7 +5,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/utils/id_generator.dart';
 import '../../../../core/utils/timecode_formatter.dart';
-import '../../../../core/widgets/looma_button.dart';
+import '../../../../core/widgets/procut_button.dart';
 import '../../../../core/widgets/waveform_painter.dart';
 import '../../domain/entities/audio_clip_entity.dart';
 
@@ -189,18 +189,18 @@ class _VoiceoverModalState extends State<VoiceoverModal> {
             Row(
               children: [
                 Expanded(
-                  child: LoomaButton(
+                  child: ProCutButton(
                     label: 'Retake',
-                    type: LoomaButtonType.secondary,
+                    type: ProCutButtonType.secondary,
                     icon: Icons.refresh,
                     onPressed: _startRecording,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: LoomaButton(
+                  child: ProCutButton(
                     label: 'Insert Track',
-                    type: LoomaButtonType.primary,
+                    type: ProCutButtonType.primary,
                     icon: Icons.check,
                     onPressed: _saveVoiceover,
                   ),

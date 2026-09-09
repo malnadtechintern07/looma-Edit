@@ -7,7 +7,7 @@ import '../../../../core/storage/local_storage_service.dart';
 import '../entities/media_item_entity.dart';
 import 'device_media_service.dart';
 
-/// Manages recently added and imported media items for Looma.
+/// Manages recently added and imported media items for ProCut.
 /// Persists recently picked media, auto-discovers exported videos,
 /// and aggregates project media clips so they appear in the media picker.
 class RecentMediaService {
@@ -172,7 +172,7 @@ class RecentMediaService {
 
     try {
       final tempDir = Directory.systemTemp;
-      directoriesToCheck.add(Directory('${tempDir.path}/looma_exports'));
+      directoriesToCheck.add(Directory('${tempDir.path}/procut_exports'));
       directoriesToCheck.add(Directory('${tempDir.path}/${AppConstants.exportDirectory}'));
     } catch (_) {}
 

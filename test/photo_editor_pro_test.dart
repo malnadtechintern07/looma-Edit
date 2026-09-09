@@ -3,22 +3,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:looma/features/photo_editor/domain/entities/drawing_stroke_entity.dart';
-import 'package:looma/features/photo_editor/domain/entities/photo_frame_entity.dart';
-import 'package:looma/features/photo_editor/domain/entities/photo_project_entity.dart';
-import 'package:looma/features/photo_editor/data/datasources/photo_local_datasource.dart';
-import 'package:looma/features/photo_editor/data/repositories/photo_project_repository.dart';
-import 'package:looma/features/photo_editor/presentation/providers/photo_editor_controller.dart';
-import 'package:looma/features/photo_editor/presentation/widgets/photo_adjust_sheet.dart';
-import 'package:looma/features/photo_editor/presentation/widgets/photo_crop_sheet.dart';
-import 'package:looma/features/photo_editor/presentation/widgets/photo_curves_sheet.dart';
-import 'package:looma/features/photo_editor/presentation/widgets/photo_draw_sheet.dart';
-import 'package:looma/features/photo_editor/presentation/widgets/photo_export_dialog.dart';
-import 'package:looma/features/photo_editor/presentation/widgets/photo_hsl_sheet.dart';
-import 'package:looma/features/photo_editor/presentation/widgets/photo_layout_sheet.dart';
-import 'package:looma/features/photo_editor/presentation/widgets/photo_resize_sheet.dart';
-import 'package:looma/features/photo_editor/presentation/widgets/photo_sticker_sheet.dart';
-import 'package:looma/features/photo_editor/presentation/widgets/photo_text_sheet.dart';
+import 'package:procut/features/photo_editor/domain/entities/drawing_stroke_entity.dart';
+import 'package:procut/features/photo_editor/domain/entities/photo_frame_entity.dart';
+import 'package:procut/features/photo_editor/domain/entities/photo_project_entity.dart';
+import 'package:procut/features/photo_editor/data/datasources/photo_local_datasource.dart';
+import 'package:procut/features/photo_editor/data/repositories/photo_project_repository.dart';
+import 'package:procut/features/photo_editor/presentation/providers/photo_editor_controller.dart';
+import 'package:procut/features/photo_editor/presentation/widgets/photo_adjust_sheet.dart';
+import 'package:procut/features/photo_editor/presentation/widgets/photo_crop_sheet.dart';
+import 'package:procut/features/photo_editor/presentation/widgets/photo_curves_sheet.dart';
+import 'package:procut/features/photo_editor/presentation/widgets/photo_draw_sheet.dart';
+import 'package:procut/features/photo_editor/presentation/widgets/photo_export_dialog.dart';
+import 'package:procut/features/photo_editor/presentation/widgets/photo_hsl_sheet.dart';
+import 'package:procut/features/photo_editor/presentation/widgets/photo_layout_sheet.dart';
+import 'package:procut/features/photo_editor/presentation/widgets/photo_resize_sheet.dart';
+import 'package:procut/features/photo_editor/presentation/widgets/photo_sticker_sheet.dart';
+import 'package:procut/features/photo_editor/presentation/widgets/photo_text_sheet.dart';
 
 class FakePhotoProjectRepository extends PhotoProjectRepository {
   FakePhotoProjectRepository() : super(PhotoLocalDataSource());
@@ -639,13 +639,13 @@ void main() {
       expect(find.text('Add to Canvas'), findsOneWidget);
 
       // Enter text and add
-      await tester.enterText(find.byType(TextField), 'Looma Pro Editor');
+      await tester.enterText(find.byType(TextField), 'ProCut Pro Editor');
       await tester.pumpAndSettle();
       await tester.tap(find.text('Add to Canvas'));
       await tester.pumpAndSettle();
 
       expect(activeController.state.project.textOverlays.length, 1);
-      expect(activeController.state.project.textOverlays.first.text, 'Looma Pro Editor');
+      expect(activeController.state.project.textOverlays.first.text, 'ProCut Pro Editor');
     });
 
     testWidgets('PhotoStickerSheet supports Shapes tab with vector shapes', (tester) async {

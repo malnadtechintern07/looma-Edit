@@ -1,24 +1,30 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:looma/core/storage/storage_providers.dart';
-import 'package:looma/core/utils/id_generator.dart';
-import 'package:looma/features/projects/data/datasources/project_local_datasource.dart';
-import 'package:looma/features/projects/data/repositories/project_repository_impl.dart';
-import 'package:looma/features/audio/domain/entities/audio_clip_entity.dart';
-import 'package:looma/features/editor/domain/entities/transition_type.dart';
-import 'package:looma/features/editor/domain/entities/video_clip_entity.dart';
-import 'package:looma/features/filters_effects/domain/entities/filter_preset.dart';
-import 'package:looma/features/projects/domain/entities/aspect_ratio_type.dart';
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
-import 'package:looma/features/projects/domain/entities/sync_status_type.dart';
-import 'package:looma/features/projects/domain/repositories/project_repository.dart';
-import 'package:looma/features/projects/domain/usecases/project_usecases.dart';
-import 'package:looma/features/text_stickers/domain/entities/overlay_animation_type.dart';
-import 'package:looma/features/text_stickers/domain/entities/text_overlay_entity.dart';
+import 'package:procut/core/storage/storage_providers.dart';
+import 'package:procut/core/utils/id_generator.dart';
+import 'package:procut/features/projects/data/datasources/project_local_datasource.dart';
+import 'package:procut/features/projects/data/repositories/project_repository_impl.dart';
+import 'package:procut/features/audio/domain/entities/audio_clip_entity.dart';
+import 'package:procut/features/editor/domain/entities/transition_type.dart';
+import 'package:procut/features/editor/domain/entities/video_clip_entity.dart';
+import 'package:procut/features/filters_effects/domain/entities/filter_preset.dart';
+import 'package:procut/features/projects/domain/entities/aspect_ratio_type.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/features/projects/domain/entities/sync_status_type.dart';
+import 'package:procut/features/projects/domain/repositories/project_repository.dart';
+import 'package:procut/features/projects/domain/usecases/project_usecases.dart';
+import 'package:procut/features/text_stickers/domain/entities/overlay_animation_type.dart';
+import 'package:procut/features/text_stickers/domain/entities/text_overlay_entity.dart';
+import 'package:procut/features/auth/presentation/providers/auth_provider.dart';
+import 'package:procut/features/cloud_sync/presentation/providers/cloud_sync_provider.dart';
 
 // --- Data Sources & Repositories ---
 final projectLocalDataSourceProvider = Provider<ProjectLocalDataSource>((ref) {
   final storage = ref.watch(localStorageServiceProvider);
-  return ProjectLocalDataSourceImpl(storageService: storage);
+  final currentUser = ref.watch(currentUserProvider);
+  return ProjectLocalDataSourceImpl(
+    storageService: storage,
+    activeUserId: currentUser?.id,
+  );
 });
 
 final projectRepositoryProvider = Provider<ProjectRepository>((ref) {
@@ -49,6 +55,10 @@ final duplicateProjectUseCaseProvider = Provider<DuplicateProjectUseCase>((ref) 
 
 final deleteProjectUseCaseProvider = Provider<DeleteProjectUseCase>((ref) {
   return DeleteProjectUseCase(ref.watch(projectRepositoryProvider));
+});
+
+final claimGuestProjectsUseCaseProvider = Provider<ClaimGuestProjectsUseCase>((ref) {
+  return ClaimGuestProjectsUseCase(ref.watch(projectRepositoryProvider));
 });
 
 // --- Filters & Search State ---
@@ -85,12 +95,18 @@ class ProjectsNotifier extends StateNotifier<ProjectsState> {
   final SaveProjectUseCase saveProjectUseCase;
   final DuplicateProjectUseCase duplicateProjectUseCase;
   final DeleteProjectUseCase deleteProjectUseCase;
+  final String? currentUserId;
+  final String? currentUserEmail;
+  final Future<void> Function(String projectId)? onProjectCreatedOrUpdated;
 
   ProjectsNotifier({
     required this.getProjectsUseCase,
     required this.saveProjectUseCase,
     required this.duplicateProjectUseCase,
     required this.deleteProjectUseCase,
+    this.currentUserId,
+    this.currentUserEmail,
+    this.onProjectCreatedOrUpdated,
   }) : super(const ProjectsState(isLoading: true)) {
     loadProjects();
   }
@@ -138,9 +154,14 @@ class ProjectsNotifier extends StateNotifier<ProjectsState> {
       updatedAt: DateTime.now(),
       durationMs: totalDur,
       videoClips: clips,
+      userId: currentUserId,
+      userEmail: currentUserEmail,
     );
 
     await saveProjectUseCase(newProject);
+    if (onProjectCreatedOrUpdated != null) {
+      onProjectCreatedOrUpdated!(newProject.id).catchError((_) {});
+    }
     await loadProjects();
     return newProject;
   }
@@ -250,17 +271,29 @@ class ProjectsNotifier extends StateNotifier<ProjectsState> {
       videoClips: templateClips,
       textOverlays: templateTexts,
       audioClips: templateAudio,
+      userId: currentUserId,
+      userEmail: currentUserEmail,
     );
 
     await saveProjectUseCase(newProject);
+    if (onProjectCreatedOrUpdated != null) {
+      onProjectCreatedOrUpdated!(newProject.id).catchError((_) {});
+    }
     await loadProjects();
     return newProject;
   }
 
   Future<void> updateProject(ProjectEntity project) async {
     try {
-      final updated = project.copyWith(updatedAt: DateTime.now());
+      final updated = project.copyWith(
+        updatedAt: DateTime.now(),
+        userId: project.userId ?? currentUserId,
+        userEmail: project.userEmail ?? currentUserEmail,
+      );
       await saveProjectUseCase(updated);
+      if (onProjectCreatedOrUpdated != null) {
+        onProjectCreatedOrUpdated!(updated.id).catchError((_) {});
+      }
       if (!mounted) return;
       final index = state.projects.indexWhere((p) => p.id == updated.id);
       List<ProjectEntity> updatedList;
@@ -305,6 +338,8 @@ class ProjectsNotifier extends StateNotifier<ProjectsState> {
         final updated = current.copyWith(
           title: clean,
           updatedAt: DateTime.now(),
+          userId: current.userId ?? currentUserId,
+          userEmail: current.userEmail ?? currentUserEmail,
         );
         await saveProjectUseCase(updated);
         final list = List<ProjectEntity>.from(state.projects);
@@ -338,11 +373,20 @@ class ProjectsNotifier extends StateNotifier<ProjectsState> {
 
 final projectsNotifierProvider =
     StateNotifierProvider<ProjectsNotifier, ProjectsState>((ref) {
+  final currentUser = ref.watch(currentUserProvider);
   return ProjectsNotifier(
     getProjectsUseCase: ref.watch(getProjectsUseCaseProvider),
     saveProjectUseCase: ref.watch(saveProjectUseCaseProvider),
     duplicateProjectUseCase: ref.watch(duplicateProjectUseCaseProvider),
     deleteProjectUseCase: ref.watch(deleteProjectUseCaseProvider),
+    currentUserId: currentUser?.id,
+    currentUserEmail: currentUser?.email,
+    onProjectCreatedOrUpdated: (projectId) async {
+      try {
+        final syncRepo = ref.read(cloudSyncRepositoryProvider);
+        await syncRepo.backupProject(projectId);
+      } catch (_) {}
+    },
   );
 });
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
-import '../../../../core/widgets/looma_slider.dart';
+import '../../../../core/widgets/procut_slider.dart';
 
 class ColorAdjustmentSheet extends StatefulWidget {
   final double initialBrightness;
@@ -82,7 +82,7 @@ class _ColorAdjustmentSheetState extends State<ColorAdjustmentSheet> {
           const SizedBox(height: 16),
 
           // Brightness
-          LoomaSlider(
+          ProCutSlider(
             label: 'Brightness',
             icon: Icons.wb_sunny_outlined,
             value: _brightness,
@@ -98,7 +98,7 @@ class _ColorAdjustmentSheetState extends State<ColorAdjustmentSheet> {
           const SizedBox(height: 12),
 
           // Contrast
-          LoomaSlider(
+          ProCutSlider(
             label: 'Contrast',
             icon: Icons.contrast_outlined,
             value: _contrast,
@@ -114,7 +114,7 @@ class _ColorAdjustmentSheetState extends State<ColorAdjustmentSheet> {
           const SizedBox(height: 12),
 
           // Saturation
-          LoomaSlider(
+          ProCutSlider(
             label: 'Saturation',
             icon: Icons.palette_outlined,
             value: _saturation,

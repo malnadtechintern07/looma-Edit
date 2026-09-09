@@ -7,11 +7,11 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
-/// Contact Us & Support screen for Looma Creators
+/// Contact Us & Support screen for ProCut Creators
 class ContactSupportScreen extends ConsumerStatefulWidget {
   const ContactSupportScreen({super.key});
 
-  static const String supportEmail = 'support@looma.app';
+  static const String supportEmail = 'support@procut.app';
 
   @override
   ConsumerState<ContactSupportScreen> createState() => _ContactSupportScreenState();
@@ -59,7 +59,7 @@ class _ContactSupportScreenState extends ConsumerState<ContactSupportScreen> {
     Clipboard.setData(const ClipboardData(text: ContactSupportScreen.supportEmail));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Support email copied to clipboard (support@looma.app)'),
+        content: Text('Support email copied to clipboard (support@procut.app)'),
         duration: Duration(seconds: 2),
       ),
     );
@@ -67,7 +67,7 @@ class _ContactSupportScreenState extends ConsumerState<ContactSupportScreen> {
 
   void _copyDiagnostics() {
     final diagnostics = '''
---- LOOMA SYSTEM DIAGNOSTICS ---
+--- PROCUT SYSTEM DIAGNOSTICS ---
 App Version: 2.4.0 (Build 240)
 Engine: Offline Multi-Track Timeline
 Hardware Acceleration: Enabled (H.264 / HEVC GPU)
@@ -243,7 +243,7 @@ Generated At: ${DateTime.now().toIso8601String()}
                             ),
                             SizedBox(height: 2),
                             Text(
-                              'Direct line to Looma engineers & specialists',
+                              'Direct line to ProCut engineers & specialists',
                               style: TextStyle(color: Color(0xFFC7D2FE), fontSize: 11.5),
                             ),
                           ],
@@ -483,7 +483,7 @@ Generated At: ${DateTime.now().toIso8601String()}
                         ),
                         const Expanded(
                           child: Text(
-                            'Attach anonymous device diagnostics (Looma v2.4.0, GPU encoder state)',
+                            'Attach anonymous device diagnostics (ProCut v2.4.0, GPU encoder state)',
                             style: TextStyle(fontSize: 12, color: Color(0xFF4B5563)),
                           ),
                         ),
@@ -595,7 +595,7 @@ Generated At: ${DateTime.now().toIso8601String()}
               subtitle: 'Join 15,000+ mobile filmmakers & video editors',
               actionLabel: 'Join',
               onTap: () {
-                Clipboard.setData(const ClipboardData(text: 'https://discord.gg/looma'));
+                Clipboard.setData(const ClipboardData(text: 'https://discord.gg/procut'));
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Discord invite link copied to clipboard!')),
                 );
@@ -606,11 +606,11 @@ Generated At: ${DateTime.now().toIso8601String()}
             _buildCommunityCard(
               icon: Icons.camera_alt_rounded,
               color: const Color(0xFFE1306C),
-              title: 'Instagram @looma.app',
+              title: 'Instagram @procut.app',
               subtitle: 'Daily transition tutorials, trending reels & creator spotlights',
               actionLabel: 'Follow',
               onTap: () {
-                Clipboard.setData(const ClipboardData(text: 'https://instagram.com/looma.app'));
+                Clipboard.setData(const ClipboardData(text: 'https://instagram.com/procut.app'));
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Instagram handle copied to clipboard!')),
                 );
@@ -621,11 +621,11 @@ Generated At: ${DateTime.now().toIso8601String()}
             _buildCommunityCard(
               icon: Icons.play_circle_fill_rounded,
               color: const Color(0xFFFF0000),
-              title: 'YouTube @LoomaVideoEditor',
+              title: 'YouTube @ProCutVideoEditor',
               subtitle: 'Full masterclass video guides & editing workflows',
               actionLabel: 'Subscribe',
               onTap: () {
-                Clipboard.setData(const ClipboardData(text: 'https://youtube.com/@LoomaVideoEditor'));
+                Clipboard.setData(const ClipboardData(text: 'https://youtube.com/@ProCutVideoEditor'));
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('YouTube channel link copied to clipboard!')),
                 );

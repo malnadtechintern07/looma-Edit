@@ -64,13 +64,13 @@ class PhotoExporterService {
       final dir = await getApplicationDocumentsDirectory();
       final sanitizedTitle = projectTitle.replaceAll(RegExp(r'[^\w\s]+'), '').replaceAll(' ', '_');
       final ext = isPng ? 'png' : 'jpg';
-      final fileName = 'LOOMA_${sanitizedTitle}_${DateTime.now().millisecondsSinceEpoch}.$ext';
+      final fileName = 'PROCUT_${sanitizedTitle}_${DateTime.now().millisecondsSinceEpoch}.$ext';
       final filePath = '${dir.path}/$fileName';
 
       final file = File(filePath);
       await file.writeAsBytes(buffer);
 
-      // Save directly to user's device gallery (Pictures/Looma or MediaStore)
+      // Save directly to user's device gallery (Pictures/ProCut or MediaStore)
       final galleryPath = await GallerySaverService.saveImageToDeviceGallery(
         sourceFilePath: filePath,
         fileName: fileName,

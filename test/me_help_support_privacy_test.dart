@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:looma/features/profile/presentation/screens/contact_support_screen.dart';
-import 'package:looma/features/profile/presentation/screens/help_center_screen.dart';
-import 'package:looma/features/profile/presentation/screens/privacy_policy_screen.dart';
-import 'package:looma/features/profile/presentation/screens/profile_screen.dart';
+import 'package:procut/features/profile/presentation/screens/contact_support_screen.dart';
+import 'package:procut/features/profile/presentation/screens/help_center_screen.dart';
+import 'package:procut/features/profile/presentation/screens/privacy_policy_screen.dart';
+import 'package:procut/features/profile/presentation/screens/profile_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -57,7 +57,7 @@ void main() {
 
       // Title & Hero header
       expect(find.text('Privacy Policy'), findsOneWidget);
-      expect(find.text('Looma Privacy Commitment'), findsOneWidget);
+      expect(find.text('ProCut Privacy Commitment'), findsOneWidget);
       expect(find.text('100% Offline Engine'), findsOneWidget);
       expect(find.text('Zero Ad Tracking'), findsOneWidget);
       expect(find.text('End-to-End Encrypted Cloud'), findsOneWidget);
@@ -106,7 +106,7 @@ void main() {
 
       // FAQs
       expect(find.text('Frequently Asked Questions'), findsOneWidget);
-      expect(find.text('Does Looma put a watermark on my videos?'), findsOneWidget);
+      expect(find.text('Does ProCut put a watermark on my videos?'), findsOneWidget);
     });
 
     testWidgets('Tapping a guide card opens the interactive GuideReaderSheet', (tester) async {
@@ -149,7 +149,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // FAQ should be visible
-      expect(find.text('Does Looma put a watermark on my videos?'), findsOneWidget);
+      expect(find.text('Does ProCut put a watermark on my videos?'), findsOneWidget);
 
       // Guides without "watermark" should be filtered out
       expect(find.text('No guides found matching query'), findsOneWidget);
@@ -179,7 +179,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.textContaining('Looma allows you to export clean, watermark-free videos'),
+        find.textContaining('ProCut allows you to export clean, watermark-free videos'),
         findsOneWidget,
       );
     });
@@ -199,7 +199,7 @@ void main() {
 
       expect(find.text('Contact Us & Support'), findsOneWidget);
       expect(find.text('Official Creator Support'), findsOneWidget);
-      expect(find.text('support@looma.app'), findsOneWidget);
+      expect(find.text('support@procut.app'), findsOneWidget);
 
       // Support ticket form elements
       expect(find.text('Submit a Support Ticket'), findsOneWidget);
@@ -213,8 +213,8 @@ void main() {
       expect(find.text('System Diagnostics'), findsOneWidget);
       expect(find.byKey(const Key('support_copy_diagnostics_btn')), findsOneWidget);
       expect(find.text('Discord Creator Community'), findsOneWidget);
-      expect(find.text('Instagram @looma.app'), findsOneWidget);
-      expect(find.text('YouTube @LoomaVideoEditor'), findsOneWidget);
+      expect(find.text('Instagram @procut.app'), findsOneWidget);
+      expect(find.text('YouTube @ProCutVideoEditor'), findsOneWidget);
     });
 
     testWidgets('Validates form and shows confirmation dialog on valid ticket submission', (tester) async {
@@ -241,7 +241,7 @@ void main() {
       expect(find.text('Please provide at least 10 characters of detail'), findsOneWidget);
 
       // Fill in valid details
-      await tester.enterText(find.byKey(const Key('support_email_field')), 'creator@looma.app');
+      await tester.enterText(find.byKey(const Key('support_email_field')), 'creator@procut.app');
       await tester.enterText(find.byKey(const Key('support_subject_field')), 'Timeline playback issue on 4K clip');
       await tester.enterText(
         find.byKey(const Key('support_message_field')),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
-import '../../../../core/widgets/looma_button.dart';
+import '../../../../core/widgets/procut_button.dart';
 
 class EmptyProjectsView extends StatelessWidget {
   final VoidCallback onCreateProject;
@@ -38,7 +38,7 @@ class EmptyProjectsView extends StatelessWidget {
               style: AppTypography.bodyMedium,
             ),
             const SizedBox(height: 24),
-            LoomaButton(
+            ProCutButton(
               label: 'Create First Project',
               icon: Icons.add,
               onPressed: onCreateProject,

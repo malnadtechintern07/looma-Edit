@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:looma/features/auth/domain/repositories/auth_repository.dart';
-import 'package:looma/features/auth/presentation/providers/auth_provider.dart';
-import 'package:looma/features/cloud_sync/data/datasources/global_cloud_storage_datasource.dart';
-import 'package:looma/features/cloud_sync/presentation/providers/cloud_sync_provider.dart';
+import 'package:procut/features/auth/domain/repositories/auth_repository.dart';
+import 'package:procut/features/auth/presentation/providers/auth_provider.dart';
+import 'package:procut/features/cloud_sync/data/datasources/global_cloud_storage_datasource.dart';
+import 'package:procut/features/cloud_sync/presentation/providers/cloud_sync_provider.dart';
 import '../../domain/entities/photo_project_entity.dart';
 import '../datasources/photo_local_datasource.dart';
 

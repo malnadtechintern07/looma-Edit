@@ -21,7 +21,7 @@ class AudioExtractionService {
       // If it's a real file on disk, copy/reference to app audio directory
       if (!videoPath.startsWith('assets/') && File(videoPath).existsSync()) {
         final docsDir = await getApplicationDocumentsDirectory();
-        final audioDir = Directory('${docsDir.path}/looma_audio');
+        final audioDir = Directory('${docsDir.path}/procut_audio');
         if (!audioDir.existsSync()) {
           audioDir.createSync(recursive: true);
         }

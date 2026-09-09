@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
-import 'package:looma/core/storage/local_storage_service.dart';
+import 'package:procut/core/storage/local_storage_service.dart';
 import 'auth_remote_datasource.dart';
 
 /// Live, persistent, zero-configuration cloud authentication registry for cross-device synchronization.
@@ -166,8 +166,19 @@ class GlobalCloudAuthRemoteDataSource implements AuthRemoteDataSource {
     return await saveAccount(accountData);
   }
 
-  /// Fetches the global accounts map from restful-api.dev registry
-  Future<Map<String, dynamic>?> _fetchCloudAccountsMap() async {
+  static Map<String, dynamic>? _cachedAccountsMap;
+  static DateTime? _cacheTimestamp;
+  static const Duration _cacheTtl = Duration(seconds: 30);
+
+  /// Fetches the global accounts map from restful-api.dev registry with caching
+  Future<Map<String, dynamic>?> _fetchCloudAccountsMap({bool forceRefresh = false}) async {
+    if (!forceRefresh &&
+        _cachedAccountsMap != null &&
+        _cacheTimestamp != null &&
+        DateTime.now().difference(_cacheTimestamp!) < _cacheTtl) {
+      return _cachedAccountsMap;
+    }
+
     final client = _createHttpClient();
     try {
       final uri = Uri.parse('$apiBaseUrl/$primaryRegistryObjectId');
@@ -183,16 +194,18 @@ class GlobalCloudAuthRemoteDataSource implements AuthRemoteDataSource {
           if (data is Map<String, dynamic>) {
             final accounts = data['accounts'];
             if (accounts is Map<String, dynamic>) {
-              return accounts;
+              _cachedAccountsMap = Map<String, dynamic>.from(accounts);
+              _cacheTimestamp = DateTime.now();
+              return _cachedAccountsMap;
             }
           }
         }
       }
       await response.drain();
-      return null;
+      return _cachedAccountsMap;
     } catch (e) {
       debugPrint('GlobalCloudAuthRemoteDataSource: _fetchCloudAccountsMap error: $e');
-      return null;
+      return _cachedAccountsMap;
     } finally {
       if (_customHttpClient == null) client.close();
     }
@@ -204,15 +217,17 @@ class GlobalCloudAuthRemoteDataSource implements AuthRemoteDataSource {
     try {
       // First fetch current accounts
       Map<String, dynamic> currentAccounts = {};
-      final existing = await _fetchCloudAccountsMap();
+      final existing = await _fetchCloudAccountsMap(forceRefresh: true);
       if (existing != null) {
         currentAccounts = Map<String, dynamic>.from(existing);
       }
 
       currentAccounts[emailHash] = accountData;
+      _cachedAccountsMap = currentAccounts;
+      _cacheTimestamp = DateTime.now();
 
       final payload = {
-        'name': 'looma_global_auth_registry_v1',
+        'name': 'procut_global_auth_registry_v1',
         'data': {
           'accounts': currentAccounts,
           'lastUpdatedAt': DateTime.now().toIso8601String(),

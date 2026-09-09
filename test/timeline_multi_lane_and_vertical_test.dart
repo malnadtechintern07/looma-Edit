@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:looma/features/editor/domain/entities/video_clip_entity.dart';
-import 'package:looma/features/editor/presentation/providers/editor_controller.dart';
-import 'package:looma/features/editor/presentation/utils/timeline_layout_helper.dart';
-import 'package:looma/features/editor/presentation/widgets/multi_track_timeline.dart';
-import 'package:looma/features/projects/domain/entities/aspect_ratio_type.dart';
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
-import 'package:looma/features/text_stickers/domain/entities/text_overlay_entity.dart';
-import 'package:looma/features/text_stickers/presentation/widgets/sticker_picker_sheet.dart';
+import 'package:procut/features/editor/domain/entities/video_clip_entity.dart';
+import 'package:procut/features/editor/presentation/providers/editor_controller.dart';
+import 'package:procut/features/editor/presentation/utils/timeline_layout_helper.dart';
+import 'package:procut/features/editor/presentation/widgets/multi_track_timeline.dart';
+import 'package:procut/features/projects/domain/entities/aspect_ratio_type.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/features/text_stickers/domain/entities/text_overlay_entity.dart';
+import 'package:procut/features/text_stickers/presentation/widgets/sticker_picker_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {

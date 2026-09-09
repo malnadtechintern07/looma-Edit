@@ -6,9 +6,9 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/services/app_actions_service.dart';
 import '../../../../core/services/gallery_saver_service.dart';
-import '../../../../core/widgets/looma_button.dart';
-import '../../../../core/widgets/looma_card.dart';
-import '../../../../core/widgets/looma_watermark.dart';
+import '../../../../core/widgets/procut_button.dart';
+import '../../../../core/widgets/procut_card.dart';
+import '../../../../core/widgets/procut_watermark.dart';
 import '../../../../core/widgets/rate_us_dialog.dart';
 import '../../../projects/domain/entities/project_entity.dart';
 import '../../../projects/presentation/providers/projects_provider.dart';
@@ -92,7 +92,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
         }
 
         if (sourcePath.isNotEmpty && File(sourcePath).existsSync()) {
-          final fileName = 'looma_${_project!.title.replaceAll(' ', '_').toLowerCase()}';
+          final fileName = 'procut_${_project!.title.replaceAll(' ', '_').toLowerCase()}';
           final savedPath = await GallerySaverService.saveVideoToDeviceGallery(
             sourceFilePath: sourcePath,
             fileName: fileName,
@@ -180,7 +180,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Project Summary Card
-                  LoomaCard(
+                  ProCutCard(
                     child: Row(
                       children: [
                         Container(
@@ -326,18 +326,18 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                   }),
                   const SizedBox(height: 20),
 
-                  // Looma Watermark Toggle
-                  LoomaCard(
+                  // ProCut Watermark Toggle
+                  ProCutCard(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     child: Row(
                       children: [
-                        const LoomaWatermark(opacity: 0.85, scale: 0.95),
+                        const ProCutWatermark(opacity: 0.85, scale: 0.95),
                         const SizedBox(width: 14),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Looma Watermark', style: AppTypography.titleSmall),
+                              Text('ProCut Watermark', style: AppTypography.titleSmall),
                               const SizedBox(height: 2),
                               Text(
                                 'Clean watermark in bottom-right corner',
@@ -391,7 +391,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                   const SizedBox(height: 32),
 
                   // Render Button CTA
-                  LoomaButton(
+                  ProCutButton(
                     label: 'Render Video Now',
                     icon: Icons.movie_creation,
                     isFullWidth: true,
@@ -495,7 +495,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
             const SizedBox(height: 32),
 
             if (isCompleted) ...[
-              LoomaButton(
+              ProCutButton(
                 label: 'Save Again to Gallery',
                 icon: Icons.save_alt,
                 isFullWidth: true,
@@ -510,7 +510,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                         .firstOrNull;
                     sourcePath = realClip?.mediaPath ?? 'assets/demo/alps_sunrise.mp4';
                   }
-                  final fileName = 'looma_${_project!.title.replaceAll(' ', '_').toLowerCase()}_${DateTime.now().millisecondsSinceEpoch}';
+                  final fileName = 'procut_${_project!.title.replaceAll(' ', '_').toLowerCase()}_${DateTime.now().millisecondsSinceEpoch}';
                   final path = await GallerySaverService.saveVideoToDeviceGallery(
                     sourceFilePath: sourcePath,
                     fileName: fileName,

@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:looma/core/services/app_actions_service.dart';
-import 'package:looma/core/widgets/rate_us_dialog.dart';
-import 'package:looma/features/profile/presentation/screens/profile_screen.dart';
+import 'package:procut/core/services/app_actions_service.dart';
+import 'package:procut/core/widgets/rate_us_dialog.dart';
+import 'package:procut/features/profile/presentation/screens/profile_screen.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -17,7 +17,7 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       channelCalls = [];
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(const MethodChannel('looma/app_actions'), (call) async {
+          .setMockMethodCallHandler(const MethodChannel('procut/app_actions'), (call) async {
         channelCalls.add(call);
         if (call.method == 'openPlayStore') {
           return true;
@@ -30,7 +30,7 @@ void main() {
 
     tearDown(() {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(const MethodChannel('looma/app_actions'), null);
+          .setMockMethodCallHandler(const MethodChannel('procut/app_actions'), null);
     });
 
     test('AppActionsService saves user rating and tracks first-export prompt', () async {
@@ -47,12 +47,12 @@ void main() {
       expect(await AppActionsService.hasShownFirstExportRating(), isTrue);
     });
 
-    test('AppActionsService.openPlayStore invokes looma/app_actions channel on Android', () async {
+    test('AppActionsService.openPlayStore invokes procut/app_actions channel on Android', () async {
       final res = await AppActionsService.openPlayStore();
       expect(res, isA<bool>());
     });
 
-    test('AppActionsService.shareApp invokes looma/app_actions channel or fallback', () async {
+    test('AppActionsService.shareApp invokes procut/app_actions channel or fallback', () async {
       final res = await AppActionsService.shareApp(
         text: 'Test share message',
         subject: 'Test subject',
@@ -86,7 +86,7 @@ void main() {
 
       // Verify RateUsDialog appeared
       expect(find.byKey(const Key('rate_us_dialog')), findsOneWidget);
-      expect(find.text('Rate Looma Video Editor'), findsOneWidget);
+      expect(find.text('Rate ProCut Video Editor'), findsOneWidget);
       expect(find.byKey(const Key('rate_us_star_1')), findsOneWidget);
       expect(find.byKey(const Key('rate_us_star_5')), findsOneWidget);
       expect(find.byKey(const Key('rate_us_submit_button')), findsOneWidget);
@@ -162,7 +162,7 @@ void main() {
 
       // Dialog should be shown
       expect(find.byKey(const Key('rate_us_dialog')), findsOneWidget);
-      expect(find.text('Enjoying Looma?'), findsOneWidget);
+      expect(find.text('Enjoying ProCut?'), findsOneWidget);
 
       // Close it
       await tester.tap(find.byKey(const Key('rate_us_cancel_button')));

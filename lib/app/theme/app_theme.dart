@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'app_colors.dart';
 import 'app_typography.dart';
 
-/// Dark modern theme configuration for LOOMA
+/// Dark modern theme configuration for ProCut
 class AppTheme {
   static ThemeData get darkTheme {
     return ThemeData(

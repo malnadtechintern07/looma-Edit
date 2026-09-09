@@ -1,18 +1,18 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:looma/core/storage/local_storage_service.dart';
-import 'package:looma/features/auth/domain/entities/user_entity.dart';
-import 'package:looma/features/auth/domain/repositories/auth_repository.dart';
-import 'package:looma/features/cloud_sync/data/datasources/cloud_storage_datasource.dart';
-import 'package:looma/features/cloud_sync/data/repositories/cloud_sync_repository_impl.dart';
-import 'package:looma/features/cloud_sync/domain/entities/cloud_backup_record.dart';
-import 'package:looma/features/projects/data/datasources/project_local_datasource.dart';
-import 'package:looma/features/projects/data/repositories/project_repository_impl.dart';
-import 'package:looma/features/projects/domain/entities/aspect_ratio_type.dart';
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
-import 'package:looma/features/projects/domain/usecases/project_usecases.dart';
-import 'package:looma/features/projects/presentation/providers/projects_provider.dart';
+import 'package:procut/core/storage/local_storage_service.dart';
+import 'package:procut/features/auth/domain/entities/user_entity.dart';
+import 'package:procut/features/auth/domain/repositories/auth_repository.dart';
+import 'package:procut/features/cloud_sync/data/datasources/cloud_storage_datasource.dart';
+import 'package:procut/features/cloud_sync/data/repositories/cloud_sync_repository_impl.dart';
+import 'package:procut/features/cloud_sync/domain/entities/cloud_backup_record.dart';
+import 'package:procut/features/projects/data/datasources/project_local_datasource.dart';
+import 'package:procut/features/projects/data/repositories/project_repository_impl.dart';
+import 'package:procut/features/projects/domain/entities/aspect_ratio_type.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/features/projects/domain/usecases/project_usecases.dart';
+import 'package:procut/features/projects/presentation/providers/projects_provider.dart';
 
 class _FakeAuthRepository implements AuthRepository {
   final UserEntity _user = UserEntity(
@@ -102,6 +102,25 @@ void main() {
     await storageService.clearAll();
     localDataSource = ProjectLocalDataSourceImpl(storageService: storageService);
     repository = ProjectRepositoryImpl(localDataSource: localDataSource);
+    final now = DateTime.now();
+    await repository.saveProject(
+      ProjectEntity(
+        id: 'p1',
+        title: 'Project 1',
+        aspectRatio: AspectRatioType.ratio9_16,
+        createdAt: now.subtract(const Duration(hours: 2)),
+        updatedAt: now.subtract(const Duration(hours: 2)),
+      ),
+    );
+    await repository.saveProject(
+      ProjectEntity(
+        id: 'p2',
+        title: 'Project 2',
+        aspectRatio: AspectRatioType.ratio16_9,
+        createdAt: now.subtract(const Duration(hours: 1)),
+        updatedAt: now.subtract(const Duration(hours: 1)),
+      ),
+    );
   });
 
   group('Project Sorting & Refresh Stability Tests', () {

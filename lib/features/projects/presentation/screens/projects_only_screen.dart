@@ -413,7 +413,7 @@ class _ProjectsOnlyScreenState extends ConsumerState<ProjectsOnlyScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Text('Sign In Required', style: TextStyle(fontWeight: FontWeight.bold)),
           content: const Text(
-            'To back up and synchronize projects across devices with Looma Cloud, please sign in or create an account.',
+            'To back up and synchronize projects across devices with ProCut Cloud, please sign in or create an account.',
             style: TextStyle(fontSize: 13, height: 1.4),
           ),
           actions: [
@@ -439,7 +439,7 @@ class _ProjectsOnlyScreenState extends ConsumerState<ProjectsOnlyScreen> {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Syncing "${project.title}" to Looma Cloud...')),
+      SnackBar(content: Text('Syncing "${project.title}" to ProCut Cloud...')),
     );
     final ok = await ref.read(syncNotifierProvider.notifier).syncSingleProject(project.id);
     if (mounted) {

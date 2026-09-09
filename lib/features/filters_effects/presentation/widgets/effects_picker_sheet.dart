@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
-import '../../../../core/widgets/looma_slider.dart';
+import '../../../../core/widgets/procut_slider.dart';
 import '../../domain/entities/video_effect_type.dart';
 
 class EffectsPickerSheet extends StatefulWidget {
@@ -922,7 +922,7 @@ class _EffectsPickerSheetState extends State<EffectsPickerSheet> {
           const SizedBox(height: 12),
 
           // Blur Sigma
-          LoomaSlider(
+          ProCutSlider(
             label: 'Gaussian Blur Radius',
             icon: Icons.blur_on,
             value: _blur,
@@ -938,7 +938,7 @@ class _EffectsPickerSheetState extends State<EffectsPickerSheet> {
           const SizedBox(height: 14),
 
           // Zoom Scale
-          LoomaSlider(
+          ProCutSlider(
             label: 'Dynamic Zoom Scale',
             icon: Icons.zoom_in,
             value: _zoom,
@@ -954,7 +954,7 @@ class _EffectsPickerSheetState extends State<EffectsPickerSheet> {
           const SizedBox(height: 14),
 
           // Fade In
-          LoomaSlider(
+          ProCutSlider(
             label: 'Fade In Duration',
             icon: Icons.gradient,
             value: _fadeInSec,
@@ -970,7 +970,7 @@ class _EffectsPickerSheetState extends State<EffectsPickerSheet> {
           const SizedBox(height: 14),
 
           // Fade Out
-          LoomaSlider(
+          ProCutSlider(
             label: 'Fade Out Duration',
             icon: Icons.gradient,
             value: _fadeOutSec,
@@ -986,7 +986,7 @@ class _EffectsPickerSheetState extends State<EffectsPickerSheet> {
           const SizedBox(height: 14),
 
           // Brightness
-          LoomaSlider(
+          ProCutSlider(
             label: 'Luminance Offset',
             icon: Icons.brightness_6,
             value: _brightness,
@@ -1002,7 +1002,7 @@ class _EffectsPickerSheetState extends State<EffectsPickerSheet> {
           const SizedBox(height: 14),
 
           // Contrast
-          LoomaSlider(
+          ProCutSlider(
             label: 'Contrast Multiplier',
             icon: Icons.contrast,
             value: _contrast,
@@ -1018,7 +1018,7 @@ class _EffectsPickerSheetState extends State<EffectsPickerSheet> {
           const SizedBox(height: 14),
 
           // Saturation
-          LoomaSlider(
+          ProCutSlider(
             label: 'Chroma Saturation',
             icon: Icons.color_lens,
             value: _saturation,

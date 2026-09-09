@@ -2,18 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:looma/core/storage/local_storage_service.dart';
-import 'package:looma/features/auth/domain/entities/user_entity.dart';
-import 'package:looma/features/auth/presentation/providers/auth_provider.dart';
-import 'package:looma/features/cloud_sync/data/datasources/bunny_cloud_storage_datasource.dart';
-import 'package:looma/features/cloud_sync/domain/entities/bunny_storage_config.dart';
-import 'package:looma/features/cloud_sync/domain/entities/user_account_entity.dart';
-import 'package:looma/features/cloud_sync/presentation/providers/cloud_sync_provider.dart';
-import 'package:looma/features/cloud_sync/presentation/screens/cloud_sync_screen.dart';
-import 'package:looma/features/editor/domain/entities/video_clip_entity.dart';
-import 'package:looma/features/projects/domain/entities/aspect_ratio_type.dart';
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
-import 'package:looma/features/projects/domain/entities/sync_status_type.dart';
+import 'package:procut/core/storage/local_storage_service.dart';
+import 'package:procut/features/auth/domain/entities/user_entity.dart';
+import 'package:procut/features/auth/presentation/providers/auth_provider.dart';
+import 'package:procut/features/cloud_sync/data/datasources/bunny_cloud_storage_datasource.dart';
+import 'package:procut/features/cloud_sync/domain/entities/bunny_storage_config.dart';
+import 'package:procut/features/cloud_sync/domain/entities/user_account_entity.dart';
+import 'package:procut/features/cloud_sync/presentation/providers/cloud_sync_provider.dart';
+import 'package:procut/features/cloud_sync/presentation/screens/cloud_sync_screen.dart';
+import 'package:procut/features/editor/domain/entities/video_clip_entity.dart';
+import 'package:procut/features/projects/domain/entities/aspect_ratio_type.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/features/projects/domain/entities/sync_status_type.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -43,7 +43,7 @@ void main() {
   group('BunnyStorageConfig Tests', () {
     test('defaultConfig has valid default values', () {
       final def = BunnyStorageConfig.defaultConfig();
-      expect(def.storageZoneName, 'looma-storage');
+      expect(def.storageZoneName, 'procut-storage');
       expect(def.hasValidCredentials, isTrue);
       expect(def.storageEndpoint, 'storage.bunnycdn.com');
       expect(def.isEnabled, isTrue);
@@ -223,6 +223,9 @@ class _MockAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier
   _MockAuthNotifier(super.state);
 
   @override
+  Future<void> Function()? get onUserAuthenticated => null;
+
+  @override
   Future<void> checkCurrentSession() async {}
 
   @override
@@ -240,5 +243,6 @@ class _MockAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier
   @override
   Future<bool> forgotPassword({required String email, required String newPassword}) async => true;
 }
+
 
 

@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Looma</string>
+	<string>ProCut</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>looma</string>
+	<string>procut</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -67,14 +67,14 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSCameraUsageDescription</key>
-	<string>Looma requires camera access to record videos and capture photos directly into your project timeline.</string>
+	<string>ProCut requires camera access to record videos and capture photos directly into your project timeline.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Looma requires microphone access to record voiceovers and audio commentary for your video projects.</string>
+	<string>ProCut requires microphone access to record voiceovers and audio commentary for your video projects.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Looma requires photo library access to import video clips, images, and audio tracks for editing.</string>
+	<string>ProCut requires photo library access to import video clips, images, and audio tracks for editing.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Looma requires permission to save rendered and exported videos directly to your photo library.</string>
+	<string>ProCut requires permission to save rendered and exported videos directly to your photo library.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Looma uses location data to optionally tag video and photo project media with location metadata.</string>
+	<string>ProCut uses location data to optionally tag video and photo project media with location metadata.</string>
 </dict>
 </plist>

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:looma/core/storage/local_storage_service.dart';
-import 'package:looma/features/editor/domain/entities/video_clip_entity.dart';
-import 'package:looma/features/editor/presentation/providers/editor_controller.dart';
-import 'package:looma/features/editor/presentation/widgets/video_track_item.dart';
-import 'package:looma/features/projects/domain/entities/aspect_ratio_type.dart';
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/core/storage/local_storage_service.dart';
+import 'package:procut/features/editor/domain/entities/video_clip_entity.dart';
+import 'package:procut/features/editor/presentation/providers/editor_controller.dart';
+import 'package:procut/features/editor/presentation/widgets/video_track_item.dart';
+import 'package:procut/features/projects/domain/entities/aspect_ratio_type.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

@@ -19,7 +19,7 @@ class AssetStoreDataSourceImpl implements AssetStoreDataSource {
         id: 'tmpl-viral-phonk',
         title: '🔥 Viral Phonk Drift Reel',
         description: 'Fast rhythmic cuts, heavy bass drop transitions, and neon cyberpunk subtitle styling.',
-        author: 'Looma Originals',
+        author: 'ProCut Originals',
         aspectRatio: AspectRatioType.ratio9_16,
         durationMs: 10000,
         clipsCount: 6,
@@ -126,7 +126,7 @@ class AssetStoreDataSourceImpl implements AssetStoreDataSource {
         durationMs: 45000,
         bpm: 82,
         mood: 'Relaxing',
-        audioUrl: 'https://cdn.looma.app/audio/midnight_lofi.mp3',
+        audioUrl: 'https://cdn.procut.app/audio/midnight_lofi.mp3',
         waveformSamples: [
           0.3, 0.4, 0.6, 0.7, 0.5, 0.65, 0.8, 0.75, 0.4, 0.5, 0.7, 0.85, 0.9, 0.6, 0.4, 0.2
         ],
@@ -140,7 +140,7 @@ class AssetStoreDataSourceImpl implements AssetStoreDataSource {
         durationMs: 38000,
         bpm: 124,
         mood: 'Energetic',
-        audioUrl: 'https://cdn.looma.app/audio/neon_highway.mp3',
+        audioUrl: 'https://cdn.procut.app/audio/neon_highway.mp3',
         waveformSamples: [
           0.5, 0.7, 0.9, 0.85, 0.95, 0.8, 0.85, 0.9, 0.7, 0.8, 0.95, 1.0, 0.75, 0.6, 0.4
         ],
@@ -154,7 +154,7 @@ class AssetStoreDataSourceImpl implements AssetStoreDataSource {
         durationMs: 60000,
         bpm: 68,
         mood: 'Inspirational',
-        audioUrl: 'https://cdn.looma.app/audio/dawn_horizon.mp3',
+        audioUrl: 'https://cdn.procut.app/audio/dawn_horizon.mp3',
         waveformSamples: [
           0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.75, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1
         ],

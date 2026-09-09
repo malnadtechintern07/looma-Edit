@@ -1,55 +1,67 @@
 import 'auth_remote_datasource.dart';
 
 /// Composite remote data source that orchestrates multiple cloud providers
-/// (Global Zero-Config Cloud Registry + Optional Bunny.net Storage) with resilient fallbacks.
+/// (Ntfy.sh Global Pub/Sub, Zero-Config Cloud Registry, and Optional Bunny.net) with resilient fallbacks.
 class CompositeAuthRemoteDataSource implements AuthRemoteDataSource {
-  final AuthRemoteDataSource primary;
-  final AuthRemoteDataSource? secondary;
+  final List<AuthRemoteDataSource> _sources;
 
   CompositeAuthRemoteDataSource({
-    required this.primary,
-    this.secondary,
-  });
+    AuthRemoteDataSource? primary,
+    AuthRemoteDataSource? secondary,
+    List<AuthRemoteDataSource>? dataSources,
+  }) : _sources = dataSources ?? [
+          ?primary,
+          ?secondary,
+        ];
 
   @override
   Future<Map<String, dynamic>?> getAccountByEmail(String email) async {
-    // 1. Try primary zero-config global cloud
-    final account = await primary.getAccountByEmail(email);
-    if (account != null) return account;
-
-    // 2. Try secondary (e.g. Bunny.net if enabled)
-    if (secondary != null) {
-      return await secondary!.getAccountByEmail(email);
+    for (final source in _sources) {
+      try {
+        final account = await source.getAccountByEmail(email);
+        if (account != null && account['email'] != null) {
+          return account;
+        }
+      } catch (_) {}
     }
     return null;
   }
 
   @override
   Future<Map<String, dynamic>?> getAccountById(String id) async {
-    final account = await primary.getAccountById(id);
-    if (account != null) return account;
-
-    if (secondary != null) {
-      return await secondary!.getAccountById(id);
+    for (final source in _sources) {
+      try {
+        final account = await source.getAccountById(id);
+        if (account != null && account['id'] != null) {
+          return account;
+        }
+      } catch (_) {}
     }
     return null;
   }
 
   @override
   Future<bool> saveAccount(Map<String, dynamic> accountData) async {
-    final primaryOk = await primary.saveAccount(accountData);
-    if (secondary != null) {
-      await secondary!.saveAccount(accountData);
+    bool anySuccess = false;
+    for (final source in _sources) {
+      try {
+        final ok = await source.saveAccount(accountData);
+        if (ok) anySuccess = true;
+      } catch (_) {}
     }
-    return primaryOk;
+    return anySuccess || _sources.isEmpty;
   }
 
   @override
   Future<bool> updateAccount(Map<String, dynamic> accountData) async {
-    final primaryOk = await primary.updateAccount(accountData);
-    if (secondary != null) {
-      await secondary!.updateAccount(accountData);
+    bool anySuccess = false;
+    for (final source in _sources) {
+      try {
+        final ok = await source.updateAccount(accountData);
+        if (ok) anySuccess = true;
+      } catch (_) {}
     }
-    return primaryOk;
+    return anySuccess || _sources.isEmpty;
   }
 }
+

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:looma/core/services/permission_service.dart';
-import 'package:looma/core/widgets/permissions_primer_dialog.dart';
-import 'package:looma/features/profile/presentation/screens/profile_screen.dart';
-import 'package:looma/features/projects/presentation/screens/home_screen.dart';
+import 'package:procut/core/services/permission_service.dart';
+import 'package:procut/core/widgets/permissions_primer_dialog.dart';
+import 'package:procut/features/profile/presentation/screens/profile_screen.dart';
+import 'package:procut/features/projects/presentation/screens/home_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -66,7 +66,7 @@ void main() {
 
       // Header elements
       expect(find.text('Permissions & Privacy'), findsOneWidget);
-      expect(find.text('Review features Looma uses for video editing'), findsOneWidget);
+      expect(find.text('Review features ProCut uses for video editing'), findsOneWidget);
       expect(find.byIcon(Icons.shield_outlined), findsOneWidget);
 
       // All 5 Permission titles
@@ -77,7 +77,7 @@ void main() {
       expect(find.text('Location (Optional)'), findsOneWidget);
 
       // Privacy pledge
-      expect(find.textContaining('Looma respects your privacy', findRichText: true), findsOneWidget);
+      expect(find.textContaining('ProCut respects your privacy', findRichText: true), findsOneWidget);
 
       // Buttons
       expect(find.text('Maybe Later'), findsOneWidget);

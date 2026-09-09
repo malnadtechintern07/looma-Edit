@@ -14,12 +14,12 @@ class BunnyStorageConfig {
     this.isEnabled = true,
   });
 
-  /// Default configuration for LOOMA Cloud Storage on Bunny.net
+  /// Default configuration for ProCut Cloud Storage on Bunny.net
   factory BunnyStorageConfig.defaultConfig() => const BunnyStorageConfig(
-        storageZoneName: 'looma-storage',
-        accessKey: 'bny_live_looma_storage_key_default',
+        storageZoneName: 'procut-storage',
+        accessKey: 'bny_live_procut_storage_key_default',
         storageEndpoint: 'storage.bunnycdn.com',
-        cdnHostname: 'looma.b-cdn.net',
+        cdnHostname: 'procut.b-cdn.net',
         isEnabled: true,
       );
 
@@ -65,7 +65,7 @@ class BunnyStorageConfig {
 
   factory BunnyStorageConfig.fromJson(Map<String, dynamic> json) =>
       BunnyStorageConfig(
-        storageZoneName: (json['storageZoneName'] as String?) ?? 'looma-storage',
+        storageZoneName: (json['storageZoneName'] as String?) ?? 'procut-storage',
         accessKey: (json['accessKey'] as String?) ?? '',
         storageEndpoint:
             (json['storageEndpoint'] as String?) ?? 'storage.bunnycdn.com',

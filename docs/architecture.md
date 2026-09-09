@@ -1,7 +1,7 @@
-# LOOMA Architecture Documentation
+# ProCut Architecture Documentation
 
 ## Overview
-**LOOMA** is built strictly following the **Flutter Production Architecture Standard**:
+**ProCut** is built strictly following the **Flutter Production Architecture Standard**:
 - **Clean Architecture** (Separation of Presentation, Domain, and Data layers)
 - **Feature-First Organization**
 - **Repository Pattern** with Dependency Inversion

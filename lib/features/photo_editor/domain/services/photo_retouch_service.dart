@@ -71,7 +71,7 @@ class PhotoRetouchService {
     }
 
     final dir = await getApplicationDocumentsDirectory();
-    final fileName = 'LOOMA_RETOUCH_${DateTime.now().millisecondsSinceEpoch}.png';
+    final fileName = 'PROCUT_RETOUCH_${DateTime.now().millisecondsSinceEpoch}.png';
     final file = File('${dir.path}/$fileName');
     await file.writeAsBytes(img.encodePng(output));
 

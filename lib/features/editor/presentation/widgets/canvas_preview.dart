@@ -10,7 +10,7 @@ import '../../../../app/theme/app_typography.dart';
 import '../../../../core/rendering/chroma_key_filter.dart';
 import '../../../../core/utils/font_helper.dart';
 import '../../../../core/utils/timecode_formatter.dart';
-import '../../../../core/widgets/looma_watermark.dart';
+import '../../../../core/widgets/procut_watermark.dart';
 import '../../../../core/widgets/responsive_tap_button.dart';
 import '../../../editor/domain/entities/transition_type.dart';
 import '../../../filters_effects/domain/entities/filter_preset.dart';
@@ -675,12 +675,12 @@ class _CanvasPreviewState extends State<CanvasPreview> {
                               ),
                             ],
 
-                            // 8. Subtle Looma Watermark in Bottom-Right Corner
+                            // 8. Subtle ProCut Watermark in Bottom-Right Corner
                             const Positioned(
                               right: 10,
                               bottom: 10,
                               child: IgnorePointer(
-                                child: LoomaWatermark(opacity: 0.65, scale: 0.9),
+                                child: ProCutWatermark(opacity: 0.65, scale: 0.9),
                               ),
                             ),
                           ],
@@ -5553,12 +5553,12 @@ class _FullScreenEditorPreviewDialogState extends State<_FullScreenEditorPreview
                             );
                           }),
 
-                          // Subtle Looma Watermark in Bottom-Right Corner
+                          // Subtle ProCut Watermark in Bottom-Right Corner
                           const Positioned(
                             right: 14,
                             bottom: 14,
                             child: IgnorePointer(
-                              child: LoomaWatermark(opacity: 0.7, scale: 1.0),
+                              child: ProCutWatermark(opacity: 0.7, scale: 1.0),
                             ),
                           ),
                         ],

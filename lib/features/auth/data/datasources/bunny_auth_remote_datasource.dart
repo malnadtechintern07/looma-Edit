@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
-import 'package:looma/core/storage/local_storage_service.dart';
-import 'package:looma/features/cloud_sync/data/datasources/bunny_storage_service.dart';
-import 'package:looma/features/cloud_sync/domain/entities/bunny_storage_config.dart';
+import 'package:procut/core/storage/local_storage_service.dart';
+import 'package:procut/features/cloud_sync/data/datasources/bunny_storage_service.dart';
+import 'package:procut/features/cloud_sync/domain/entities/bunny_storage_config.dart';
 import 'auth_remote_datasource.dart';
 
 /// Bunny.net Edge Cloud Storage implementation for multi-device authentication,
@@ -24,10 +24,10 @@ class BunnyAuthRemoteDataSource implements AuthRemoteDataSource {
 
   // Remote Bunny.net paths
   String _remoteAccountPath(String email) =>
-      'looma/auth/accounts/account_${_emailHash(email)}.json';
+      'procut/auth/accounts/account_${_emailHash(email)}.json';
   String _remoteUserPath(String userId) =>
-      'looma/auth/users/user_$userId.json';
-  static const String _remoteCatalogPath = 'looma/auth/catalog.json';
+      'procut/auth/users/user_$userId.json';
+  static const String _remoteCatalogPath = 'procut/auth/catalog.json';
 
   // Local cloud fallback paths (enables cross-device simulation and offline resiliency)
   String _localAccountPath(String email) =>

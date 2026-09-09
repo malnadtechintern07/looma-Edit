@@ -1,18 +1,18 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:looma/app/app.dart';
-import 'package:looma/core/storage/local_storage_service.dart';
-import 'package:looma/core/storage/storage_providers.dart';
+import 'package:procut/app/app.dart';
+import 'package:procut/core/storage/local_storage_service.dart';
+import 'package:procut/core/storage/storage_providers.dart';
 
 void main() {
-  testWidgets('LOOMA App Smoke Test - Renders Home and Branding', (WidgetTester tester) async {
+  testWidgets('ProCut App Smoke Test - Renders Home and Branding', (WidgetTester tester) async {
     final storageService = LocalStorageService();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           localStorageServiceProvider.overrideWithValue(storageService),
         ],
-        child: const LoomaApp(),
+        child: const ProCutApp(),
       ),
     );
 
@@ -21,8 +21,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
 
-    // Verify LOOMA brand logo & title
-    expect(find.text('LOOMA'), findsOneWidget);
+    // Verify PROCUT brand logo & title
+    expect(find.text('PROCUT'), findsOneWidget);
     expect(find.text('PRO'), findsOneWidget);
   });
 }

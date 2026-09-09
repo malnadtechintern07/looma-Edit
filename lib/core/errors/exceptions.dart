@@ -1,4 +1,4 @@
-/// Base Exception for all data/infrastructure errors in LOOMA
+/// Base Exception for all data/infrastructure errors in ProCut
 abstract class AppException implements Exception {
   final String message;
   final String? code;

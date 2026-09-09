@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.looma.app" "\0"
-            VALUE "FileDescription", "looma" "\0"
+            VALUE "CompanyName", "com.procut.app" "\0"
+            VALUE "FileDescription", "ProCut" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "looma" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.looma.app. All rights reserved." "\0"
-            VALUE "OriginalFilename", "looma.exe" "\0"
-            VALUE "ProductName", "looma" "\0"
+            VALUE "InternalName", "ProCut" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 com.procut.app. All rights reserved." "\0"
+            VALUE "OriginalFilename", "procut.exe" "\0"
+            VALUE "ProductName", "ProCut" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

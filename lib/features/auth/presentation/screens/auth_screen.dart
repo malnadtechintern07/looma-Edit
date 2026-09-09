@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:procut/core/config/server_config.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
-import 'package:looma/features/cloud_sync/presentation/providers/cloud_sync_provider.dart';
+import 'package:procut/features/cloud_sync/presentation/providers/cloud_sync_provider.dart';
 import '../providers/auth_provider.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
@@ -56,7 +57,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       success = await ref.read(authNotifierProvider.notifier).register(
             email: email,
             password: password,
-            displayName: name.isNotEmpty ? name : 'Looma Creator',
+            displayName: name.isNotEmpty ? name : 'ProCut Creator',
           );
     } else {
       success = await ref.read(authNotifierProvider.notifier).login(
@@ -76,7 +77,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: AppColors.success,
-          content: Text(_isRegister ? 'Account created successfully! Welcome to Looma.' : 'Welcome back to Looma!'),
+          content: Text(_isRegister ? 'Account created successfully! Welcome to ProCut.' : 'Welcome back to ProCut!'),
         ),
       );
       if (Navigator.of(context).canPop()) {
@@ -126,7 +127,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Enter your registered email and choose a new password for your Looma account.',
+                  'Enter your registered email and choose a new password for your ProCut account.',
                   style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 13, height: 1.4),
                 ),
                 const SizedBox(height: 16),
@@ -219,6 +220,112 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     );
   }
 
+  void _showServerConfigDialog() async {
+    final currentUrl = await ServerConfig.getBaseUrl();
+    final urlCtrl = TextEditingController(text: currentUrl);
+
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF161822),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0xFF2E3245)),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.dns_outlined, color: Color(0xFF10B981), size: 20),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Server & Database',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'ProCut connects to your MySQL backend server for account authentication and project synchronization across devices.',
+              style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 13, height: 1.4),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: urlCtrl,
+              style: const TextStyle(color: Colors.white, fontSize: 13.5),
+              decoration: InputDecoration(
+                labelText: 'Server Base URL',
+                labelStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+                prefixIcon: const Icon(Icons.cloud_queue_outlined, color: Color(0xFF9CA3AF), size: 18),
+                filled: true,
+                fillColor: const Color(0xFF0F1017),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF2A2D3D)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextButton(
+                  onPressed: () {
+                    urlCtrl.text = ServerConfig.defaultUrl;
+                  },
+                  child: const Text('Reset to Default', style: TextStyle(color: Color(0xFF00A2FF), fontSize: 12)),
+                ),
+                Text(
+                  'Default: ${ServerConfig.defaultLocalIp}:${ServerConfig.defaultPort}',
+                  style: const TextStyle(color: Color(0xFF6B7280), fontSize: 11),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF9CA3AF))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () async {
+              final newUrl = urlCtrl.text.trim();
+              if (newUrl.isNotEmpty) {
+                await ServerConfig.setBaseUrl(newUrl);
+                if (ctx.mounted) Navigator.of(ctx).pop();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: AppColors.success,
+                      content: Text('Server URL updated: $newUrl'),
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Save Server'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
@@ -238,6 +345,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             }
           },
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.dns_outlined, color: Color(0xFF9CA3AF), size: 20),
+            tooltip: 'Server & Database Settings',
+            onPressed: _showServerConfigDialog,
+          ),
+        ],
       ),
       body: SafeArea(
         child: Center(
@@ -251,7 +365,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // 1. Looma Logo & Hero Title
+                    // 1. ProCut Logo & Hero Title
                     Container(
                       width: 76,
                       height: 76,
@@ -277,7 +391,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'LOOMA',
+                          'PROCUT',
                           style: AppTypography.displayMedium.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w900,
@@ -495,7 +609,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           _buildInputField(
                             controller: _emailController,
                             label: 'Email Address',
-                            hint: 'creator@looma.app',
+                            hint: 'creator@procut.app',
                             icon: Icons.email_outlined,
                             keyboardType: TextInputType.emailAddress,
                             validator: (val) {

@@ -1,12 +1,12 @@
 import 'package:flutter/foundation.dart';
-import 'package:looma/features/audio/domain/entities/audio_clip_entity.dart';
-import 'package:looma/features/editor/domain/entities/animation_clip_entity.dart';
-import 'package:looma/features/editor/domain/entities/subtitle_entity.dart';
-import 'package:looma/features/editor/domain/entities/video_clip_entity.dart';
-import 'package:looma/features/filters_effects/domain/entities/effect_clip_entity.dart';
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
-import 'package:looma/features/text_stickers/domain/entities/sticker_overlay_entity.dart';
-import 'package:looma/features/text_stickers/domain/entities/text_overlay_entity.dart';
+import 'package:procut/features/audio/domain/entities/audio_clip_entity.dart';
+import 'package:procut/features/editor/domain/entities/animation_clip_entity.dart';
+import 'package:procut/features/editor/domain/entities/subtitle_entity.dart';
+import 'package:procut/features/editor/domain/entities/video_clip_entity.dart';
+import 'package:procut/features/filters_effects/domain/entities/effect_clip_entity.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/features/text_stickers/domain/entities/sticker_overlay_entity.dart';
+import 'package:procut/features/text_stickers/domain/entities/text_overlay_entity.dart';
 
 enum SelectionType { none, videoClip, overlayClip, audioClip, textOverlay, stickerOverlay, subtitle, effectClip, animationClip }
 

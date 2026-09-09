@@ -4,14 +4,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// Service for native app actions: Google Play Store rating, in-app rating storage & native share sheet
 class AppActionsService {
-  static const MethodChannel _channel = MethodChannel('looma/app_actions');
-  static const String loomaPackageName = 'com.looma.app.looma';
-  static const String playStoreWebUrl = 'https://play.google.com/store/apps/details?id=$loomaPackageName';
+  static const MethodChannel _channel = MethodChannel('procut/app_actions');
+  static const String procutPackageName = 'com.procut.app.procut';
+  static const String loomaPackageName = procutPackageName;
+  static const String playStoreWebUrl = 'https://play.google.com/store/apps/details?id=$procutPackageName';
 
-  static const String prefUserRating = 'looma_user_rating';
-  static const String prefHasRated = 'looma_has_rated';
-  static const String prefHasShownFirstExportRating = 'looma_has_shown_first_export_rating';
-  static const String prefRatedAt = 'looma_rated_at';
+  static const String prefUserRating = 'procut_user_rating';
+  static const String prefHasRated = 'procut_has_rated';
+  static const String prefHasShownFirstExportRating = 'procut_has_shown_first_export_rating';
+  static const String prefRatedAt = 'procut_rated_at';
 
   /// Save user rating (1-5), mark as rated, and mark first-export rating as completed
   static Future<void> saveUserRating(int rating) async {
@@ -28,7 +29,7 @@ class AppActionsService {
   static Future<int?> getSavedRating() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getInt(prefUserRating);
+      return prefs.getInt(prefUserRating) ?? prefs.getInt('looma_user_rating');
     } catch (_) {
       return null;
     }
@@ -38,8 +39,8 @@ class AppActionsService {
   static Future<bool> hasShownFirstExportRating() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final hasShown = prefs.getBool(prefHasShownFirstExportRating) ?? false;
-      final hasRated = prefs.getBool(prefHasRated) ?? false;
+      final hasShown = prefs.getBool(prefHasShownFirstExportRating) ?? prefs.getBool('looma_has_shown_first_export_rating') ?? false;
+      final hasRated = prefs.getBool(prefHasRated) ?? prefs.getBool('looma_has_rated') ?? false;
       return hasShown || hasRated;
     } catch (_) {
       return false;
@@ -54,8 +55,8 @@ class AppActionsService {
     } catch (_) {}
   }
 
-  /// Open Looma's Google Play Store listing directly so the user can submit a rating/review
-  static Future<bool> openPlayStore({String packageName = loomaPackageName}) async {
+  /// Open ProCut's Google Play Store listing directly so the user can submit a rating/review
+  static Future<bool> openPlayStore({String packageName = procutPackageName}) async {
     try {
       if (Platform.isAndroid) {
         final res = await _channel.invokeMethod<bool>('openPlayStore', {
@@ -69,20 +70,20 @@ class AppActionsService {
     }
   }
 
-  /// Open phone's native share sheet to share Looma via WhatsApp, Instagram, Messages, Gmail, etc.
+  /// Open phone's native share sheet to share ProCut via WhatsApp, Instagram, Messages, Gmail, etc.
   static Future<bool> shareApp({
     String? text,
     String? subject,
     String? chooserTitle,
   }) async {
     final shareText = text ??
-        'Create cinematic videos, aesthetic reels & edits with Looma Video Editor! 🎬✨ Download on Google Play: $playStoreWebUrl';
+        'Create cinematic videos, aesthetic reels & edits with ProCut Video Editor! 🎬✨ Download on Google Play: $playStoreWebUrl';
     try {
       if (Platform.isAndroid) {
         final res = await _channel.invokeMethod<bool>('shareApp', {
           'text': shareText,
-          'subject': subject ?? 'Looma Video Editor',
-          'title': chooserTitle ?? 'Share Looma via',
+          'subject': subject ?? 'ProCut Video Editor',
+          'title': chooserTitle ?? 'Share ProCut via',
         });
         return res ?? true;
       } else {
@@ -100,12 +101,12 @@ class AppActionsService {
 
   /// Share an exported image file using native share sheet or copy path to clipboard
   static Future<bool> shareImageFile(String filePath, {String? text}) async {
-    final msg = text ?? 'Check out this photo I edited with Looma Photo Editor! ✨📸 $playStoreWebUrl';
+    final msg = text ?? 'Check out this photo I edited with ProCut Photo Editor! ✨📸 $playStoreWebUrl';
     try {
       if (Platform.isAndroid) {
         final res = await _channel.invokeMethod<bool>('shareApp', {
           'text': '$msg\n$filePath',
-          'subject': 'Looma Photo Creation',
+          'subject': 'ProCut Photo Creation',
           'title': 'Share Edited Photo via',
         });
         if (res == true) return true;

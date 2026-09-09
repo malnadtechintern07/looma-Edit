@@ -1,6 +1,6 @@
 import '../entities/project_entity.dart';
 
-/// Domain repository contract for LOOMA project persistence
+/// Domain repository contract for ProCut project persistence
 abstract class ProjectRepository {
   /// Fetch all locally saved projects, ordered by last modified
   Future<List<ProjectEntity>> getProjects();
@@ -19,4 +19,7 @@ abstract class ProjectRepository {
 
   /// Permanently delete a project from local storage
   Future<void> deleteProject(String id);
+
+  /// Migrates unassigned guest projects to the authenticated user account
+  Future<void> claimGuestProjects(String userId);
 }

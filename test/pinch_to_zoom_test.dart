@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:looma/core/constants/app_constants.dart';
-import 'package:looma/features/editor/domain/entities/keyframe_entity.dart';
-import 'package:looma/features/editor/domain/entities/video_clip_entity.dart';
-import 'package:looma/features/editor/presentation/providers/editor_controller.dart';
-import 'package:looma/features/editor/presentation/widgets/multi_track_timeline.dart';
-import 'package:looma/features/editor/presentation/widgets/video_track_item.dart';
-import 'package:looma/features/filters_effects/domain/entities/filter_preset.dart';
-import 'package:looma/features/filters_effects/domain/entities/video_effect_type.dart';
-import 'package:looma/features/projects/domain/entities/aspect_ratio_type.dart';
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/core/constants/app_constants.dart';
+import 'package:procut/features/editor/domain/entities/keyframe_entity.dart';
+import 'package:procut/features/editor/domain/entities/video_clip_entity.dart';
+import 'package:procut/features/editor/presentation/providers/editor_controller.dart';
+import 'package:procut/features/editor/presentation/widgets/multi_track_timeline.dart';
+import 'package:procut/features/editor/presentation/widgets/video_track_item.dart';
+import 'package:procut/features/filters_effects/domain/entities/filter_preset.dart';
+import 'package:procut/features/filters_effects/domain/entities/video_effect_type.dart';
+import 'package:procut/features/projects/domain/entities/aspect_ratio_type.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
 
 void main() {
   group('Timeline Pinch-to-Zoom & Badge Overflow Tests', () {

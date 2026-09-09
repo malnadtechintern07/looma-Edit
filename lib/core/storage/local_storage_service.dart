@@ -34,7 +34,7 @@ class LocalStorageService {
         try {
           final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
           if (home != null && home.isNotEmpty) {
-            _documentsDirectory = Directory('$home/.looma_data');
+            _documentsDirectory = Directory('$home/.procut_data');
           }
         } catch (_) {}
       }
@@ -67,7 +67,7 @@ class LocalStorageService {
       // 1. Persist to SharedPreferences
       try {
         _prefs ??= await SharedPreferences.getInstance();
-        await _prefs?.setString('looma_$relativePath', content);
+        await _prefs?.setString('procut_$relativePath', content);
       } catch (e) {
         debugPrint('SharedPreferences write error: $e');
       }
@@ -103,7 +103,7 @@ class LocalStorageService {
     // 2. Check SharedPreferences
     try {
       _prefs ??= await SharedPreferences.getInstance();
-      final prefVal = _prefs?.getString('looma_$relativePath');
+      final prefVal = _prefs?.getString('procut_$relativePath') ?? _prefs?.getString('looma_$relativePath');
       if (prefVal != null && prefVal.isNotEmpty) {
         _inMemoryFallback[relativePath] = prefVal;
         return prefVal;
@@ -188,7 +188,7 @@ class LocalStorageService {
       // 2. Fallback: Check SharedPreferences directly if file was corrupted
       try {
         _prefs ??= await SharedPreferences.getInstance();
-        final prefVal = _prefs?.getString('looma_$relativePath');
+        final prefVal = _prefs?.getString('procut_$relativePath') ?? _prefs?.getString('looma_$relativePath');
         if (prefVal != null && prefVal.isNotEmpty) {
           try {
             final decoded = jsonDecode(prefVal);
@@ -240,6 +240,7 @@ class LocalStorageService {
     // Remove from SharedPreferences
     try {
       _prefs ??= await SharedPreferences.getInstance();
+      await _prefs?.remove('procut_$relativePath');
       await _prefs?.remove('looma_$relativePath');
     } catch (_) {}
 
@@ -261,8 +262,9 @@ class LocalStorageService {
     return true;
   }
 
-  /// List all files matching a prefix in the projects directory
-  Future<List<String>> listProjectFiles() async {
+  /// List all files matching a prefix in the projects directory or specific user directory
+  Future<List<String>> listProjectFiles({String? directoryPrefix}) async {
+    final targetPrefix = directoryPrefix ?? AppConstants.projectsDirectory;
     final Set<String> allFiles = {};
 
     // 1. Check SharedPreferences keys
@@ -270,15 +272,20 @@ class LocalStorageService {
       _prefs ??= await SharedPreferences.getInstance();
       final keys = _prefs?.getKeys() ?? {};
       for (final key in keys) {
-        if (key.startsWith('looma_${AppConstants.projectsDirectory}/')) {
+        if (key.startsWith('procut_$targetPrefix/')) {
+          allFiles.add(key.replaceFirst('procut_', ''));
+        } else if (key.startsWith('looma_$targetPrefix/')) {
           allFiles.add(key.replaceFirst('looma_', ''));
+        } else if (targetPrefix == AppConstants.projectsDirectory &&
+            key.startsWith('looma_looma_projects/')) {
+          allFiles.add(key.replaceFirst('looma_looma_projects/', '${AppConstants.projectsDirectory}/'));
         }
       }
     } catch (_) {}
 
     // 2. Check in-memory fallback
     allFiles.addAll(
-      _inMemoryFallback.keys.where((k) => k.startsWith(AppConstants.projectsDirectory)),
+      _inMemoryFallback.keys.where((k) => k.startsWith(targetPrefix)),
     );
 
     // 3. Check physical disk directory
@@ -288,9 +295,9 @@ class LocalStorageService {
       }
       if (_documentsDirectory != null) {
         try {
-          final projectDir = Directory('${_documentsDirectory!.path}/${AppConstants.projectsDirectory}');
-          if (await projectDir.exists()) {
-            final files = await projectDir.list().toList();
+          final targetDir = Directory('${_documentsDirectory!.path}/$targetPrefix');
+          if (await targetDir.exists()) {
+            final files = await targetDir.list().toList();
             for (final f in files) {
               allFiles.add(f.path.replaceFirst('${_documentsDirectory!.path}/', ''));
             }

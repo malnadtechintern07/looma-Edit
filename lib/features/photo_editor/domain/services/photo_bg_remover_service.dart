@@ -57,7 +57,7 @@ class PhotoBgRemoverService {
 
     // Save output PNG file
     final dir = await getApplicationDocumentsDirectory();
-    final fileName = 'LOOMA_BG_REMOVED_${DateTime.now().millisecondsSinceEpoch}.png';
+    final fileName = 'PROCUT_BG_REMOVED_${DateTime.now().millisecondsSinceEpoch}.png';
     final outputFile = File('${dir.path}/$fileName');
     final pngBytes = img.encodePng(processed);
     await outputFile.writeAsBytes(pngBytes);

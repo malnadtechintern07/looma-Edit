@@ -5,8 +5,8 @@ import 'package:intl/intl.dart';
 import '../../../../app/router/route_paths.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
-import '../../../../core/widgets/looma_button.dart';
-import '../../../../core/widgets/looma_card.dart';
+import '../../../../core/widgets/procut_button.dart';
+import '../../../../core/widgets/procut_card.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/bunny_storage_config.dart';
@@ -101,7 +101,7 @@ class CloudSyncScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 10),
                     const Text(
-                      'Sign in with your Looma account to automatically back up your timeline, clips, filters, stickers, and edits securely to the cloud.',
+                      'Sign in with your ProCut account to automatically back up your timeline, clips, filters, stickers, and edits securely to the cloud.',
                       style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 13, height: 1.4),
                     ),
                     const SizedBox(height: 16),
@@ -228,7 +228,7 @@ class CloudSyncScreen extends ConsumerWidget {
 
             // 3. User Account Profile Card
             profileAsync.when(
-              data: (profile) => LoomaCard(
+              data: (profile) => ProCutCard(
                 backgroundColor: const Color(0xFF161822),
                 child: Row(
                   children: [
@@ -296,7 +296,7 @@ class CloudSyncScreen extends ConsumerWidget {
 
             // 4. Cloud Storage Quota & Sync Trigger Card
             profileAsync.when(
-              data: (profile) => LoomaCard(
+              data: (profile) => ProCutCard(
                 backgroundColor: const Color(0xFF161822),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -345,7 +345,7 @@ class CloudSyncScreen extends ConsumerWidget {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    LoomaButton(
+                    ProCutButton(
                       label: syncState.isSyncing ? 'Synchronizing...' : 'Sync All Projects Now',
                       icon: Icons.sync,
                       isLoading: syncState.isSyncing,
@@ -357,7 +357,7 @@ class CloudSyncScreen extends ConsumerWidget {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     backgroundColor: AppColors.success,
-                                    content: Text('All projects synchronized with Looma Cloud!'),
+                                    content: Text('All projects synchronized with ProCut Cloud!'),
                                   ),
                                 );
                               }
@@ -426,7 +426,7 @@ class CloudSyncScreen extends ConsumerWidget {
                   separatorBuilder: (_, _) => const SizedBox(height: 10),
                   itemBuilder: (context, index) {
                     final b = backups[index];
-                    return LoomaCard(
+                    return ProCutCard(
                       backgroundColor: const Color(0xFF161822),
                       padding: const EdgeInsets.all(12),
                       child: Row(
@@ -639,7 +639,7 @@ class CloudSyncScreen extends ConsumerWidget {
                   controller: zoneController,
                   style: const TextStyle(color: Colors.white, fontSize: 13),
                   decoration: InputDecoration(
-                    hintText: 'e.g. looma-storage',
+                    hintText: 'e.g. procut-storage',
                     hintStyle: const TextStyle(color: Colors.white30, fontSize: 13),
                     filled: true,
                     fillColor: const Color(0xFF202330),
@@ -718,7 +718,7 @@ class CloudSyncScreen extends ConsumerWidget {
                   controller: cdnController,
                   style: const TextStyle(color: Colors.white, fontSize: 13),
                   decoration: InputDecoration(
-                    hintText: 'e.g. looma.b-cdn.net',
+                    hintText: 'e.g. procut.b-cdn.net',
                     hintStyle: const TextStyle(color: Colors.white30, fontSize: 13),
                     filled: true,
                     fillColor: const Color(0xFF202330),

@@ -4,8 +4,8 @@ import '../core/constants/app_constants.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 
-class LoomaApp extends ConsumerWidget {
-  const LoomaApp({super.key});
+class ProCutApp extends ConsumerWidget {
+  const ProCutApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -17,3 +17,7 @@ class LoomaApp extends ConsumerWidget {
     );
   }
 }
+
+/// Backward compatibility alias for legacy tests and references
+typedef LoomaApp = ProCutApp;
+

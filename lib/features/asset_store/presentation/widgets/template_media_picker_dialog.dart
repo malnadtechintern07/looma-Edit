@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
-import '../../../../core/widgets/looma_button.dart';
+import '../../../../core/widgets/procut_button.dart';
 import '../../../media_picker/domain/services/device_media_service.dart';
 import '../../../media_picker/presentation/widgets/media_picker_modal.dart';
 import '../../domain/entities/store_template_entity.dart';
@@ -323,7 +323,7 @@ class _TemplateMediaPickerDialogState extends State<TemplateMediaPickerDialog> {
             const SizedBox(height: 12),
 
             // Submit CTA
-            LoomaButton(
+            ProCutButton(
               label: 'Create Video with Template',
               icon: Icons.movie_creation,
               isFullWidth: true,

@@ -1,4 +1,5 @@
-import 'package:looma/core/utils/id_generator.dart';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/services/password_hasher.dart';
@@ -39,6 +40,13 @@ class AuthRepositoryImpl implements AuthRepository {
 
     final existingLocal = await localDataSource.getAccountByEmail(cleanEmail);
     if (existingLocal != null) {
+      final localSalt = existingLocal['salt'] as String?;
+      final localHash = existingLocal['passwordHash'] as String?;
+      if (localSalt != null && localHash != null && PasswordHasher.verifyPassword(password, localSalt, localHash)) {
+        await localDataSource.saveSession(existingLocal['id'] as String, true);
+        _currentUser = UserEntity.fromJson(existingLocal);
+        return _currentUser!;
+      }
       throw Exception('An account with this email already exists. Please log in.');
     }
 
@@ -47,14 +55,22 @@ class AuthRepositoryImpl implements AuthRepository {
       final existingRemote = await remoteDataSource!.getAccountByEmail(cleanEmail);
       if (existingRemote != null) {
         await localDataSource.saveAccount(existingRemote);
-        throw Exception('An account with this email already exists. Please log in.');
+        final remoteSalt = existingRemote['salt'] as String?;
+        final remoteHash = existingRemote['passwordHash'] as String?;
+        if (remoteSalt != null && remoteHash != null && PasswordHasher.verifyPassword(password, remoteSalt, remoteHash)) {
+          await localDataSource.saveSession(existingRemote['id'] as String, true);
+          _currentUser = UserEntity.fromJson(existingRemote);
+          return _currentUser!;
+        }
+        throw Exception('An account with this email already exists. Please log in or tap Forgot Password.');
       }
     }
 
     final salt = PasswordHasher.generateSalt();
     final hash = PasswordHasher.hashPassword(password, salt);
     final now = DateTime.now();
-    final userId = 'usr_${IdGenerator.generate()}';
+    final emailHash = sha256.convert(utf8.encode(cleanEmail)).toString();
+    final userId = 'usr_${emailHash.substring(0, 16)}';
 
     final newUser = UserEntity(
       id: userId,
@@ -138,7 +154,7 @@ class AuthRepositoryImpl implements AuthRepository {
     }
 
     if (!isValid) {
-      throw Exception('Incorrect password. Please try again or reset your password.');
+      throw Exception('Incorrect password. Please try again or tap Forgot password to reset it.');
     }
 
     final user = UserEntity.fromJson(account).copyWith(

@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:looma/features/editor/domain/entities/video_clip_entity.dart';
-import 'package:looma/features/editor/presentation/providers/editor_controller.dart';
-import 'package:looma/features/filters_effects/domain/entities/filter_preset.dart';
-import 'package:looma/features/filters_effects/presentation/widgets/filter_picker_sheet.dart';
-import 'package:looma/features/filters_effects/presentation/widgets/filter_thumbnail_tile.dart';
-import 'package:looma/features/photo_editor/domain/entities/photo_frame_entity.dart';
-import 'package:looma/features/photo_editor/domain/entities/photo_project_entity.dart';
-import 'package:looma/features/photo_editor/presentation/providers/photo_editor_controller.dart';
-import 'package:looma/features/photo_editor/presentation/widgets/photo_filter_sheet.dart';
-import 'package:looma/features/projects/data/models/project_model.dart';
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/features/editor/domain/entities/video_clip_entity.dart';
+import 'package:procut/features/editor/presentation/providers/editor_controller.dart';
+import 'package:procut/features/filters_effects/domain/entities/filter_preset.dart';
+import 'package:procut/features/filters_effects/presentation/widgets/filter_picker_sheet.dart';
+import 'package:procut/features/filters_effects/presentation/widgets/filter_thumbnail_tile.dart';
+import 'package:procut/features/photo_editor/domain/entities/photo_frame_entity.dart';
+import 'package:procut/features/photo_editor/domain/entities/photo_project_entity.dart';
+import 'package:procut/features/photo_editor/presentation/providers/photo_editor_controller.dart';
+import 'package:procut/features/photo_editor/presentation/widgets/photo_filter_sheet.dart';
+import 'package:procut/features/projects/data/models/project_model.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
-import '../../../../core/widgets/looma_slider.dart';
+import '../../../../core/widgets/procut_slider.dart';
 import '../../domain/entities/speed_curve_type.dart';
 
 class ClipSpeedSheet extends StatefulWidget {
@@ -108,7 +108,7 @@ class _ClipSpeedSheetState extends State<ClipSpeedSheet> with SingleTickerProvid
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    LoomaSlider(
+                    ProCutSlider(
                       label: 'Playback Speed',
                       icon: Icons.fast_forward,
                       value: _speed.clamp(0.1, 10.0),

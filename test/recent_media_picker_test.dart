@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:looma/core/storage/local_storage_service.dart';
-import 'package:looma/features/media_picker/domain/entities/media_item_entity.dart';
-import 'package:looma/features/media_picker/domain/services/recent_media_service.dart';
-import 'package:looma/features/media_picker/presentation/widgets/media_picker_modal.dart';
+import 'package:procut/core/storage/local_storage_service.dart';
+import 'package:procut/features/media_picker/domain/entities/media_item_entity.dart';
+import 'package:procut/features/media_picker/domain/services/recent_media_service.dart';
+import 'package:procut/features/media_picker/presentation/widgets/media_picker_modal.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

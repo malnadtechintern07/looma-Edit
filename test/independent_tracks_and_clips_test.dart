@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:looma/features/audio/domain/entities/audio_clip_entity.dart';
-import 'package:looma/features/editor/domain/entities/animation_clip_entity.dart';
-import 'package:looma/features/editor/domain/entities/clip_animation_type.dart';
-import 'package:looma/features/editor/domain/entities/timeline_state.dart';
-import 'package:looma/features/editor/domain/entities/video_clip_entity.dart';
-import 'package:looma/features/editor/presentation/providers/editor_controller.dart';
-import 'package:looma/features/editor/presentation/widgets/animation_track_item.dart';
-import 'package:looma/features/editor/presentation/widgets/multi_track_timeline.dart';
-import 'package:looma/features/filters_effects/domain/entities/effect_clip_entity.dart';
-import 'package:looma/features/filters_effects/domain/entities/video_effect_type.dart';
-import 'package:looma/features/filters_effects/presentation/widgets/effect_track_item.dart';
-import 'package:looma/features/projects/data/models/project_model.dart';
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
-import 'package:looma/features/text_stickers/domain/entities/sticker_overlay_entity.dart';
-import 'package:looma/features/text_stickers/domain/entities/text_overlay_entity.dart';
+import 'package:procut/features/audio/domain/entities/audio_clip_entity.dart';
+import 'package:procut/features/editor/domain/entities/animation_clip_entity.dart';
+import 'package:procut/features/editor/domain/entities/clip_animation_type.dart';
+import 'package:procut/features/editor/domain/entities/timeline_state.dart';
+import 'package:procut/features/editor/domain/entities/video_clip_entity.dart';
+import 'package:procut/features/editor/presentation/providers/editor_controller.dart';
+import 'package:procut/features/editor/presentation/widgets/animation_track_item.dart';
+import 'package:procut/features/editor/presentation/widgets/multi_track_timeline.dart';
+import 'package:procut/features/filters_effects/domain/entities/effect_clip_entity.dart';
+import 'package:procut/features/filters_effects/domain/entities/video_effect_type.dart';
+import 'package:procut/features/filters_effects/presentation/widgets/effect_track_item.dart';
+import 'package:procut/features/projects/data/models/project_model.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/features/text_stickers/domain/entities/sticker_overlay_entity.dart';
+import 'package:procut/features/text_stickers/domain/entities/text_overlay_entity.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -71,7 +71,7 @@ void main() {
 
       final textOverlay = const TextOverlayEntity(
         id: 'text-track-1',
-        text: 'Looma Magic',
+        text: 'ProCut Magic',
         timelineStartMs: 1000,
         timelineEndMs: 5000,
       );
@@ -302,7 +302,7 @@ void main() {
       // Select Text
       controller.setSelection(SelectionType.textOverlay, 'text-track-1');
       expect(controller.state.selectionType, SelectionType.textOverlay);
-      expect(controller.state.selectedTextOverlay?.text, 'Looma Magic');
+      expect(controller.state.selectedTextOverlay?.text, 'ProCut Magic');
 
       // Select Sticker
       controller.setSelection(SelectionType.stickerOverlay, 'sticker-track-1');

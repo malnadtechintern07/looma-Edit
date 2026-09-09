@@ -175,7 +175,7 @@ class PhotoAutoCutService {
     }
 
     final dir = await getApplicationDocumentsDirectory();
-    final fileName = 'LOOMA_AUTOCUT_${DateTime.now().millisecondsSinceEpoch}.png';
+    final fileName = 'PROCUT_AUTOCUT_${DateTime.now().millisecondsSinceEpoch}.png';
     final outputFile = File('${dir.path}/$fileName');
     await outputFile.writeAsBytes(img.encodePng(output));
 

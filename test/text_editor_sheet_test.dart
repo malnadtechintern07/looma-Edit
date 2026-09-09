@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:looma/features/text_stickers/domain/entities/overlay_animation_type.dart';
-import 'package:looma/features/text_stickers/domain/entities/text_overlay_entity.dart';
-import 'package:looma/features/text_stickers/presentation/widgets/text_editor_sheet.dart';
+import 'package:procut/features/text_stickers/domain/entities/overlay_animation_type.dart';
+import 'package:procut/features/text_stickers/domain/entities/text_overlay_entity.dart';
+import 'package:procut/features/text_stickers/presentation/widgets/text_editor_sheet.dart';
 
 void main() {
   testWidgets('TextEditorSheet renders three main buttons in one line across top and switches tabs', (tester) async {

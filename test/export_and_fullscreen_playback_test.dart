@@ -1,16 +1,16 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:looma/core/services/gallery_saver_service.dart';
-import 'package:looma/core/services/valid_mp4_generator.dart';
-import 'package:looma/features/editor/domain/entities/video_clip_entity.dart';
-import 'package:looma/features/editor/presentation/providers/editor_controller.dart';
-import 'package:looma/features/editor/presentation/widgets/canvas_preview.dart';
-import 'package:looma/features/export/data/datasources/video_rendering_engine.dart';
-import 'package:looma/features/export/domain/entities/export_config_entity.dart';
-import 'package:looma/features/export/domain/entities/render_progress_entity.dart';
-import 'package:looma/features/projects/domain/entities/aspect_ratio_type.dart';
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/core/services/gallery_saver_service.dart';
+import 'package:procut/core/services/valid_mp4_generator.dart';
+import 'package:procut/features/editor/domain/entities/video_clip_entity.dart';
+import 'package:procut/features/editor/presentation/providers/editor_controller.dart';
+import 'package:procut/features/editor/presentation/widgets/canvas_preview.dart';
+import 'package:procut/features/export/data/datasources/video_rendering_engine.dart';
+import 'package:procut/features/export/domain/entities/export_config_entity.dart';
+import 'package:procut/features/export/domain/entities/render_progress_entity.dart';
+import 'package:procut/features/projects/domain/entities/aspect_ratio_type.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

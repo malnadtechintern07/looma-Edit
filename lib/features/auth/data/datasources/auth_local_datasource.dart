@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:looma/core/storage/local_storage_service.dart';
+import 'package:procut/core/storage/local_storage_service.dart';
 
 abstract class AuthLocalDataSource {
   Future<List<Map<String, dynamic>>> getAccounts();

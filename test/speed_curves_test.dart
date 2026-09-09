@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:looma/features/editor/domain/entities/speed_curve_type.dart';
+import 'package:procut/features/editor/domain/entities/speed_curve_type.dart';
 
 void main() {
   group('Speed Curve Types Tests', () {

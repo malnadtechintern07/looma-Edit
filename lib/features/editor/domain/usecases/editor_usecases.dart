@@ -1,8 +1,8 @@
-import 'package:looma/core/utils/id_generator.dart';
-import 'package:looma/features/editor/domain/entities/keyframe_entity.dart';
-import 'package:looma/features/editor/domain/entities/speed_curve_type.dart';
-import 'package:looma/features/editor/domain/entities/video_clip_entity.dart';
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/core/utils/id_generator.dart';
+import 'package:procut/features/editor/domain/entities/keyframe_entity.dart';
+import 'package:procut/features/editor/domain/entities/speed_curve_type.dart';
+import 'package:procut/features/editor/domain/entities/video_clip_entity.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
 
 class SplitClipUseCase {
   ProjectEntity call({

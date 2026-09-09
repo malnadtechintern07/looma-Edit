@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
-import '../../../../core/widgets/looma_button.dart';
+import '../../../../core/widgets/procut_button.dart';
 import '../../../media_picker/domain/entities/media_item_entity.dart';
 import '../../../media_picker/domain/services/device_media_service.dart';
 import '../../domain/entities/aspect_ratio_type.dart';
@@ -219,7 +219,7 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                   ),
                   const SizedBox(width: 8),
                   Flexible(
-                    child: LoomaButton(
+                    child: ProCutButton(
                       label: 'Select Media',
                       icon: Icons.perm_media_outlined,
                       onPressed: _onStartEditing,

@@ -2,14 +2,14 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:looma/core/rendering/chroma_key_filter.dart';
-import 'package:looma/features/editor/domain/entities/chroma_key_config_entity.dart';
-import 'package:looma/features/editor/domain/entities/video_clip_entity.dart';
-import 'package:looma/features/editor/presentation/providers/editor_controller.dart';
-import 'package:looma/features/editor/presentation/widgets/canvas_preview.dart';
-import 'package:looma/features/editor/presentation/widgets/chroma_key_sheet.dart';
-import 'package:looma/features/projects/data/models/project_model.dart';
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/core/rendering/chroma_key_filter.dart';
+import 'package:procut/features/editor/domain/entities/chroma_key_config_entity.dart';
+import 'package:procut/features/editor/domain/entities/video_clip_entity.dart';
+import 'package:procut/features/editor/presentation/providers/editor_controller.dart';
+import 'package:procut/features/editor/presentation/widgets/canvas_preview.dart';
+import 'package:procut/features/editor/presentation/widgets/chroma_key_sheet.dart';
+import 'package:procut/features/projects/data/models/project_model.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {

@@ -1,13 +1,13 @@
 import 'package:flutter/foundation.dart';
-import 'package:looma/features/editor/domain/entities/clip_animation_type.dart';
-import 'package:looma/features/editor/domain/entities/crop_rect_entity.dart';
-import 'package:looma/features/editor/domain/entities/keyframe_entity.dart';
-import 'package:looma/features/editor/domain/entities/mask_config_entity.dart';
-import 'package:looma/features/editor/domain/entities/chroma_key_config_entity.dart';
-import 'package:looma/features/editor/domain/entities/speed_curve_type.dart';
-import 'package:looma/features/editor/domain/entities/transition_type.dart';
-import 'package:looma/features/filters_effects/domain/entities/filter_preset.dart';
-import 'package:looma/features/filters_effects/domain/entities/video_effect_type.dart';
+import 'package:procut/features/editor/domain/entities/clip_animation_type.dart';
+import 'package:procut/features/editor/domain/entities/crop_rect_entity.dart';
+import 'package:procut/features/editor/domain/entities/keyframe_entity.dart';
+import 'package:procut/features/editor/domain/entities/mask_config_entity.dart';
+import 'package:procut/features/editor/domain/entities/chroma_key_config_entity.dart';
+import 'package:procut/features/editor/domain/entities/speed_curve_type.dart';
+import 'package:procut/features/editor/domain/entities/transition_type.dart';
+import 'package:procut/features/filters_effects/domain/entities/filter_preset.dart';
+import 'package:procut/features/filters_effects/domain/entities/video_effect_type.dart';
 
 @immutable
 class VideoClipEntity {

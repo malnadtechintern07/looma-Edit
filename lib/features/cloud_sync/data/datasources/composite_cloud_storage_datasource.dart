@@ -1,58 +1,48 @@
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
 import '../../domain/entities/cloud_backup_record.dart';
 import 'cloud_storage_datasource.dart';
 
 /// Composite cloud storage data source that orchestrates multiple cloud storage providers:
-/// Primary: Zero-configuration live GlobalCloudStorageDataSource (instant multi-device sync)
-/// Secondary: Optional Bunny.net Edge Storage datasource
+/// (Ntfy.sh Global Pub/Sub, Zero-Config Cloud Registry, and Optional Bunny.net Storage)
 class CompositeCloudStorageDataSource implements CloudStorageDataSource {
-  final CloudStorageDataSource primary;
-  final CloudStorageDataSource? secondary;
+  final List<CloudStorageDataSource> _sources;
 
   CompositeCloudStorageDataSource({
-    required this.primary,
-    this.secondary,
-  });
+    CloudStorageDataSource? primary,
+    CloudStorageDataSource? secondary,
+    List<CloudStorageDataSource>? dataSources,
+  }) : _sources = dataSources ?? [
+          ?primary,
+          ?secondary,
+        ];
 
   @override
   Future<List<ProjectEntity>> getCloudProjects(String userId) async {
-    // 1. Fetch from primary zero-config global cloud
-    final primaryProjects = await primary.getCloudProjects(userId);
-    if (primaryProjects.isNotEmpty) {
-      return primaryProjects;
-    }
+    final Map<String, ProjectEntity> projectMap = {};
 
-    // 2. Check secondary if configured and primary had none
-    if (secondary != null) {
+    for (final source in _sources) {
       try {
-        final secondaryProjects = await secondary!.getCloudProjects(userId);
-        if (secondaryProjects.isNotEmpty) {
-          // Re-sync found secondary projects into primary for subsequent fast loads
-          for (final p in secondaryProjects) {
-            primary.backupProject(userId, p).catchError((_) => CloudBackupRecord(
-                  projectId: p.id,
-                  projectTitle: p.title,
-                  fileSizeBytes: 0,
-                  backedUpAt: DateTime.now(),
-                  cloudChecksum: '',
-                ));
+        final projects = await source.getCloudProjects(userId);
+        for (final p in projects) {
+          final existing = projectMap[p.id];
+          if (existing == null || p.updatedAt.isAfter(existing.updatedAt)) {
+            projectMap[p.id] = p;
           }
-          return secondaryProjects;
         }
       } catch (_) {}
     }
 
-    return primaryProjects;
+    final list = projectMap.values.toList();
+    list.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    return list;
   }
 
   @override
   Future<ProjectEntity?> getCloudProject(String userId, String projectId) async {
-    final primaryProject = await primary.getCloudProject(userId, projectId);
-    if (primaryProject != null) return primaryProject;
-
-    if (secondary != null) {
+    for (final source in _sources) {
       try {
-        return await secondary!.getCloudProject(userId, projectId);
+        final project = await source.getCloudProject(userId, projectId);
+        if (project != null) return project;
       } catch (_) {}
     }
     return null;
@@ -60,44 +50,60 @@ class CompositeCloudStorageDataSource implements CloudStorageDataSource {
 
   @override
   Future<CloudBackupRecord> backupProject(String userId, ProjectEntity project) async {
-    final record = await primary.backupProject(userId, project);
+    CloudBackupRecord? primaryRecord;
 
-    if (secondary != null) {
+    for (final source in _sources) {
       try {
-        await secondary!.backupProject(userId, project);
+        final record = await source.backupProject(userId, project);
+        primaryRecord ??= record;
       } catch (_) {}
     }
 
-    return record;
+    return primaryRecord ??
+        CloudBackupRecord(
+          projectId: project.id,
+          projectTitle: project.title,
+          fileSizeBytes: 0,
+          backedUpAt: DateTime.now(),
+          cloudChecksum: '',
+        );
   }
 
   @override
   Future<List<CloudBackupRecord>> getBackupRecords(String userId) async {
-    final primaryRecords = await primary.getBackupRecords(userId);
-    if (primaryRecords.isNotEmpty) return primaryRecords;
-
-    if (secondary != null) {
+    final Map<String, CloudBackupRecord> recordsMap = {};
+    for (final source in _sources) {
       try {
-        final secRecords = await secondary!.getBackupRecords(userId);
-        if (secRecords.isNotEmpty) return secRecords;
+        final records = await source.getBackupRecords(userId);
+        for (final r in records) {
+          if (!recordsMap.containsKey(r.projectId) ||
+              r.backedUpAt.isAfter(recordsMap[r.projectId]!.backedUpAt)) {
+            recordsMap[r.projectId] = r;
+          }
+        }
       } catch (_) {}
     }
-
-    return primaryRecords;
+    final list = recordsMap.values.toList();
+    list.sort((a, b) => b.backedUpAt.compareTo(a.backedUpAt));
+    return list;
   }
 
   @override
   Future<void> deleteCloudProject(String userId, String projectId) async {
-    await primary.deleteCloudProject(userId, projectId);
-    if (secondary != null) {
+    for (final source in _sources) {
       try {
-        await secondary!.deleteCloudProject(userId, projectId);
+        await source.deleteCloudProject(userId, projectId);
       } catch (_) {}
     }
   }
 
   @override
   Future<int> calculateUserStorageUsage(String userId) async {
-    return await primary.calculateUserStorageUsage(userId);
+    final projects = await getCloudProjects(userId);
+    int totalBytes = 0;
+    for (final p in projects) {
+      totalBytes += p.videoClips.length * 1024 + 2048;
+    }
+    return totalBytes;
   }
 }

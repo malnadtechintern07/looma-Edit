@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 import '../services/app_actions_service.dart';
 
-/// In-app 1–5 star rating dialog for Looma
+/// In-app 1–5 star rating dialog for ProCut
 class RateUsDialog extends StatefulWidget {
   final bool isFirstExport;
 
@@ -46,13 +46,13 @@ class _RateUsDialogState extends State<RateUsDialog> {
       Navigator.of(context, rootNavigator: true).pop();
     }
 
-    // Open Looma's Google Play Store listing
+    // Open ProCut's Google Play Store listing
     await AppActionsService.openPlayStore();
 
     if (mounted) {
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         const SnackBar(
-          content: Text('Thank you for rating Looma! Opening Google Play Store...'),
+          content: Text('Thank you for rating ProCut! Opening Google Play Store...'),
           duration: Duration(seconds: 2),
         ),
       );
@@ -101,7 +101,7 @@ class _RateUsDialogState extends State<RateUsDialog> {
 
             // Title
             Text(
-              widget.isFirstExport ? 'Enjoying Looma?' : 'Rate Looma Video Editor',
+              widget.isFirstExport ? 'Enjoying ProCut?' : 'Rate ProCut Video Editor',
               style: const TextStyle(
                 color: Color(0xFF111827),
                 fontSize: 20,
@@ -116,7 +116,7 @@ class _RateUsDialogState extends State<RateUsDialog> {
             Text(
               widget.isFirstExport
                   ? 'Congratulations on your first export! How would you rate your video editing experience?'
-                  : 'Your feedback helps us make Looma even better. How would you rate your editing experience?',
+                  : 'Your feedback helps us make ProCut even better. How would you rate your editing experience?',
               style: const TextStyle(
                 color: Color(0xFF6B7280),
                 fontSize: 13,
@@ -225,7 +225,7 @@ class _RateUsDialogState extends State<RateUsDialog> {
   }
 }
 
-/// Helper function to open Looma's Rate Us dialog
+/// Helper function to open ProCut's Rate Us dialog
 Future<void> showRateUsDialog(
   BuildContext context, {
   bool isFirstExport = false,

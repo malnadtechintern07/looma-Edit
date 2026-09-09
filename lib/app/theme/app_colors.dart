@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Centralized Color Palette for LOOMA Video Editor & Design System
+/// Centralized Color Palette for ProCut Video Editor & Design System
 abstract class AppColors {
   // Light Backgrounds & Crisp Surfaces (From Reference UI)
   static const Color background = Color(0xFFF8F9FE);

@@ -40,7 +40,7 @@ class _FaqItem {
   });
 }
 
-/// Interactive Help Center & User Guides Screen for Looma Creators
+/// Interactive Help Center & User Guides Screen for ProCut Creators
 class HelpCenterScreen extends StatefulWidget {
   const HelpCenterScreen({super.key});
 
@@ -123,7 +123,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
       color: Color(0xFF10B981),
       summary: 'Balance background music with spoken voiceovers and add dramatic sound effects.',
       steps: [
-        '1. Tap the Audio tab to import local MP3/WAV tracks or choose from Looma royalty-free creator soundbites.',
+        '1. Tap the Audio tab to import local MP3/WAV tracks or choose from ProCut royalty-free creator soundbites.',
         '2. Use the volume slider on the video clip to lower background noise (e.g. set clip audio to 30%).',
         '3. Tap "Record Voiceover" while watching video playback to record live narration with your microphone.',
         '4. Split and trim audio tracks independently from your video track on the dedicated green audio lane.',
@@ -144,7 +144,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
         '2. Choose your export resolution: 720p (Fastest), 1080p (Standard Full HD), or 4K (Ultra HD).',
         '3. Select your target frame rate: 24 FPS (Cinematic film), 30 FPS (Standard video), or 60 FPS (Ultra smooth).',
         '4. Toggle "Direct Save to Gallery" to automatically register the exported file with your phone camera roll.',
-        '5. Keep the Looma app open while the GPU acceleration engine completes the encoding process.',
+        '5. Keep the ProCut app open while the GPU acceleration engine completes the encoding process.',
       ],
       proTip: 'For 9:16 vertical shorts, 1080p at 60 FPS provides the ideal balance between upload compression and visual clarity.',
     ),
@@ -157,7 +157,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
       color: Color(0xFF084298),
       summary: 'Safeguard your multi-track project files in private cloud storage and continue edits on another device.',
       steps: [
-        '1. Create a free Looma account from the "Me" tab or during initial setup.',
+        '1. Create a free ProCut account from the "Me" tab or during initial setup.',
         '2. Open the Cloud Sync dashboard from the AppBar or project management card.',
         '3. Tap "Sync Now" to backup project timelines, clip arrangements, and text styles to your private cloud.',
         '4. When logging into a secondary device, tap "Restore from Cloud" to sync your projects locally.',
@@ -169,21 +169,21 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
 
   static const List<_FaqItem> _faqs = [
     _FaqItem(
-      question: 'Does Looma put a watermark on my videos?',
+      question: 'Does ProCut put a watermark on my videos?',
       answer:
-          'No! Looma allows you to export clean, watermark-free videos. You can also customize or toggle the optional creator watermark in the export settings if you want to protect your original creations.',
+          'No! ProCut allows you to export clean, watermark-free videos. You can also customize or toggle the optional creator watermark in the export settings if you want to protect your original creations.',
       category: 'Export & Cloud',
     ),
     _FaqItem(
       question: 'Can I edit videos offline without an internet connection?',
       answer:
-          'Yes, 100%! Looma is built with an offline-first architecture. Timeline editing, trimming, filters, audio mixing, speed adjustments, and video rendering happen entirely on your phone without requiring Wi-Fi or cellular data.',
+          'Yes, 100%! ProCut is built with an offline-first architecture. Timeline editing, trimming, filters, audio mixing, speed adjustments, and video rendering happen entirely on your phone without requiring Wi-Fi or cellular data.',
       category: 'Timeline & Editing',
     ),
     _FaqItem(
       question: 'Where are exported videos saved on my phone?',
       answer:
-          'Exported videos are saved directly into your device’s native photo gallery / Camera Roll under the "Looma" or "Movies" album. If you enable "Direct Save to Gallery" in the Me tab, they will immediately appear in your standard Photos app.',
+          'Exported videos are saved directly into your device’s native photo gallery / Camera Roll under the "ProCut" or "Movies" album. If you enable "Direct Save to Gallery" in the Me tab, they will immediately appear in your standard Photos app.',
       category: 'Export & Cloud',
     ),
     _FaqItem(
@@ -195,7 +195,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
     _FaqItem(
       question: 'What video aspect ratios and formats are supported?',
       answer:
-          'Looma supports 16:9 (Landscape / YouTube), 9:16 (Vertical / TikTok, Reels, Shorts), 1:1 (Square), 4:5 (Instagram Feed), and 21:9 (Cinemascope). Supported formats include MP4, MOV, and standard modern video codecs (H.264 / HEVC).',
+          'ProCut supports 16:9 (Landscape / YouTube), 9:16 (Vertical / TikTok, Reels, Shorts), 1:1 (Square), 4:5 (Instagram Feed), and 21:9 (Cinemascope). Supported formats include MP4, MOV, and standard modern video codecs (H.264 / HEVC).',
       category: 'Timeline & Editing',
     ),
     _FaqItem(

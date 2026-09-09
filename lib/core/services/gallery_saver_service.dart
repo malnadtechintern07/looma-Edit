@@ -6,7 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'valid_mp4_generator.dart';
 
 class GallerySaverService {
-  static const MethodChannel _channel = MethodChannel('looma/gallery_saver');
+  static const MethodChannel _channel = MethodChannel('procut/gallery_saver');
 
   /// Saves an image file to the device gallery / Pictures / DCIM directory
   static Future<String?> saveImageToDeviceGallery({
@@ -41,8 +41,8 @@ class GallerySaverService {
       Directory? targetDir;
 
       if (Platform.isAndroid) {
-        final picturesDir = Directory('/storage/emulated/0/Pictures/Looma');
-        final dcimDir = Directory('/storage/emulated/0/DCIM/Looma');
+        final picturesDir = Directory('/storage/emulated/0/Pictures/ProCut');
+        final dcimDir = Directory('/storage/emulated/0/DCIM/ProCut');
 
         if (await picturesDir.exists() || await _createDirSafe(picturesDir)) {
           targetDir = picturesDir;
@@ -123,8 +123,8 @@ class GallerySaverService {
       Directory? targetDir;
 
       if (Platform.isAndroid) {
-        final moviesDir = Directory('/storage/emulated/0/Movies/Looma');
-        final dcimDir = Directory('/storage/emulated/0/DCIM/Looma');
+        final moviesDir = Directory('/storage/emulated/0/Movies/ProCut');
+        final dcimDir = Directory('/storage/emulated/0/DCIM/ProCut');
 
         if (await moviesDir.exists() || await _createDirSafe(moviesDir)) {
           targetDir = moviesDir;

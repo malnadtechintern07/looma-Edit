@@ -51,7 +51,7 @@ class _TemplateFeedScreenState extends ConsumerState<TemplateFeedScreen>
   Future<void> _downloadTemplateToGallery(StoreTemplateEntity tmpl, String previewPath) async {
     setState(() => _isDownloading[tmpl.id] = true);
 
-    final fileName = 'looma_template_${tmpl.id.replaceAll('-', '_')}';
+    final fileName = 'procut_template_${tmpl.id.replaceAll('-', '_')}';
     final savedPath = await GallerySaverService.saveVideoToDeviceGallery(
       sourceFilePath: previewPath,
       fileName: fileName,

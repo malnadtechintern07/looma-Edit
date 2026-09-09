@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
-import '../../../../core/widgets/looma_slider.dart';
+import '../../../../core/widgets/procut_slider.dart';
 import '../../domain/entities/mask_config_entity.dart';
 
 class MaskSheet extends StatefulWidget {
@@ -133,7 +133,7 @@ class _MaskSheetState extends State<MaskSheet> {
             ),
 
             // Feather Slider
-            LoomaSlider(
+            ProCutSlider(
               label: 'Feather (Soft Edge)',
               icon: Icons.blur_on,
               value: _feather.clamp(0.0, 1.0),
@@ -148,7 +148,7 @@ class _MaskSheetState extends State<MaskSheet> {
             const SizedBox(height: 12),
 
             // Size / Width Factor Slider
-            LoomaSlider(
+            ProCutSlider(
               label: 'Mask Size',
               icon: Icons.aspect_ratio,
               value: _widthFactor.clamp(0.1, 1.0),

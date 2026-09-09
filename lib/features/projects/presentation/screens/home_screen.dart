@@ -226,10 +226,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Top Bar Row: LOOMA Brand Badge (Left) + Actions (Right)
+                              // Top Bar Row: PROCUT Brand Badge (Left) + Actions (Right)
                               Row(
                                 children: [
-                                  // LOOMA PRO Ultra Badge
+                                  // PROCUT PRO Ultra Badge
                                   Flexible(
                                     child: FittedBox(
                                       fit: BoxFit.scaleDown,
@@ -247,7 +247,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                             Image.asset('assets/icon/app_icon.png', width: 18, height: 18),
                                             const SizedBox(width: 5),
                                             const Text(
-                                              'LOOMA',
+                                              'PROCUT',
                                               style: TextStyle(
                                                 color: Colors.white,
                                                 fontWeight: FontWeight.w900,
@@ -886,7 +886,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Text('Sign In Required', style: TextStyle(fontWeight: FontWeight.bold)),
           content: const Text(
-            'To back up and synchronize projects across devices with Looma Cloud, please sign in or create an account.',
+            'To back up and synchronize projects across devices with ProCut Cloud, please sign in or create an account.',
             style: TextStyle(fontSize: 13, height: 1.4),
           ),
           actions: [
@@ -913,7 +913,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Syncing "${project.title}" to Looma Cloud...')),
+      SnackBar(content: Text('Syncing "${project.title}" to ProCut Cloud...')),
     );
     final ok = await ref.read(syncNotifierProvider.notifier).syncSingleProject(project.id);
     if (mounted) {

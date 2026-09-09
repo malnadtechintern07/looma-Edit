@@ -1,7 +1,7 @@
-import 'package:looma/features/auth/domain/repositories/auth_repository.dart';
-import 'package:looma/features/projects/data/datasources/project_local_datasource.dart';
-import 'package:looma/features/projects/domain/entities/project_entity.dart';
-import 'package:looma/features/projects/domain/entities/sync_status_type.dart';
+import 'package:procut/features/auth/domain/repositories/auth_repository.dart';
+import 'package:procut/features/projects/data/datasources/project_local_datasource.dart';
+import 'package:procut/features/projects/domain/entities/project_entity.dart';
+import 'package:procut/features/projects/domain/entities/sync_status_type.dart';
 import '../../domain/entities/cloud_backup_record.dart';
 import '../../domain/entities/user_account_entity.dart';
 import '../../domain/repositories/cloud_sync_repository.dart';
@@ -65,33 +65,38 @@ class CloudSyncRepositoryImpl implements CloudSyncRepository {
   Future<void> backupProject(String projectId) async {
     final user = await authRepository.getCurrentUser();
     if (user == null) {
-      throw Exception('Please sign in to back up projects to Looma Cloud');
+      throw Exception('Please sign in to back up projects to ProCut Cloud');
     }
+    projectLocalDataSource.setActiveUserId(user.id);
 
     final localProject = await projectLocalDataSource.getProjectById(projectId);
     if (localProject == null) {
       throw Exception('Local project not found for backup: $projectId');
     }
 
+    final projectWithUser = localProject.copyWith(
+      userId: user.id,
+      userEmail: user.email,
+      syncStatus: SyncStatusType.syncing,
+    );
+
     try {
       // Set syncing status
-      await projectLocalDataSource.saveProject(
-        localProject.copyWith(syncStatus: SyncStatusType.syncing),
-      );
+      await projectLocalDataSource.saveProject(projectWithUser);
 
       // Perform cloud backup
-      await cloudDataSource.backupProject(user.id, localProject);
+      await cloudDataSource.backupProject(user.id, projectWithUser);
 
       // Update local project status to synced (preserve user's edit timestamp)
       await projectLocalDataSource.saveProject(
-        localProject.copyWith(
+        projectWithUser.copyWith(
           syncStatus: SyncStatusType.synced,
         ),
       );
     } catch (e) {
       // Mark as error, but NEVER delete the local project
       await projectLocalDataSource.saveProject(
-        localProject.copyWith(syncStatus: SyncStatusType.error),
+        projectWithUser.copyWith(syncStatus: SyncStatusType.error),
       );
       rethrow;
     }
@@ -101,30 +106,56 @@ class CloudSyncRepositoryImpl implements CloudSyncRepository {
   Future<void> syncAllProjects() async {
     final user = await authRepository.getCurrentUser();
     if (user == null) {
-      throw Exception('Please sign in to sync with Looma Cloud');
+      throw Exception('Please sign in to sync with ProCut Cloud');
     }
+    projectLocalDataSource.setActiveUserId(user.id);
 
-    // 1. Get all local projects
-    final localProjects = await projectLocalDataSource.getProjects();
+    // 0. Claim any unassigned guest projects on this device for the user
+    await projectLocalDataSource.claimGuestProjects(user.id);
 
-    // 2. Get all cloud projects for this user
+    // 1. Fetch cloud projects for this user FIRST
     final cloudProjects = await cloudDataSource.getCloudProjects(user.id);
     final cloudProjectMap = {for (final p in cloudProjects) p.id: p};
 
-    // 3. Reconcile local and cloud projects
+    // 2. Download any cloud projects that don't exist locally into local storage
+    for (final cloud in cloudProjects) {
+      final existingLocal = await projectLocalDataSource.getProjectById(cloud.id);
+      if (existingLocal == null) {
+        await projectLocalDataSource.saveProject(
+          cloud.copyWith(
+            syncStatus: SyncStatusType.synced,
+            userId: user.id,
+            userEmail: user.email,
+          ),
+        );
+      }
+    }
+
+    // 3. Get all local projects for this user
+    final localProjects = await projectLocalDataSource.getProjects();
+
+    // 4. Reconcile local and cloud projects
     for (final local in localProjects) {
+      // Skip projects belonging to another user
+      if (local.userId != null && local.userId != user.id) continue;
+
       final cloud = cloudProjectMap[local.id];
       if (cloud != null && cloud.updatedAt.isAfter(local.updatedAt)) {
         // Cloud is newer: update local copy with cloud data
         await projectLocalDataSource.saveProject(
-          cloud.copyWith(syncStatus: SyncStatusType.synced),
+          cloud.copyWith(
+            syncStatus: SyncStatusType.synced,
+            userId: user.id,
+            userEmail: user.email,
+          ),
         );
       } else if (cloud == null || local.updatedAt.isAfter(cloud.updatedAt)) {
         // Local is newer or not yet in cloud: upload to cloud
         try {
-          await cloudDataSource.backupProject(user.id, local);
+          final localWithUser = local.copyWith(userId: user.id, userEmail: user.email);
+          await cloudDataSource.backupProject(user.id, localWithUser);
           await projectLocalDataSource.saveProject(
-            local.copyWith(syncStatus: SyncStatusType.synced),
+            localWithUser.copyWith(syncStatus: SyncStatusType.synced),
           );
         } catch (_) {
           await projectLocalDataSource.saveProject(
@@ -133,21 +164,11 @@ class CloudSyncRepositoryImpl implements CloudSyncRepository {
         }
       } else {
         // Both are in sync
-        if (local.syncStatus != SyncStatusType.synced) {
+        if (local.syncStatus != SyncStatusType.synced || local.userId != user.id) {
           await projectLocalDataSource.saveProject(
-            local.copyWith(syncStatus: SyncStatusType.synced),
+            local.copyWith(syncStatus: SyncStatusType.synced, userId: user.id, userEmail: user.email),
           );
         }
-      }
-    }
-
-    // 4. Download cloud projects that don't exist locally (restores user's cloud projects upon login)
-    final localProjectIds = localProjects.map((p) => p.id).toSet();
-    for (final cloud in cloudProjects) {
-      if (!localProjectIds.contains(cloud.id)) {
-        await projectLocalDataSource.saveProject(
-          cloud.copyWith(syncStatus: SyncStatusType.synced),
-        );
       }
     }
   }
@@ -158,6 +179,7 @@ class CloudSyncRepositoryImpl implements CloudSyncRepository {
     if (user == null) {
       throw Exception('Please sign in to restore cloud projects');
     }
+    projectLocalDataSource.setActiveUserId(user.id);
 
     final cloudProject = await cloudDataSource.getCloudProject(user.id, projectId);
     if (cloudProject != null) {
@@ -173,6 +195,7 @@ class CloudSyncRepositoryImpl implements CloudSyncRepository {
     if (user == null) {
       throw Exception('Please sign in to manage cloud projects');
     }
+    projectLocalDataSource.setActiveUserId(user.id);
 
     await cloudDataSource.deleteCloudProject(user.id, projectId);
 

@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
-import 'package:looma/features/media_picker/domain/entities/media_item_entity.dart';
+import 'package:procut/features/media_picker/domain/entities/media_item_entity.dart';
 
 class DeviceMediaService {
   final ImagePicker _imagePicker = ImagePicker();

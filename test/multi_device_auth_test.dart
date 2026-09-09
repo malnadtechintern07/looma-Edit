@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:looma/core/storage/local_storage_service.dart';
-import 'package:looma/features/auth/data/datasources/auth_local_datasource.dart';
-import 'package:looma/features/auth/data/datasources/auth_remote_datasource.dart';
-import 'package:looma/features/auth/data/datasources/bunny_auth_remote_datasource.dart';
-import 'package:looma/features/auth/data/datasources/composite_auth_remote_datasource.dart';
-import 'package:looma/features/auth/data/datasources/global_cloud_auth_remote_datasource.dart';
-import 'package:looma/features/auth/data/repositories/auth_repository_impl.dart';
-import 'package:looma/features/auth/presentation/providers/auth_provider.dart';
-import 'package:looma/features/auth/presentation/screens/auth_screen.dart';
-import 'package:looma/features/cloud_sync/domain/entities/bunny_storage_config.dart';
+import 'package:procut/core/storage/local_storage_service.dart';
+import 'package:procut/features/auth/data/datasources/auth_local_datasource.dart';
+import 'package:procut/features/auth/data/datasources/auth_remote_datasource.dart';
+import 'package:procut/features/auth/data/datasources/bunny_auth_remote_datasource.dart';
+import 'package:procut/features/auth/data/datasources/composite_auth_remote_datasource.dart';
+import 'package:procut/features/auth/data/datasources/global_cloud_auth_remote_datasource.dart';
+import 'package:procut/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:procut/features/auth/presentation/providers/auth_provider.dart';
+import 'package:procut/features/auth/presentation/screens/auth_screen.dart';
+import 'package:procut/features/cloud_sync/domain/entities/bunny_storage_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _InMemoryAuthLocalDataSource implements AuthLocalDataSource {

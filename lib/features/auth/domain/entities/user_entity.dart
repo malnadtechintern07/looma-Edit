@@ -33,7 +33,7 @@ class UserEntity {
   factory UserEntity.fromJson(Map<String, dynamic> json) => UserEntity(
         id: json['id'] as String,
         email: json['email'] as String,
-        displayName: json['displayName'] as String? ?? 'Looma Creator',
+        displayName: json['displayName'] as String? ?? 'ProCut Creator',
         avatarUrl: json['avatarUrl'] as String?,
         isPro: json['isPro'] as bool? ?? true,
         createdAt: json['createdAt'] != null

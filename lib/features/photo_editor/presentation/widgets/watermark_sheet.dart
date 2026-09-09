@@ -47,7 +47,7 @@ class _WatermarkSheetState extends State<WatermarkSheet> {
     widget.controller.updateWatermark(
       widget.project.watermark.copyWith(
         isEnabled: _isEnabled,
-        text: _textController.text.trim().isEmpty ? 'LOOMA' : _textController.text.trim(),
+        text: _textController.text.trim().isEmpty ? 'PROCUT' : _textController.text.trim(),
         position: _position,
         opacity: _opacity,
         scale: _scale,

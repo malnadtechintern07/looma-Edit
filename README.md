@@ -1,6 +1,6 @@
-# LOOMA - Pro Offline-First Video Editor
+# ProCut - Pro Offline-First Video Editor
 
-LOOMA is a production-grade, offline-first hybrid video editing application built with Flutter. It delivers an intuitive, high-performance multi-track timeline editing experience that functions completely offline, with cloud backup, template downloads, and royalty-free music available when online.
+ProCut is a production-grade, offline-first hybrid video editing application built with Flutter. It delivers an intuitive, high-performance multi-track timeline editing experience that functions completely offline, with cloud backup, template downloads, and royalty-free music available when online.
 
 ---
 
@@ -35,7 +35,7 @@ LOOMA is a production-grade, offline-first hybrid video editing application buil
 
 ## 🏗️ Architecture & Technology Stack
 
-LOOMA strictly follows the **Flutter Production Architecture Standard**:
+ProCut strictly follows the **Flutter Production Architecture Standard**:
 - **Architecture**: Clean Architecture (Presentation $\rightarrow$ Domain $\rightarrow$ Data) with Feature-First structure.
 - **State Management & DI**: `flutter_riverpod` (StateNotifiers, Family Providers, Selectors).
 - **Navigation**: `go_router` (Type-safe declarative routing).
@@ -50,7 +50,7 @@ LOOMA strictly follows the **Flutter Production Architecture Standard**:
 lib/
 ├── main.dart                          # Application entry point
 ├── app/
-│   ├── app.dart                       # Root LoomaApp widget
+│   ├── app.dart                       # Root ProCutApp widget
 │   ├── router/                        # GoRouter configuration & route definitions
 │   └── theme/                         # Colors, Typography & Dark Theme
 ├── core/

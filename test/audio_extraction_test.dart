@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:looma/features/audio/domain/entities/audio_clip_entity.dart';
-import 'package:looma/features/audio/domain/services/audio_extraction_service.dart';
+import 'package:procut/features/audio/domain/entities/audio_clip_entity.dart';
+import 'package:procut/features/audio/domain/services/audio_extraction_service.dart';
 
 void main() {
   group('Audio Extraction & Waveform Tests', () {

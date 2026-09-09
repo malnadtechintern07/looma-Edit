@@ -1,12 +1,12 @@
 import 'dart:math';
 import 'package:flutter/foundation.dart';
-import 'package:looma/features/audio/domain/entities/audio_clip_entity.dart';
-import 'package:looma/features/editor/domain/entities/animation_clip_entity.dart';
-import 'package:looma/features/editor/domain/entities/subtitle_entity.dart';
-import 'package:looma/features/editor/domain/entities/video_clip_entity.dart';
-import 'package:looma/features/filters_effects/domain/entities/effect_clip_entity.dart';
-import 'package:looma/features/text_stickers/domain/entities/sticker_overlay_entity.dart';
-import 'package:looma/features/text_stickers/domain/entities/text_overlay_entity.dart';
+import 'package:procut/features/audio/domain/entities/audio_clip_entity.dart';
+import 'package:procut/features/editor/domain/entities/animation_clip_entity.dart';
+import 'package:procut/features/editor/domain/entities/subtitle_entity.dart';
+import 'package:procut/features/editor/domain/entities/video_clip_entity.dart';
+import 'package:procut/features/filters_effects/domain/entities/effect_clip_entity.dart';
+import 'package:procut/features/text_stickers/domain/entities/sticker_overlay_entity.dart';
+import 'package:procut/features/text_stickers/domain/entities/text_overlay_entity.dart';
 import 'aspect_ratio_type.dart';
 import 'sync_status_type.dart';
 
@@ -31,6 +31,8 @@ class ProjectEntity {
   final List<AnimationClipEntity> animationClips;
   final SyncStatusType syncStatus;
   final int lastPlayheadPositionMs;
+  final String? userId;
+  final String? userEmail;
 
   const ProjectEntity({
     required this.id,
@@ -52,6 +54,8 @@ class ProjectEntity {
     this.animationClips = const [],
     this.syncStatus = SyncStatusType.localOnly,
     this.lastPlayheadPositionMs = 0,
+    this.userId,
+    this.userEmail,
   });
 
   /// Computes the true project duration from all tracks
@@ -101,6 +105,8 @@ class ProjectEntity {
     List<AnimationClipEntity>? animationClips,
     SyncStatusType? syncStatus,
     int? lastPlayheadPositionMs,
+    String? userId,
+    String? userEmail,
   }) {
     return ProjectEntity(
       id: id ?? this.id,
@@ -122,6 +128,8 @@ class ProjectEntity {
       animationClips: animationClips ?? this.animationClips,
       syncStatus: syncStatus ?? this.syncStatus,
       lastPlayheadPositionMs: lastPlayheadPositionMs ?? this.lastPlayheadPositionMs,
+      userId: userId ?? this.userId,
+      userEmail: userEmail ?? this.userEmail,
     );
   }
 
@@ -134,8 +142,10 @@ class ProjectEntity {
           aspectRatio == other.aspectRatio &&
           fps == other.fps &&
           updatedAt == other.updatedAt &&
-          syncStatus == other.syncStatus;
+          syncStatus == other.syncStatus &&
+          userId == other.userId &&
+          userEmail == other.userEmail;
 
   @override
-  int get hashCode => Object.hash(id, title, aspectRatio, fps, updatedAt, syncStatus);
+  int get hashCode => Object.hash(id, title, aspectRatio, fps, updatedAt, syncStatus, userId, userEmail);
 }

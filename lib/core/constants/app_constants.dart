@@ -1,14 +1,14 @@
-/// Application-wide constants for LOOMA Video Editor
+/// Application-wide constants for ProCut Video Editor
 abstract class AppConstants {
-  static const String appName = 'LOOMA';
+  static const String appName = 'ProCut';
   static const String appTagline = 'Pro Offline Video Creation';
   static const String appVersion = '1.0.0';
 
   // Storage Keys
   static const String projectsCatalogFile = 'projects_catalog.json';
-  static const String projectsDirectory = 'looma_projects';
-  static const String cacheDirectory = 'looma_cache';
-  static const String exportDirectory = 'looma_exports';
+  static const String projectsDirectory = 'procut_projects';
+  static const String cacheDirectory = 'procut_cache';
+  static const String exportDirectory = 'procut_exports';
   static const String userAccountFile = 'user_profile.json';
 
   // Timeline & Editing Defaults

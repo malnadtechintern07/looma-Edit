@@ -42,3 +42,10 @@ class DeleteProjectUseCase {
 
   Future<void> call(String id) => repository.deleteProject(id);
 }
+
+class ClaimGuestProjectsUseCase {
+  final ProjectRepository repository;
+  const ClaimGuestProjectsUseCase(this.repository);
+
+  Future<void> call(String userId) => repository.claimGuestProjects(userId);
+}

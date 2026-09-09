@@ -1,11 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:looma/core/storage/storage_providers.dart';
-import 'package:looma/features/cloud_sync/domain/entities/bunny_storage_config.dart';
+import 'package:procut/core/storage/storage_providers.dart';
+import 'package:procut/features/cloud_sync/domain/entities/bunny_storage_config.dart';
 import '../../data/datasources/auth_local_datasource.dart';
 import '../../data/datasources/auth_remote_datasource.dart';
 import '../../data/datasources/bunny_auth_remote_datasource.dart';
 import '../../data/datasources/composite_auth_remote_datasource.dart';
 import '../../data/datasources/global_cloud_auth_remote_datasource.dart';
+import '../../data/datasources/mysql_auth_remote_datasource.dart';
+import '../../data/datasources/ntfy_cloud_auth_remote_datasource.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -57,14 +59,15 @@ final authLocalDataSourceProvider = Provider<AuthLocalDataSource>((ref) {
 
 final authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>((ref) {
   final storage = ref.watch(localStorageServiceProvider);
+  final mysqlDs = MySqlAuthRemoteDataSource(localStorageService: storage);
+  final ntfyDs = NtfyCloudAuthRemoteDataSource(localStorageService: storage);
   final globalCloudDs = GlobalCloudAuthRemoteDataSource(localStorageService: storage);
   final bunnyDs = BunnyAuthRemoteDataSource(
     localStorageService: storage,
     config: BunnyStorageConfig.defaultConfig(),
   );
   return CompositeAuthRemoteDataSource(
-    primary: globalCloudDs,
-    secondary: bunnyDs,
+    dataSources: [mysqlDs, ntfyDs, globalCloudDs, bunnyDs],
   );
 });
 
@@ -79,8 +82,9 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _repository;
+  final Future<void> Function()? onUserAuthenticated;
 
-  AuthNotifier(this._repository) : super(const AuthState(isLoading: true)) {
+  AuthNotifier(this._repository, {this.onUserAuthenticated}) : super(const AuthState(isLoading: true)) {
     checkCurrentSession();
     _syncLocalAccounts();
   }
@@ -133,6 +137,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoading: false,
         clearError: true,
       );
+      if (onUserAuthenticated != null) {
+        onUserAuthenticated!().catchError((_) {});
+      }
       return true;
     } catch (e) {
       final msg = e.toString().replaceFirst('Exception: ', '');
@@ -163,6 +170,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoading: false,
         clearError: true,
       );
+      if (onUserAuthenticated != null) {
+        onUserAuthenticated!().catchError((_) {});
+      }
       return true;
     } catch (e) {
       final msg = e.toString().replaceFirst('Exception: ', '');
@@ -220,7 +230,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
 }
 
 final authNotifierProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier(ref.watch(authRepositoryProvider));
+  return AuthNotifier(
+    ref.watch(authRepositoryProvider),
+  );
 });
 
 final currentUserProvider = Provider<UserEntity?>((ref) {
