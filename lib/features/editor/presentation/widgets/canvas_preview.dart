@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
@@ -12,6 +13,7 @@ import '../../../../core/utils/font_helper.dart';
 import '../../../../core/utils/timecode_formatter.dart';
 import '../../../../core/widgets/procut_watermark.dart';
 import '../../../../core/widgets/responsive_tap_button.dart';
+import '../../../../core/services/app_remote_config_service.dart';
 import '../../../editor/domain/entities/transition_type.dart';
 import '../../../filters_effects/domain/entities/filter_preset.dart';
 import '../../../filters_effects/domain/entities/video_effect_type.dart';
@@ -519,7 +521,7 @@ class _CanvasPreviewState extends State<CanvasPreview> {
           // Centered Aspect Ratio Preview Canvas
           Center(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 36, 16, 64),
+              padding: const EdgeInsets.fromLTRB(16, 36, 16, 72),
               child: AspectRatio(
                 aspectRatio: project.aspectRatio.ratio,
                 child: LayoutBuilder(
@@ -675,13 +677,27 @@ class _CanvasPreviewState extends State<CanvasPreview> {
                               ),
                             ],
 
-                            // 8. Subtle ProCut Watermark in Bottom-Right Corner
-                            const Positioned(
-                              right: 10,
-                              bottom: 10,
-                              child: IgnorePointer(
-                                child: ProCutWatermark(opacity: 0.65, scale: 0.9),
-                              ),
+                            // 8. Dynamic Watermark from Admin Panel (text, opacity, scale, and position)
+                            Consumer(
+                              builder: (context, ref, _) {
+                                final wmConfig = ref.watch(appRemoteConfigProvider).valueOrNull?.watermark;
+                                if (wmConfig != null && !wmConfig.enabledFree) {
+                                  return const SizedBox.shrink();
+                                }
+                                return Positioned(
+                                  right: (wmConfig?.position == 'bottomLeft' || wmConfig?.position == 'topLeft') ? null : 8,
+                                  left: (wmConfig?.position == 'bottomLeft' || wmConfig?.position == 'topLeft') ? 8 : null,
+                                  bottom: (wmConfig?.position == 'topLeft' || wmConfig?.position == 'topRight') ? null : 8,
+                                  top: (wmConfig?.position == 'topLeft' || wmConfig?.position == 'topRight') ? 8 : null,
+                                  child: IgnorePointer(
+                                    child: ProCutWatermark(
+                                      text: wmConfig?.text ?? 'ProCut',
+                                      opacity: wmConfig?.opacity ?? 0.55,
+                                      scale: (wmConfig?.size ?? 0.8) * 0.9,
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                           ],
                         ),
@@ -811,12 +827,12 @@ class _CanvasPreviewState extends State<CanvasPreview> {
                             child: ResponsiveTapButton(
                               onTap: widget.controller.togglePlayPause,
                               child: Container(
-                                width: 44,
-                                height: 44,
+                                width: 40,
+                                height: 40,
                                 alignment: Alignment.center,
                                 child: Icon(
                                   state.isPlaying ? Icons.pause : Icons.play_arrow,
-                                  size: 32,
+                                  size: 30,
                                   color: Colors.white,
                                 ),
                               ),
@@ -5555,10 +5571,10 @@ class _FullScreenEditorPreviewDialogState extends State<_FullScreenEditorPreview
 
                           // Subtle ProCut Watermark in Bottom-Right Corner
                           const Positioned(
-                            right: 14,
-                            bottom: 14,
+                            right: 10,
+                            bottom: 10,
                             child: IgnorePointer(
-                              child: ProCutWatermark(opacity: 0.7, scale: 1.0),
+                              child: ProCutWatermark(opacity: 0.6, scale: 0.75),
                             ),
                           ),
                         ],

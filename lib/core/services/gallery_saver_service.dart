@@ -155,7 +155,24 @@ class GallerySaverService {
       final destinationFile = File('${targetDir.path}/$sanitizedName');
 
       // 3. Write real playable MP4 (never copy a still image as an MP4 file!)
-      if (sourceFilePath.startsWith('assets/')) {
+      if (sourceFilePath.startsWith('http://') || sourceFilePath.startsWith('https://')) {
+        try {
+          final client = HttpClient()..connectionTimeout = const Duration(seconds: 15);
+          final req = await client.getUrl(Uri.parse(sourceFilePath));
+          final res = await req.close();
+          if (res.statusCode == 200) {
+            final bytes = await res.fold<List<int>>([], (prev, element) => prev..addAll(element));
+            await destinationFile.writeAsBytes(bytes, flush: true);
+          } else {
+            throw Exception('HTTP status ${res.statusCode}');
+          }
+          client.close();
+        } catch (e) {
+          debugPrint('Network video download failed: $e, falling back to generator');
+          final bytes = await ValidMp4Generator.getPlayableMp4Bytes();
+          await destinationFile.writeAsBytes(bytes, flush: true);
+        }
+      } else if (sourceFilePath.startsWith('assets/')) {
         try {
           final byteData = await rootBundle.load(sourceFilePath);
           final bytes = byteData.buffer.asUint8List();

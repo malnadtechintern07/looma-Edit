@@ -63,5 +63,59 @@ class CompositeAuthRemoteDataSource implements AuthRemoteDataSource {
     }
     return anySuccess || _sources.isEmpty;
   }
+
+  @override
+  Future<Map<String, dynamic>> register(String email, String password, String displayName) async {
+    for (final source in _sources) {
+      try {
+        final result = await source.register(email, password, displayName);
+        return result;
+      } catch (e) {
+        // If it's a specific user error (like 409 conflict), rethrow immediately
+        final err = e.toString();
+        if (err.contains('already exists') || err.contains('Registration failed')) {
+          rethrow;
+        }
+      }
+    }
+    throw Exception('Unable to register account. Please check your connection.');
+  }
+
+  @override
+  Future<Map<String, dynamic>?> login(String email, String password) async {
+    for (final source in _sources) {
+      try {
+        final result = await source.login(email, password);
+        if (result != null) return result;
+      } catch (e) {
+        rethrow;
+      }
+    }
+    return null;
+  }
+
+  @override
+  Future<bool> checkEmailExists(String email) async {
+    for (final source in _sources) {
+      try {
+        final exists = await source.checkEmailExists(email);
+        if (exists) return true;
+      } catch (_) {}
+    }
+    return false;
+  }
+
+  @override
+  Future<bool> forgotPassword(String email, String newPassword) async {
+    for (final source in _sources) {
+      try {
+        final ok = await source.forgotPassword(email, newPassword);
+        if (ok) return true;
+      } catch (e) {
+        rethrow;
+      }
+    }
+    return false;
+  }
 }
 

@@ -5,6 +5,7 @@ import 'package:procut/core/config/server_config.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
 import 'package:procut/features/cloud_sync/presentation/providers/cloud_sync_provider.dart';
+import 'package:procut/features/projects/presentation/providers/projects_provider.dart';
 import '../providers/auth_provider.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
@@ -68,10 +69,19 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
 
     if (success && mounted) {
-      // Synchronize projects from cloud so projects saved on any other device show up immediately
+      // Synchronize all projects from the server so projects created on any
+      // other device appear immediately after login on this device.
       try {
         await ref.read(syncNotifierProvider.notifier).triggerSync();
       } catch (_) {}
+
+      // After sync, explicitly reload the local project list which now contains
+      // all cloud projects downloaded during triggerSync above.
+      if (mounted) {
+        try {
+          await ref.read(projectsNotifierProvider.notifier).loadProjects();
+        } catch (_) {}
+      }
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -250,48 +260,78 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             ),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'ProCut connects to your MySQL backend server for account authentication and project synchronization across devices.',
-              style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 13, height: 1.4),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: urlCtrl,
-              style: const TextStyle(color: Colors.white, fontSize: 13.5),
-              decoration: InputDecoration(
-                labelText: 'Server Base URL',
-                labelStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-                prefixIcon: const Icon(Icons.cloud_queue_outlined, color: Color(0xFF9CA3AF), size: 18),
-                filled: true,
-                fillColor: const Color(0xFF0F1017),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF2A2D3D)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'ProCut connects to your MySQL backend server for account authentication and project synchronization across devices.',
+                style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 13, height: 1.4),
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                'Quick Presets:',
+                style: TextStyle(color: Color(0xFFD1D5DB), fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  ActionChip(
+                    backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.2),
+                    side: const BorderSide(color: Color(0xFF10B981)),
+                    label: const Text('☁️ Live Cloud (procut.free.nf)', style: TextStyle(color: Color(0xFF34D399), fontSize: 11.5, fontWeight: FontWeight.w600)),
+                    onPressed: () {
+                      urlCtrl.text = ServerConfig.liveHostUrl;
+                    },
+                  ),
+                  ActionChip(
+                    backgroundColor: const Color(0xFF3B82F6).withValues(alpha: 0.2),
+                    side: const BorderSide(color: Color(0xFF3B82F6)),
+                    label: const Text('💻 Local Dev (5050)', style: TextStyle(color: Color(0xFF60A5FA), fontSize: 11.5, fontWeight: FontWeight.w600)),
+                    onPressed: () {
+                      urlCtrl.text = 'http://${ServerConfig.defaultLocalIp}:${ServerConfig.defaultPort}';
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: urlCtrl,
+                style: const TextStyle(color: Colors.white, fontSize: 13.5),
+                decoration: InputDecoration(
+                  labelText: 'Server Base URL',
+                  labelStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+                  prefixIcon: const Icon(Icons.cloud_queue_outlined, color: Color(0xFF9CA3AF), size: 18),
+                  filled: true,
+                  fillColor: const Color(0xFF0F1017),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF2A2D3D)),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                TextButton(
-                  onPressed: () {
-                    urlCtrl.text = ServerConfig.defaultUrl;
-                  },
-                  child: const Text('Reset to Default', style: TextStyle(color: Color(0xFF00A2FF), fontSize: 12)),
-                ),
-                Text(
-                  'Default: ${ServerConfig.defaultLocalIp}:${ServerConfig.defaultPort}',
-                  style: const TextStyle(color: Color(0xFF6B7280), fontSize: 11),
-                ),
-              ],
-            ),
-          ],
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      urlCtrl.text = ServerConfig.defaultUrl;
+                    },
+                    child: const Text('Reset to Live Cloud', style: TextStyle(color: Color(0xFF00A2FF), fontSize: 12)),
+                  ),
+                  const Text(
+                    'procut.free.nf',
+                    style: TextStyle(color: Color(0xFF6B7280), fontSize: 11),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(

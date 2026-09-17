@@ -11,6 +11,7 @@ import 'package:procut/features/auth/data/repositories/auth_repository_impl.dart
 import 'package:procut/features/auth/presentation/providers/auth_provider.dart';
 import 'package:procut/features/auth/presentation/screens/auth_screen.dart';
 import 'package:procut/features/cloud_sync/domain/entities/bunny_storage_config.dart';
+import 'package:procut/features/auth/domain/services/password_hasher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _InMemoryAuthLocalDataSource implements AuthLocalDataSource {
@@ -85,6 +86,57 @@ class _InMemoryAuthRemoteDataSource implements AuthRemoteDataSource {
   @override
   Future<bool> updateAccount(Map<String, dynamic> accountData) async {
     return await saveAccount(accountData);
+  }
+
+  @override
+  Future<Map<String, dynamic>> register(String email, String password, String displayName) async {
+    final cleanEmail = email.trim().toLowerCase();
+    if (_cloudAccounts.containsKey(cleanEmail)) {
+      throw Exception('An account with this email already exists. Please log in.');
+    }
+    final salt = PasswordHasher.generateSalt();
+    final hash = PasswordHasher.hashPassword(password, salt);
+    final userMap = {
+      'id': 'usr_${cleanEmail.hashCode.abs()}',
+      'email': cleanEmail,
+      'displayName': displayName,
+      'isPro': true,
+      'passwordHash': hash,
+      'salt': salt,
+      'createdAt': DateTime.now().toIso8601String(),
+      'lastLoginAt': DateTime.now().toIso8601String(),
+    };
+    _cloudAccounts[cleanEmail] = userMap;
+    return userMap;
+  }
+
+  @override
+  Future<Map<String, dynamic>?> login(String email, String password) async {
+    final account = await getAccountByEmail(email);
+    if (account == null) return null;
+    final salt = account['salt'] as String?;
+    final hash = account['passwordHash'] as String?;
+    if (salt != null && hash != null) {
+      if (PasswordHasher.verifyPassword(password, salt, hash)) {
+        return account;
+      }
+      throw Exception('Incorrect password. Please try again.');
+    }
+    return null;
+  }
+
+  @override
+  Future<bool> checkEmailExists(String email) async => (await getAccountByEmail(email)) != null;
+
+  @override
+  Future<bool> forgotPassword(String email, String newPassword) async {
+    final account = await getAccountByEmail(email);
+    if (account == null) return false;
+    final salt = PasswordHasher.generateSalt();
+    final hash = PasswordHasher.hashPassword(newPassword, salt);
+    account['salt'] = salt;
+    account['passwordHash'] = hash;
+    return true;
   }
 }
 

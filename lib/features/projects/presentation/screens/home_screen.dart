@@ -3,13 +3,18 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../app/router/route_paths.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/services/permission_service.dart';
+import '../../../../core/services/app_remote_config_service.dart';
 import '../../../../core/utils/id_generator.dart';
 import '../../../../core/widgets/permissions_primer_dialog.dart';
 import '../../../../core/widgets/responsive_tap_button.dart';
+import '../../../ai_photo_edit/data/ai_photo_presets_data.dart';
+import '../../../ai_photo_edit/presentation/screens/ai_photo_edit_screen.dart';
+import '../../../asset_store/presentation/providers/asset_store_provider.dart';
 import '../../../asset_store/presentation/screens/template_feed_screen.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../cloud_sync/presentation/providers/cloud_sync_provider.dart';
@@ -20,7 +25,6 @@ import '../../../media_picker/domain/services/recent_media_service.dart';
 import '../../../media_picker/presentation/widgets/media_picker_modal.dart';
 import '../../../photo_editor/domain/entities/photo_frame_entity.dart';
 import '../../../photo_editor/domain/entities/photo_project_entity.dart';
-import '../../../profile/presentation/screens/profile_screen.dart';
 import '../../domain/entities/aspect_ratio_type.dart';
 import '../../domain/entities/project_entity.dart';
 import '../../domain/entities/sync_status_type.dart';
@@ -40,6 +44,8 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _currentNavIndex = 0;
   final Set<int> _visitedTabs = {0};
+  bool _cloudSyncBannerDismissed = false;
+  static const _kCloudSyncBannerKey = 'cloud_sync_banner_shown_v1';
 
   void _onTabSelected(int index) {
     if (_currentNavIndex != index) {
@@ -47,6 +53,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         _currentNavIndex = index;
         _visitedTabs.add(index);
       });
+
+      // Immediately refresh content from Admin Panel when switching tabs
+      if (index == 0) {
+        ref.invalidate(appRemoteConfigProvider);
+      } else if (index == 2) {
+        ref.invalidate(storeTemplatesFutureProvider);
+      } else if (index == 1) {
+        ref.read(projectsNotifierProvider.notifier).loadProjects();
+      } else if (index == 3) {
+        AiPhotoPresetsData.fetchServerPresets();
+      }
     }
   }
 
@@ -70,6 +87,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           if (!seenPermissions && mounted) {
             showPermissionsPrimerDialog(context);
           }
+        }
+        // Load cloud sync banner dismissed state
+        final prefs = await SharedPreferences.getInstance();
+        if (mounted) {
+          setState(() {
+            _cloudSyncBannerDismissed = prefs.getBool(_kCloudSyncBannerKey) ?? false;
+          });
         }
       }
     });
@@ -175,7 +199,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           _buildHomeDashboardTab(),
           _visitedTabs.contains(1) ? const ProjectsOnlyScreen() : const SizedBox.shrink(),
           _visitedTabs.contains(2) ? const TemplateFeedScreen() : const SizedBox.shrink(),
-          _visitedTabs.contains(3) ? const ProfileMeScreen() : const SizedBox.shrink(),
+          _visitedTabs.contains(3) ? const AiPhotoEditScreen() : const SizedBox.shrink(),
         ],
       ),
       bottomNavigationBar: _buildBottomNavigationBar(),
@@ -193,6 +217,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       backgroundColor: const Color(0xFFF8F9FE),
       body: RefreshIndicator(
         onRefresh: () async {
+          ref.invalidate(appRemoteConfigProvider);
+          ref.invalidate(storeTemplatesFutureProvider);
+          await ref.read(appRemoteConfigProvider.future).catchError((_) => const AppRemoteConfig());
           await ref.read(projectsNotifierProvider.notifier).loadProjects();
           if (ref.read(authNotifierProvider).isAuthenticated) {
             await ref.read(syncNotifierProvider.notifier).triggerSync();
@@ -229,7 +256,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               // Top Bar Row: PROCUT Brand Badge (Left) + Actions (Right)
                               Row(
                                 children: [
-                                  // PROCUT PRO Ultra Badge
+                                  // PROCUT PRO Badge
                                   Flexible(
                                     child: FittedBox(
                                       fit: BoxFit.scaleDown,
@@ -246,15 +273,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                           children: [
                                             Image.asset('assets/icon/app_icon.png', width: 18, height: 18),
                                             const SizedBox(width: 5),
-                                            const Text(
-                                              'PROCUT',
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.w900,
-                                                fontSize: 12.5,
-                                                letterSpacing: 0.3,
-                                              ),
-                                            ),
+                                             Text(
+                                               (ref.watch(appRemoteConfigProvider).valueOrNull?.appName ?? 'PROCUT').toUpperCase(),
+                                               style: const TextStyle(
+                                                 color: Colors.white,
+                                                 fontWeight: FontWeight.w900,
+                                                 fontSize: 12.5,
+                                                 letterSpacing: 0.3,
+                                               ),
+                                             ),
                                             const SizedBox(width: 5),
                                             Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
@@ -270,21 +297,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                                     'PRO',
                                                     style: TextStyle(
                                                       color: Color(0xFFFFB800),
-                                                      fontSize: 8,
+                                                      fontSize: 8.5,
                                                       fontWeight: FontWeight.w900,
+                                                      letterSpacing: 0.2,
                                                     ),
                                                   ),
                                                   SizedBox(width: 3),
-                                                  Icon(Icons.auto_awesome, color: Color(0xFFFFD700), size: 9),
-                                                  SizedBox(width: 2),
-                                                  Text(
-                                                    'Ultra',
-                                                    style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 8,
-                                                      fontWeight: FontWeight.w800,
-                                                    ),
-                                                  ),
+                                                  Icon(Icons.auto_awesome, color: Color(0xFFFFD700), size: 9.5),
                                                 ],
                                               ),
                                             ),
@@ -296,66 +315,91 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
                                   const SizedBox(width: 8),
 
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      // Sign In Button if not authenticated
-                                      if (!isAuthenticated)
-                                        Padding(
-                                          padding: const EdgeInsets.only(right: 6),
-                                          child: SizedBox(
-                                            height: 30,
-                                            child: ElevatedButton.icon(
-                                              key: const Key('home_signin_register_button'),
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: Colors.white,
-                                                foregroundColor: const Color(0xFF0D6EFD),
-                                                elevation: 1,
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
-                                                visualDensity: VisualDensity.compact,
+                                  Expanded(
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.centerRight,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          // Sign In Button if not authenticated
+                                          if (!isAuthenticated)
+                                            Padding(
+                                              padding: const EdgeInsets.only(right: 6),
+                                              child: SizedBox(
+                                                height: 30,
+                                                child: ElevatedButton.icon(
+                                                  key: const Key('home_signin_register_button'),
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: Colors.white,
+                                                    foregroundColor: const Color(0xFF0D6EFD),
+                                                    elevation: 1,
+                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
+                                                    visualDensity: VisualDensity.compact,
+                                                  ),
+                                                  icon: const Icon(Icons.login, size: 12),
+                                                  label: const Text('Sign In', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                                                  onPressed: () => context.push(RoutePaths.auth),
+                                                ),
                                               ),
-                                              icon: const Icon(Icons.login, size: 12),
-                                              label: const Text('Sign In', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                                              onPressed: () => context.push(RoutePaths.auth),
+                                            ),
+
+                                          // Circular Glass Search Button
+                                          ResponsiveTapButton(
+                                            onTap: () {},
+                                            child: Container(
+                                              width: 30,
+                                              height: 30,
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                color: Colors.white.withValues(alpha: 0.18),
+                                                border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+                                              ),
+                                              alignment: Alignment.center,
+                                              child: const Icon(Icons.search, color: Colors.white, size: 16),
                                             ),
                                           ),
-                                        ),
 
-                                      // Circular Glass Search Button
-                                      ResponsiveTapButton(
-                                        onTap: () {},
-                                        child: Container(
-                                          width: 30,
-                                          height: 30,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: Colors.white.withValues(alpha: 0.18),
-                                            border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+                                          const SizedBox(width: 6),
+
+                                          // Cloud Sync Button
+                                          ResponsiveTapButton(
+                                            onTap: () => context.push(RoutePaths.cloud),
+                                            child: Container(
+                                              width: 30,
+                                              height: 30,
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                color: Colors.white.withValues(alpha: 0.18),
+                                                border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+                                              ),
+                                              alignment: Alignment.center,
+                                              child: const Icon(Icons.cloud_done_outlined, color: Colors.white, size: 16),
+                                            ),
                                           ),
-                                          alignment: Alignment.center,
-                                          child: const Icon(Icons.search, color: Colors.white, size: 16),
-                                        ),
-                                      ),
 
-                                      const SizedBox(width: 6),
+                                          const SizedBox(width: 6),
 
-                                      // Cloud Sync Button
-                                      ResponsiveTapButton(
-                                        onTap: () => context.push(RoutePaths.cloud),
-                                        child: Container(
-                                          width: 30,
-                                          height: 30,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: Colors.white.withValues(alpha: 0.18),
-                                            border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+                                          // Settings Icon Button
+                                          ResponsiveTapButton(
+                                            key: const Key('home_settings_button'),
+                                            onTap: () => context.push(RoutePaths.settings),
+                                            child: Container(
+                                              width: 30,
+                                              height: 30,
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                color: Colors.white.withValues(alpha: 0.18),
+                                                border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+                                              ),
+                                              alignment: Alignment.center,
+                                              child: const Icon(Icons.settings_outlined, color: Colors.white, size: 16),
+                                            ),
                                           ),
-                                          alignment: Alignment.center,
-                                          child: const Icon(Icons.cloud_done_outlined, color: Colors.white, size: 16),
-                                        ),
+                                        ],
                                       ),
-                                    ],
+                                    ),
                                   ),
                                 ],
                               ),
@@ -429,14 +473,156 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // 0. Sign In or Register CTA Banner (Only shown on Home page when NOT signed in)
-                          if (!isAuthenticated) ...[
-                            Container(
+                          // ── Announcement Banner from Admin Panel ──
+                          Builder(builder: (context) {
+                            final rc = ref.watch(appRemoteConfigProvider).valueOrNull;
+                            if (rc != null && rc.branding.announcementEnabled && rc.branding.announcementMessage.isNotEmpty) {
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFB800).withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: const Color(0xFFFFB800).withValues(alpha: 0.6)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Text('📣', style: TextStyle(fontSize: 16)),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          if (rc.branding.announcementTitle.isNotEmpty)
+                                            Text(rc.branding.announcementTitle,
+                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5, color: Color(0xFF92400E))),
+                                          Text(rc.branding.announcementMessage,
+                                            style: const TextStyle(fontSize: 12, color: Color(0xFF78350F))),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          }),
+
+                          // ── Maintenance mode announcement from Admin Panel ──
+                          Builder(builder: (context) {
+                            final remoteConfig = ref.watch(appRemoteConfigProvider).valueOrNull;
+                            if (remoteConfig != null && remoteConfig.maintenanceMode) {
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber.shade900.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.amber.shade600),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.build_circle_outlined, color: Colors.amber, size: 20),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        remoteConfig.maintenanceMessage.isNotEmpty
+                                            ? remoteConfig.maintenanceMessage
+                                            : 'Scheduled cloud maintenance in progress.',
+                                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          }),
+
+                          // 0. Dynamic Banner from Admin Panel (Announcements, Cloud Sync, Promotions)
+                          Builder(builder: (context) {
+                            final remoteConfig = ref.watch(appRemoteConfigProvider).valueOrNull;
+                            final hasRemoteBanners = remoteConfig != null && remoteConfig.banners.isNotEmpty;
+                            // If authenticated and no remote banners: only show cloud sync banner once
+                            if (!hasRemoteBanners && isAuthenticated) {
+                              if (_cloudSyncBannerDismissed) return const SizedBox.shrink();
+                            }
+
+                            // Find appropriate banner
+                            RemoteBannerModel? banner;
+                            if (hasRemoteBanners) {
+                              for (final b in remoteConfig.banners) {
+                                if (b.placement == 'home_top') {
+                                  if (!isAuthenticated) {
+                                    banner = b;
+                                    break;
+                                  } else if (!b.actionRoute.contains('auth')) {
+                                    banner = b;
+                                    break;
+                                  }
+                                }
+                              }
+                              banner ??= remoteConfig.banners.first;
+                            } else {
+                              banner = const RemoteBannerModel(
+                                id: 0,
+                                title: 'Sign In or Register Account',
+                                subtitle: 'Secure your projects with ProCut Cloud Sync & access them on any device.',
+                                badgeText: 'CLOUD',
+                                buttonText: 'Sign In / Register',
+                                actionRoute: RoutePaths.auth,
+                                gradientStart: '0xFF084298',
+                                gradientEnd: '0xFF0D6EFD',
+                                placement: 'home_top',
+                              );
+                            }
+
+                            // If not authenticated, always show guest cloud banner
+                            String title = !isAuthenticated
+                                ? 'Sign In / Register Account'
+                                : (banner.title.isNotEmpty ? banner.title : 'Cloud Backup & Sync');
+                            String subtitle = !isAuthenticated
+                                ? 'Secure your projects with ProCut Cloud Sync & access them on any device.'
+                                : (banner.subtitle.isNotEmpty
+                                    ? banner.subtitle
+                                    : 'Sign in or register to secure your timeline projects in the cloud.');
+                            String btnText = !isAuthenticated
+                                ? 'Sign In / Register Account'
+                                : (banner.buttonText.isNotEmpty ? banner.buttonText : 'Explore Now');
+                            String route = !isAuthenticated ? RoutePaths.auth : banner.actionRoute;
+
+                            if (isAuthenticated && route.contains('auth')) {
+                              // Show cloud sync active banner only once
+                              if (_cloudSyncBannerDismissed) return const SizedBox.shrink();
+                              title = 'ProCut Cloud Sync Active';
+                              subtitle = 'Your projects are synced with ProCut Cloud. Tap to view backup history.';
+                              btnText = 'Open Cloud Storage';
+                              route = RoutePaths.cloud;
+                            }
+
+                            final g1 = banner.startColor;
+                            final g2 = banner.endColor;
+
+                            void handleBannerAction() {
+                              if (route == RoutePaths.auth && isAuthenticated) {
+                                context.push(RoutePaths.cloud);
+                              } else if (route == '/templates') {
+                                _onTabSelected(2);
+                              } else if (route == '/ai-photo-edit') {
+                                _onTabSelected(3);
+                              } else if (route.isNotEmpty) {
+                                context.push(route);
+                              } else {
+                                context.push(RoutePaths.cloud);
+                              }
+                            }
+
+                            return Container(
                               margin: const EdgeInsets.only(bottom: 16),
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFF084298), Color(0xFF0D6EFD)],
+                                gradient: LinearGradient(
+                                  colors: [g1, g2],
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                 ),
@@ -456,6 +642,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Container(
                                         width: 44,
@@ -466,22 +653,46 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                         child: Image.asset('assets/icon/app_icon.png', fit: BoxFit.contain),
                                       ),
                                       const SizedBox(width: 14),
-                                      const Expanded(
+                                      Expanded(
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Text(
-                                              'Cloud Backup & Sync',
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 14.5,
-                                              ),
+                                            Row(
+                                              children: [
+                                                Flexible(
+                                                  child: Text(
+                                                    title,
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 14.5,
+                                                    ),
+                                                  ),
+                                                ),
+                                                if (banner.badgeText.isNotEmpty) ...[
+                                                  const SizedBox(width: 6),
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.white.withValues(alpha: 0.25),
+                                                      borderRadius: BorderRadius.circular(6),
+                                                    ),
+                                                    child: Text(
+                                                      banner.badgeText.toUpperCase(),
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 9.5,
+                                                        fontWeight: FontWeight.w800,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ],
                                             ),
-                                            SizedBox(height: 3),
+                                            const SizedBox(height: 3),
                                             Text(
-                                              'Sign in or register to secure your timeline projects in the cloud.',
-                                              style: TextStyle(
+                                              subtitle,
+                                              style: const TextStyle(
                                                 color: Color(0xFFC7D2FE),
                                                 fontSize: 11.5,
                                                 height: 1.25,
@@ -490,13 +701,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                           ],
                                         ),
                                       ),
+                                      // Dismiss button for cloud sync active banner (authenticated, no remote banners)
+                                      if (isAuthenticated && !hasRemoteBanners)
+                                        GestureDetector(
+                                          onTap: () async {
+                                            final prefs = await SharedPreferences.getInstance();
+                                            await prefs.setBool(_kCloudSyncBannerKey, true);
+                                            if (mounted) setState(() => _cloudSyncBannerDismissed = true);
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.all(4),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withValues(alpha: 0.15),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(Icons.close, color: Colors.white70, size: 14),
+                                          ),
+                                        ),
                                     ],
                                   ),
                                   const SizedBox(height: 12),
                                   SizedBox(
                                     width: double.infinity,
                                     child: ElevatedButton.icon(
-                                      key: const Key('home_banner_signin_register_btn'),
+                                      key: Key(isAuthenticated ? 'home_banner_cloud_storage_btn' : 'home_banner_signin_register_btn'),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.white,
                                         foregroundColor: const Color(0xFF0D6EFD),
@@ -506,31 +734,107 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                         ),
                                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                                       ),
-                                      icon: const Icon(Icons.login, size: 16),
-                                      label: const FittedBox(
+                                      icon: Icon(
+                                        isAuthenticated ? Icons.cloud_done_rounded : Icons.login,
+                                        size: 16,
+                                      ),
+                                      label: FittedBox(
                                         fit: BoxFit.scaleDown,
                                         child: Text(
-                                          'Sign In / Register Account',
-                                          style: TextStyle(
+                                          btnText,
+                                          style: const TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 12,
                                           ),
                                         ),
                                       ),
-                                      onPressed: () => context.push(RoutePaths.auth),
+                                      onPressed: handleBannerAction,
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
-                          ],
+                            );
+                          }),
 
                           // 1. Hero Action Banner (New video & Edit photo + Quick tools grid from Reference UI)
                           QuickActionBanner(
+                            features: ref.watch(appRemoteConfigProvider).valueOrNull?.features,
                             onNewProject: _openDirectMediaPicker,
                             onNewPhotoProject: _openPhotoEditor,
                             onRecordVoiceover: _openDirectMediaPicker,
                             onBrowseTemplates: () => setState(() => _currentNavIndex = 2),
+                          ),
+
+                          // AI Video Edit Studio Banner
+                          Container(
+                            margin: const EdgeInsets.only(top: 14),
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF161824), Color(0xFF231E3D)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: const Color(0xFF6C5CE7).withValues(alpha: 0.35)),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x1A6C5CE7),
+                                  blurRadius: 14,
+                                  offset: Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [Color(0xFF8A2387), Color(0xFFE94057), Color(0xFFF27121)],
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(Icons.movie_filter_rounded, color: Colors.white, size: 22),
+                                ),
+                                const SizedBox(width: 12),
+                                const Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'AI Video Edit ✨',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      SizedBox(height: 2),
+                                      Text(
+                                        'Playable previews with Sora & Runway prompts',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(color: Color(0xFFB4B7C9), fontSize: 11),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () => context.push(RoutePaths.aiVideoEdit),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF6C5CE7),
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                  child: const Text('Explore', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                ),
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 24),
 
@@ -565,7 +869,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                     const SizedBox(height: 10),
 
-                    if (projects.isEmpty)
+                    if (!isAuthenticated)
+                      _buildUnauthenticatedProjectsCard()
+                    else if (projects.isEmpty)
                       EmptyProjectsView(onCreateProject: _openDirectMediaPicker)
                     else
                       ListView.separated(
@@ -664,13 +970,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           _buildBottomNavItem(
             index: 0,
             icon: Icons.home_filled,
-            label: 'Home',
+            label: ref.watch(appRemoteConfigProvider).valueOrNull?.navigation.homeTitle ?? 'Home',
             onTap: () => _onTabSelected(0),
           ),
           _buildBottomNavItem(
             index: 1,
             icon: Icons.folder_open,
-            label: 'Projects',
+            label: ref.watch(appRemoteConfigProvider).valueOrNull?.navigation.projectsTitle ?? 'Projects',
             onTap: () => _onTabSelected(1),
           ),
 
@@ -701,13 +1007,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           _buildBottomNavItem(
             index: 2,
             icon: Icons.auto_awesome_outlined,
-            label: 'Templates',
+            label: ref.watch(appRemoteConfigProvider).valueOrNull?.navigation.templatesTitle ?? 'Templates',
             onTap: () => _onTabSelected(2),
           ),
           _buildBottomNavItem(
             index: 3,
-            icon: Icons.person_outline,
-            label: 'Me',
+            icon: Icons.auto_fix_high_rounded,
+            label: 'AI Photo',
             onTap: () => _onTabSelected(3),
           ),
         ],
@@ -827,6 +1133,77 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildUnauthenticatedProjectsCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 16,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.cloud_sync_outlined,
+              size: 32,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Sign In to Access Cloud Projects',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: Color(0xFF1E293B),
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Your projects are safely linked to your account and synced across all your devices. Sign in or register to access and sync your creations.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              color: Color(0xFF64748B),
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
+            ),
+            icon: const Icon(Icons.login, size: 16),
+            label: const Text(
+              'Sign In / Register',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            onPressed: () => context.push(RoutePaths.auth),
+          ),
+        ],
       ),
     );
   }

@@ -45,7 +45,9 @@ class AudioPlaybackService {
         final path = clip.mediaPath;
         Source source;
 
-        if (path.startsWith('assets/')) {
+        if (path.startsWith('http://') || path.startsWith('https://')) {
+          source = UrlSource(path);
+        } else if (path.startsWith('assets/')) {
           source = AssetSource(path.replaceFirst('assets/', ''));
         } else if (File(path).existsSync()) {
           source = DeviceFileSource(path);

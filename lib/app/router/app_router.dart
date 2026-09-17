@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../features/ai_photo_edit/presentation/screens/ai_photo_edit_screen.dart';
+import '../../features/ai_video_edit/presentation/screens/ai_video_edit_screen.dart';
 import '../../features/asset_store/presentation/screens/asset_store_screen.dart';
 import '../../features/auth/presentation/screens/auth_screen.dart';
 import '../../features/cloud_sync/presentation/screens/cloud_sync_screen.dart';
@@ -9,6 +11,7 @@ import '../../features/export/presentation/screens/export_screen.dart';
 import '../../features/profile/presentation/screens/contact_support_screen.dart';
 import '../../features/profile/presentation/screens/help_center_screen.dart';
 import '../../features/profile/presentation/screens/privacy_policy_screen.dart';
+import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/projects/presentation/screens/home_screen.dart';
 import 'route_names.dart';
 import 'route_paths.dart';
@@ -23,6 +26,21 @@ final GoRouter appRouter = GoRouter(
       path: RoutePaths.home,
       name: RouteNames.home,
       builder: (context, state) => const HomeScreen(),
+    ),
+    GoRoute(
+      path: RoutePaths.settings,
+      name: RouteNames.settings,
+      builder: (context, state) => const SettingsScreen(),
+    ),
+    GoRoute(
+      path: RoutePaths.aiPhotoEdit,
+      name: RouteNames.aiPhotoEdit,
+      builder: (context, state) => const AiPhotoEditScreen(),
+    ),
+    GoRoute(
+      path: RoutePaths.aiVideoEdit,
+      name: RouteNames.aiVideoEdit,
+      builder: (context, state) => const AiVideoEditScreen(),
     ),
     GoRoute(
       path: RoutePaths.auth,

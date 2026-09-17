@@ -153,6 +153,33 @@ class _SimulatedSharedCloudAuthDataSource implements AuthRemoteDataSource {
   Future<bool> updateAccount(Map<String, dynamic> accountData) async {
     return await saveAccount(accountData);
   }
+
+  @override
+  Future<Map<String, dynamic>> register(String email, String password, String displayName) async {
+    final cleanEmail = email.trim().toLowerCase();
+    final userMap = {
+      'id': 'usr_${cleanEmail.hashCode.abs()}',
+      'email': cleanEmail,
+      'displayName': displayName,
+      'isPro': true,
+      'createdAt': DateTime.now().toIso8601String(),
+      'lastLoginAt': DateTime.now().toIso8601String(),
+    };
+    _cloudAccounts[cleanEmail] = userMap;
+    return userMap;
+  }
+
+  @override
+  Future<Map<String, dynamic>?> login(String email, String password) async {
+    final account = await getAccountByEmail(email);
+    return account;
+  }
+
+  @override
+  Future<bool> checkEmailExists(String email) async => (await getAccountByEmail(email)) != null;
+
+  @override
+  Future<bool> forgotPassword(String email, String newPassword) async => false;
 }
 
 void main() {

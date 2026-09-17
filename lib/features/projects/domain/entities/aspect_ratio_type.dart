@@ -1,7 +1,7 @@
 enum AspectRatioType {
   ratio16_9('16:9', 16 / 9, 'Landscape (YouTube)'),
-  ratio9_16('9:16', 9 / 16, 'Portrait (Reels / TikTok / Shorts)'),
-  ratio1_1('1:1', 1.0, 'Square (Instagram Post)'),
+  ratio9_16('9:16', 9 / 16, 'Portrait (TikTok / Reels)'),
+  ratio1_1('1:1', 1.0, 'Square (Instagram)'),
   ratio4_5('4:5', 4 / 5, 'Portrait (Feed)'),
   ratio21_9('21:9', 21 / 9, 'Cinematic Ultrawide');
 

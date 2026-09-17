@@ -524,30 +524,30 @@ class _PhotoCanvasState extends State<PhotoCanvas> {
     return Align(
       alignment: align,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: Opacity(
           opacity: wm.opacity,
           child: Transform.scale(
-            scale: wm.scale,
+            scale: (wm.scale * 0.85).clamp(0.4, 2.5),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.white24, width: 1),
+                color: Colors.black.withValues(alpha: 0.35),
+                borderRadius: BorderRadius.circular(5),
+                border: Border.all(color: Colors.white24, width: 0.8),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.verified, color: AppColors.accent, size: 14),
-                  const SizedBox(width: 6),
+                  const Icon(Icons.verified, color: AppColors.accent, size: 12),
+                  const SizedBox(width: 4),
                   Text(
                     wm.text,
                     style: FontHelper.getTextStyle(
                       wm.fontFamily,
                       color: Color(wm.colorHex),
                       fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                      fontSize: 10,
                     ),
                   ),
                 ],

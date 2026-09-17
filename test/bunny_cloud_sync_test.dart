@@ -242,6 +242,9 @@ class _MockAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier
 
   @override
   Future<bool> forgotPassword({required String email, required String newPassword}) async => true;
+
+  @override
+  Future<bool> updateProfile({required String displayName, String? handle, String? bio, String? avatarUrl}) async => true;
 }
 
 

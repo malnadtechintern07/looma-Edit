@@ -166,6 +166,20 @@ class GlobalCloudAuthRemoteDataSource implements AuthRemoteDataSource {
     return await saveAccount(accountData);
   }
 
+  @override
+  Future<Map<String, dynamic>> register(String email, String password, String displayName) async {
+    throw UnimplementedError('Registration is handled via MySQL backend');
+  }
+
+  @override
+  Future<Map<String, dynamic>?> login(String email, String password) async => null;
+
+  @override
+  Future<bool> checkEmailExists(String email) async => (await getAccountByEmail(email)) != null;
+
+  @override
+  Future<bool> forgotPassword(String email, String newPassword) async => false;
+
   static Map<String, dynamic>? _cachedAccountsMap;
   static DateTime? _cacheTimestamp;
   static const Duration _cacheTtl = Duration(seconds: 30);

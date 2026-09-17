@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import '../../core/services/app_remote_config_service.dart';
 import 'app_colors.dart';
 import 'app_typography.dart';
 
@@ -109,6 +110,93 @@ class AppTheme {
         color: AppColors.textPrimary,
         size: 22,
       ),
+      splashFactory: InkRipple.splashFactory,
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+        },
+      ),
+    );
+  }
+
+  /// Dynamically build a ThemeData from Admin Panel color configuration.
+  /// Falls back to AppColors defaults if a color is not configured.
+  static ThemeData fromRemoteConfig(RemoteThemeConfig cfg) {
+    final primary    = cfg.primaryColor;
+    final secondary  = cfg.secondaryColor;
+    final bg         = cfg.backgroundColor;
+    final surface    = cfg.surfaceColor;
+    final textPrim   = cfg.textPrimaryColor;
+    final textSec    = cfg.textSecondaryColor;
+    final brightness = cfg.mode == 'dark' ? Brightness.dark : Brightness.light;
+
+    return ThemeData(
+      useMaterial3: true,
+      brightness: brightness,
+      scaffoldBackgroundColor: bg,
+      primaryColor: primary,
+      colorScheme: ColorScheme(
+        brightness: brightness,
+        primary: primary,
+        onPrimary: Colors.white,
+        secondary: secondary,
+        onSecondary: Colors.black,
+        surface: surface,
+        onSurface: textPrim,
+        error: AppColors.error,
+        onError: Colors.white,
+      ),
+      textTheme: TextTheme(
+        displayLarge: AppTypography.displayLarge,
+        displayMedium: AppTypography.displayMedium,
+        titleLarge: AppTypography.titleLarge,
+        titleMedium: AppTypography.titleMedium,
+        titleSmall: AppTypography.titleSmall,
+        bodyLarge: AppTypography.bodyLarge,
+        bodyMedium: AppTypography.bodyMedium,
+        bodySmall: AppTypography.bodySmall,
+        labelLarge: AppTypography.labelLarge,
+        labelMedium: AppTypography.labelMedium,
+        labelSmall: AppTypography.labelSmall,
+      ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.all(Colors.white),
+        trackColor: WidgetStateProperty.resolveWith<Color>((states) {
+          return states.contains(WidgetState.selected) ? primary : const Color(0xFFCBD5E1);
+        }),
+        trackOutlineColor: WidgetStateProperty.resolveWith<Color>((states) {
+          return states.contains(WidgetState.selected) ? Colors.transparent : const Color(0xFF94A3B8);
+        }),
+      ),
+      appBarTheme: AppBarTheme(
+        backgroundColor: bg,
+        elevation: 0,
+        centerTitle: false,
+        iconTheme: IconThemeData(color: textPrim),
+        titleTextStyle: AppTypography.titleLarge.copyWith(color: textPrim),
+      ),
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: surface,
+        selectedItemColor: primary,
+        unselectedItemColor: textSec,
+        type: BottomNavigationBarType.fixed,
+        elevation: 8,
+      ),
+      cardTheme: CardThemeData(
+        color: surface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: textSec.withValues(alpha: 0.12), width: 1),
+        ),
+      ),
+      dividerTheme: DividerThemeData(
+        color: textSec.withValues(alpha: 0.15),
+        thickness: 1,
+      ),
+      iconTheme: IconThemeData(color: textPrim, size: 22),
       splashFactory: InkRipple.splashFactory,
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {

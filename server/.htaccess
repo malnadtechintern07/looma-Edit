@@ -1,0 +1,41 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Security: deny access to sensitive files
+    <FilesMatch "^(config\.json|\.env|run_server\.sh|server\.py)$">
+        Require all denied
+    </FilesMatch>
+
+    # Pass Authorization Header to PHP under FastCGI
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Special API Routing (Must be before directory checks to prevent 301 trailing slash redirects)
+    RewriteRule ^api/projects/backup/?$ api/projects/backup.php [L,QSA]
+    RewriteRule ^api/projects/upload/?$ api/projects/upload.php [L,QSA]
+    RewriteRule ^api/projects/delete/?$ api/projects/delete.php [L,QSA]
+    RewriteRule ^api/projects/([^/]+)$ api/projects/index.php?projectId=$1 [L,QSA]
+    RewriteRule ^api/projects/?$ api/projects/index.php [L,QSA]
+    RewriteRule ^api/templates/?$ api/templates/index.php [L,QSA]
+    RewriteRule ^api/ai/presets/?$ api/ai/presets.php [L,QSA]
+    RewriteRule ^api/app/config/?$ api/app/config.php [L,QSA]
+    RewriteRule ^api/app/content/?$ api/app/content.php [L,QSA]
+    RewriteRule ^api/app/notifications/?$ api/app/notifications.php [L,QSA]
+    RewriteRule ^api/app/support-ticket/?$ api/app/support-ticket.php [L,QSA]
+
+    # Allow direct access to real files and directories
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Map extensionless URLs to .php files if they exist (e.g. /api/health -> /api/health.php, /admin/filters -> /admin/filters.php)
+    RewriteCond %{REQUEST_FILENAME}.php -f
+    RewriteRule ^(.*)$ $1.php [L,QSA]
+
+    # Admin directory clean rewrite
+    RewriteRule ^admin/?$ admin/dashboard.php [L,R=302]
+</IfModule>
+
+# Default file
+DirectoryIndex index.php

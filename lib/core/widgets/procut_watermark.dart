@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 
-/// Clean, minimal ProCut watermark with "✦ ProCut",
-/// no background box, small font size, and subtle 65% opacity.
+/// Clean, minimal, compact ProCut watermark with "✦ ProCut",
+/// small font size, and subtle opacity.
 class ProCutWatermark extends StatelessWidget {
   final double opacity;
   final double scale;
+  final String? text;
 
   const ProCutWatermark({
     super.key,
-    this.opacity = 0.65,
-    this.scale = 1.0,
+    this.opacity = 0.6,
+    this.scale = 0.8,
+    this.text,
   });
 
   @override
@@ -19,37 +21,37 @@ class ProCutWatermark extends StatelessWidget {
       child: Transform.scale(
         scale: scale,
         alignment: Alignment.bottomRight,
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(
+            const Text(
               '✦',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 10.0,
+                fontSize: 8.0,
                 fontWeight: FontWeight.bold,
                 shadows: [
                   Shadow(
                     color: Colors.black87,
-                    blurRadius: 3.0,
+                    blurRadius: 2.0,
                     offset: Offset(0.5, 0.5),
                   ),
                 ],
               ),
             ),
-            SizedBox(width: 3.0),
+            const SizedBox(width: 2.5),
             Text(
-              'ProCut',
-              style: TextStyle(
+              text?.trim().isNotEmpty == true ? text!.trim() : 'ProCut',
+              style: const TextStyle(
                 color: Colors.white,
-                fontSize: 10.0,
+                fontSize: 8.0,
                 fontWeight: FontWeight.w600,
-                letterSpacing: 0.4,
+                letterSpacing: 0.3,
                 shadows: [
                   Shadow(
                     color: Colors.black87,
-                    blurRadius: 3.0,
+                    blurRadius: 2.0,
                     offset: Offset(0.5, 0.5),
                   ),
                 ],

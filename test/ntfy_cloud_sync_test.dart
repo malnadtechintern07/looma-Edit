@@ -46,6 +46,33 @@ class _FakeNtfyHttpClient implements AuthRemoteDataSource, CloudStorageDataSourc
   }
 
   @override
+  Future<Map<String, dynamic>> register(String email, String password, String displayName) async {
+    final cleanEmail = email.trim().toLowerCase();
+    final userMap = {
+      'id': 'usr_${cleanEmail.hashCode.abs()}',
+      'email': cleanEmail,
+      'displayName': displayName,
+      'isPro': true,
+      'createdAt': DateTime.now().toIso8601String(),
+      'lastLoginAt': DateTime.now().toIso8601String(),
+    };
+    _topics.putIfAbsent('procut_auth_$cleanEmail', () => []).add(userMap);
+    return userMap;
+  }
+
+  @override
+  Future<Map<String, dynamic>?> login(String email, String password) async {
+    final account = await getAccountByEmail(email);
+    return account;
+  }
+
+  @override
+  Future<bool> checkEmailExists(String email) async => (await getAccountByEmail(email)) != null;
+
+  @override
+  Future<bool> forgotPassword(String email, String newPassword) async => false;
+
+  @override
   Future<List<ProjectEntity>> getCloudProjects(String userId) async {
     final list = _topics['procut_proj_$userId'] ?? [];
     final Map<String, ProjectEntity> map = {};

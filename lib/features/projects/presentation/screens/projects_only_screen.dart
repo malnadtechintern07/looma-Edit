@@ -125,6 +125,9 @@ class _ProjectsOnlyScreenState extends ConsumerState<ProjectsOnlyScreen> {
       }
     });
 
+    final authState = ref.watch(authNotifierProvider);
+    final isAuthenticated = authState.isAuthenticated;
+
     final state = ref.watch(projectsNotifierProvider);
     final allProjects = state.projects;
     final selectedRatio = ref.watch(projectFilterRatioProvider);
@@ -143,6 +146,26 @@ class _ProjectsOnlyScreenState extends ConsumerState<ProjectsOnlyScreen> {
       if (createCmp != 0) return createCmp;
       return b.id.compareTo(a.id);
     });
+
+    if (!isAuthenticated) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF8F9FE),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFF8F9FE),
+          elevation: 0,
+          centerTitle: false,
+          title: Text(
+            'My Projects',
+            style: AppTypography.titleLarge.copyWith(
+              color: const Color(0xFF111827),
+              fontWeight: FontWeight.w900,
+              fontSize: 22,
+            ),
+          ),
+        ),
+        body: _buildUnauthenticatedProjectsView(),
+      );
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
@@ -325,6 +348,95 @@ class _ProjectsOnlyScreenState extends ConsumerState<ProjectsOnlyScreen> {
                   ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildUnauthenticatedProjectsView() {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0A000000),
+                blurRadius: 16,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF0A58CA), Color(0xFF0D6EFD)],
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF0D6EFD).withValues(alpha: 0.3),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.cloud_sync,
+                  size: 44,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                'Cloud Projects Vault',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Sign in or register to access, create, and automatically sync your timeline video edits across all your devices securely.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF64748B),
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    elevation: 2,
+                  ),
+                  icon: const Icon(Icons.login, size: 18),
+                  label: const Text(
+                    'Sign In / Register Account',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  onPressed: () => context.push(RoutePaths.auth),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

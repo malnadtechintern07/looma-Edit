@@ -11,6 +11,8 @@ import 'package:procut/features/projects/domain/entities/project_entity.dart';
 import 'package:procut/features/projects/domain/repositories/project_repository.dart';
 import 'package:procut/features/projects/domain/usecases/project_usecases.dart';
 import 'package:procut/features/projects/presentation/providers/projects_provider.dart';
+import 'package:procut/app/router/app_router.dart';
+import 'package:procut/app/router/route_paths.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -18,6 +20,7 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    appRouter.go(RoutePaths.home);
   });
 
   testWidgets('Home page shows Sign In / Register Account button when not signed in, and Me tab has sign in options',
@@ -54,8 +57,8 @@ void main() {
     expect(find.byKey(const Key('home_banner_signin_register_btn')), findsOneWidget);
     expect(find.text('Sign In / Register Account'), findsWidgets);
 
-    // 2. Switch to 'Me' Tab
-    await tester.tap(find.text('Me'));
+    // 2. Open Settings / Account from Home top-right icon
+    await tester.tap(find.byKey(const Key('home_settings_button')));
     for (int i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 50));
     }
@@ -108,8 +111,8 @@ void main() {
     expect(find.byKey(const Key('home_banner_signin_register_btn')), findsNothing);
     expect(find.text('Sign In / Register Account'), findsNothing);
 
-    // 2. Switch to 'Me' Tab
-    await tester.tap(find.text('Me'));
+    // 2. Open Settings / Account from Home top-right icon
+    await tester.tap(find.byKey(const Key('home_settings_button')));
     for (int i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 50));
     }
@@ -201,4 +204,21 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<void> syncLocalAccountsToCloud() async {}
+
+  @override
+  Future<UserEntity> updateProfile({
+    required String displayName,
+    String? handle,
+    String? bio,
+    String? avatarUrl,
+  }) async {
+    return UserEntity(
+      id: 'usr_test',
+      email: 'test@procut.app',
+      displayName: displayName,
+      isPro: true,
+      createdAt: DateTime.now(),
+      lastLoginAt: DateTime.now(),
+    );
+  }
 }

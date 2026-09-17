@@ -258,4 +258,21 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<void> syncLocalAccountsToCloud() async {}
+
+  @override
+  Future<UserEntity> updateProfile({
+    required String displayName,
+    String? handle,
+    String? bio,
+    String? avatarUrl,
+  }) async {
+    return UserEntity(
+      id: 'usr_test',
+      email: 'test@procut.app',
+      displayName: displayName,
+      isPro: true,
+      createdAt: DateTime.now(),
+      lastLoginAt: DateTime.now(),
+    );
+  }
 }

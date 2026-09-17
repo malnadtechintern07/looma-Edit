@@ -1,8 +1,8 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:procut/core/config/server_config.dart';
+import 'package:procut/core/network/api_client.dart';
 import 'package:procut/core/storage/local_storage_service.dart';
 import 'package:procut/features/projects/data/models/project_model.dart';
 import 'package:procut/features/projects/domain/entities/project_entity.dart';
@@ -13,20 +13,11 @@ import 'cloud_storage_datasource.dart';
 /// Dedicated MySQL Cloud Project Storage Provider connecting to ProCut's backend server.
 class MySqlCloudStorageDataSource implements CloudStorageDataSource {
   final LocalStorageService localStorageService;
-  final HttpClient? _customHttpClient;
 
   MySqlCloudStorageDataSource({
     required this.localStorageService,
-    HttpClient? httpClient,
-  }) : _customHttpClient = httpClient;
-
-  HttpClient _createHttpClient() {
-    final custom = _customHttpClient;
-    if (custom != null) return custom;
-    final client = HttpClient();
-    client.connectionTimeout = const Duration(seconds: 8);
-    return client;
-  }
+    dynamic httpClient,
+  });
 
   String _userLocalDir(String userId) => 'cloud_storage/users/$userId';
   String _userProjectsLocalDir(String userId) => '${_userLocalDir(userId)}/projects';
@@ -34,6 +25,8 @@ class MySqlCloudStorageDataSource implements CloudStorageDataSource {
       '${_userProjectsLocalDir(userId)}/project_$projectId.json';
   String _userCatalogLocalFile(String userId) => '${_userLocalDir(userId)}/catalog.json';
   String _userBackupsLocalFile(String userId) => '${_userLocalDir(userId)}/backups.json';
+
+  String _userLocalPath(String userId) => 'cloud_storage/auth/users/user_$userId.json';
 
   void _assertAuthenticated(String userId) {
     if (userId.trim().isEmpty) {
@@ -46,18 +39,24 @@ class MySqlCloudStorageDataSource implements CloudStorageDataSource {
     _assertAuthenticated(userId);
     final List<ProjectEntity> projects = [];
     final baseUrl = await ServerConfig.getBaseUrl();
-    final client = _createHttpClient();
 
     try {
-      final uri = Uri.parse('$baseUrl/api/projects?userId=${Uri.encodeComponent(userId)}');
-      final request = await client.getUrl(uri);
-      request.headers.set('Accept', 'application/json');
+      String? userEmail;
+      try {
+        final userJson = await localStorageService.readJson(_userLocalPath(userId));
+        if (userJson != null) userEmail = userJson['email'] as String?;
+      } catch (_) {}
 
-      final response = await request.close();
-      if (response.statusCode == 200) {
-        final body = await response.transform(utf8.decoder).join();
-        final decoded = jsonDecode(body);
-        if (decoded is Map<String, dynamic> && decoded['projects'] is List) {
+      final queryParts = ['userId=${Uri.encodeComponent(userId)}'];
+      if (userEmail != null && userEmail.isNotEmpty) {
+        queryParts.add('userEmail=${Uri.encodeComponent(userEmail)}');
+      }
+
+      final uri = Uri.parse('$baseUrl/api/projects?${queryParts.join('&')}');
+      final response = await ApiClient.get(uri);
+      if (response.isOk && response.json is Map) {
+        final decoded = response.json as Map<String, dynamic>;
+        if (decoded['projects'] is List) {
           final list = decoded['projects'] as List;
           for (final item in list) {
             if (item is Map<String, dynamic>) {
@@ -88,11 +87,8 @@ class MySqlCloudStorageDataSource implements CloudStorageDataSource {
           return projects;
         }
       }
-      await response.drain();
     } catch (e) {
       debugPrint('MySqlCloudStorageDataSource.getCloudProjects server fetch error: $e');
-    } finally {
-      if (_customHttpClient == null) client.close();
     }
 
     // Offline fallback from local cache
@@ -151,24 +147,18 @@ class MySqlCloudStorageDataSource implements CloudStorageDataSource {
 
     // 2. Upload to MySQL server
     final baseUrl = await ServerConfig.getBaseUrl();
-    final client = _createHttpClient();
     try {
       final uri = Uri.parse('$baseUrl/api/projects/backup');
-      final request = await client.postUrl(uri);
-      request.headers.set('Content-Type', 'application/json');
-      final payload = jsonEncode({
-        'userId': userId,
-        'userEmail': project.userEmail ?? '',
-        'project': projectJson,
-      });
-      request.add(utf8.encode(payload));
-
-      final response = await request.close();
-      await response.drain();
+      await ApiClient.post(
+        uri,
+        body: {
+          'userId': userId,
+          'userEmail': project.userEmail ?? '',
+          'project': projectJson,
+        },
+      );
     } catch (e) {
       debugPrint('MySqlCloudStorageDataSource.backupProject server upload error: $e');
-    } finally {
-      if (_customHttpClient == null) client.close();
     }
 
     return record;
@@ -182,16 +172,11 @@ class MySqlCloudStorageDataSource implements CloudStorageDataSource {
 
     // 2. Delete on MySQL server
     final baseUrl = await ServerConfig.getBaseUrl();
-    final client = _createHttpClient();
     try {
       final uri = Uri.parse('$baseUrl/api/projects/$projectId?userId=${Uri.encodeComponent(userId)}');
-      final request = await client.deleteUrl(uri);
-      final response = await request.close();
-      await response.drain();
+      await ApiClient.delete(uri);
     } catch (e) {
       debugPrint('MySqlCloudStorageDataSource.deleteCloudProject server error: $e');
-    } finally {
-      if (_customHttpClient == null) client.close();
     }
   }
 

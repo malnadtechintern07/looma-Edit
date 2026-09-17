@@ -25,4 +25,11 @@ abstract class AuthRepository {
   Future<UserEntity?> restoreSession();
 
   Future<void> syncLocalAccountsToCloud();
+
+  Future<UserEntity> updateProfile({
+    required String displayName,
+    String? handle,
+    String? bio,
+    String? avatarUrl,
+  });
 }

@@ -92,10 +92,71 @@ class _TemplateMediaPickerDialogState extends State<TemplateMediaPickerDialog> {
   }
 
   Widget _buildSlotThumbnail(String path) {
+    final lower = path.toLowerCase();
+    final isVideo = lower.endsWith('.mp4') ||
+        lower.endsWith('.mov') ||
+        lower.endsWith('.mkv') ||
+        lower.endsWith('.webm');
+
+    if (isVideo) {
+      final fileName = path.split('/').last;
+      return Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Center(
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.6),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFF00D2D3), width: 1.5),
+                ),
+                child: const Icon(Icons.videocam, color: Color(0xFF00D2D3), size: 18),
+              ),
+            ),
+            Positioned(
+              bottom: 4,
+              left: 4,
+              right: 4,
+              child: Text(
+                fileName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w600),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     if (path.startsWith('assets/')) {
-      return Image.asset(path, fit: BoxFit.cover);
+      return Image.asset(
+        path,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => Container(
+          color: AppColors.surfaceElevated,
+          child: const Center(child: Icon(Icons.movie, color: Colors.white54)),
+        ),
+      );
     } else if (File(path).existsSync()) {
-      return Image.file(File(path), fit: BoxFit.cover);
+      return Image.file(
+        File(path),
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => Container(
+          color: AppColors.surfaceElevated,
+          child: const Center(child: Icon(Icons.movie, color: Colors.white54)),
+        ),
+      );
     }
     return Container(
       color: AppColors.surfaceElevated,

@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../config/server_config.dart';
+
 /// Service for native app actions: Google Play Store rating, in-app rating storage & native share sheet
 class AppActionsService {
   static const MethodChannel _channel = MethodChannel('procut/app_actions');
@@ -99,6 +101,83 @@ class AppActionsService {
     }
   }
 
+  /// Share prompt name and web link so anyone can view the prompt name, download ProCut app, and copy the full prompt.
+  static Future<bool> shareAiPromptLink({
+    required String title,
+    required String presetId,
+    String? category,
+    String? prompt,
+    String? referenceImageUrl,
+  }) async {
+    String baseUrl = ServerConfig.defaultUrl;
+    try {
+      baseUrl = await ServerConfig.getBaseUrl();
+    } catch (_) {}
+
+    final queryParams = <String, String>{
+      'id': presetId,
+      'title': title,
+      if (category != null && category.isNotEmpty) 'cat': category,
+      if (referenceImageUrl != null && referenceImageUrl.isNotEmpty) 'img': referenceImageUrl,
+    };
+    final uri = Uri.parse('$baseUrl/prompt.php').replace(queryParameters: queryParams);
+    final link = uri.toString();
+
+    final text = '✨ Check out "$title" AI Photo Style on ProCut!\n\n'
+        'View prompt & download ProCut app to copy in 8K:\n'
+        '$link\n\n'
+        '📲 Download ProCut: $playStoreWebUrl';
+
+    try {
+      if (Platform.isAndroid) {
+        final res = await _channel.invokeMethod<bool>('shareApp', {
+          'text': text,
+          'subject': 'ProCut AI: $title',
+          'title': 'Share Prompt Link via',
+        });
+        return res ?? true;
+      } else {
+        await Clipboard.setData(ClipboardData(text: text));
+        return true;
+      }
+    } catch (_) {
+      try {
+        await Clipboard.setData(ClipboardData(text: text));
+      } catch (_) {}
+      return false;
+    }
+  }
+
+  /// Open phone's native share sheet targeting ChatGPT, Gemini, and installed AI apps with the AI prompt
+  static Future<bool> shareAiPrompt({
+    required String prompt,
+    String? title,
+    String? category,
+  }) async {
+    final prefix = category != null && category.isNotEmpty ? '[$category AI Prompt]\n\n' : '';
+    final fullText = '$prefix$prompt\n\n— Generated with ProCut AI ($playStoreWebUrl)';
+    
+    // Always copy prompt to clipboard first for convenience
+    try {
+      await Clipboard.setData(ClipboardData(text: prompt));
+    } catch (_) {}
+
+    try {
+      if (Platform.isAndroid) {
+        final res = await _channel.invokeMethod<bool>('shareApp', {
+          'text': fullText,
+          'subject': title ?? 'ProCut AI Prompt',
+          'title': 'Share Prompt to AI (ChatGPT, Gemini, Claude)',
+        });
+        return res ?? true;
+      } else {
+        return true;
+      }
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Share an exported image file using native share sheet or copy path to clipboard
   static Future<bool> shareImageFile(String filePath, {String? text}) async {
     final msg = text ?? 'Check out this photo I edited with ProCut Photo Editor! ✨📸 $playStoreWebUrl';
@@ -115,6 +194,21 @@ class AppActionsService {
     try {
       await Clipboard.setData(ClipboardData(text: filePath));
       return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Open any URL using the native Android ACTION_VIEW intent, with clipboard fallback.
+  static Future<bool> openUrl(String url) async {
+    if (url.isEmpty) return false;
+    try {
+      if (Platform.isAndroid) {
+        final res = await _channel.invokeMethod<bool>('openUrl', {'url': url});
+        return res ?? true;
+      } else {
+        return false;
+      }
     } catch (_) {
       return false;
     }

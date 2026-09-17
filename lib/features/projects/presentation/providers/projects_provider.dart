@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:procut/core/storage/storage_providers.dart';
 import 'package:procut/core/utils/id_generator.dart';
 import 'package:procut/features/projects/data/datasources/project_local_datasource.dart';
+import 'package:procut/features/projects/data/models/project_model.dart';
 import 'package:procut/features/projects/data/repositories/project_repository_impl.dart';
 import 'package:procut/features/audio/domain/entities/audio_clip_entity.dart';
 import 'package:procut/features/editor/domain/entities/transition_type.dart';
@@ -174,18 +176,89 @@ class ProjectsNotifier extends StateNotifier<ProjectsState> {
     String? audioTrackTitle,
     String? audioPath,
     List<String>? userMediaPaths,
+    String? projectJson,
   }) async {
+    if (projectJson != null && projectJson.trim().isNotEmpty) {
+      try {
+        final decoded = jsonDecode(projectJson) as Map<String, dynamic>;
+        final parsedProject = ProjectModel.fromJson(decoded);
+
+        // Replace clips placeholders with userMediaPaths while strictly preserving
+        // timings, transitions, filters, effects, keyframes, speed, etc.
+        final List<VideoClipEntity> updatedClips = [];
+        final existingClips = parsedProject.videoClips;
+        final totalSlots = existingClips.isNotEmpty ? existingClips.length : clipsCount;
+
+        for (int i = 0; i < totalSlots; i++) {
+          final baseClip = i < existingClips.length ? existingClips[i] : null;
+          String mediaPath;
+          if (userMediaPaths != null && i < userMediaPaths.length && userMediaPaths[i].isNotEmpty) {
+            mediaPath = userMediaPaths[i];
+          } else if (baseClip != null && baseClip.mediaPath.isNotEmpty) {
+            mediaPath = baseClip.mediaPath;
+          } else {
+            mediaPath = 'assets/demo/urban_skate.mp4';
+          }
+
+          final clipName = 'Slot #${i + 1} (${mediaPath.split('/').last.split('.').first})';
+
+          if (baseClip != null) {
+            updatedClips.add(baseClip.copyWith(
+              id: IdGenerator.generate(),
+              mediaPath: mediaPath,
+              name: clipName,
+            ));
+          } else {
+            final slotDur = (durationMs / totalSlots).round();
+            updatedClips.add(VideoClipEntity(
+              id: IdGenerator.generate(),
+              mediaPath: mediaPath,
+              name: clipName,
+              sourceDurationMs: slotDur,
+              timelineStartMs: i * slotDur,
+              timelineEndMs: (i + 1) * slotDur,
+              trimStartMs: 0,
+              trimEndMs: slotDur,
+            ));
+          }
+        }
+
+        final newProject = parsedProject.copyWith(
+          id: IdGenerator.generate(),
+          title: title.trim().isEmpty ? parsedProject.title : title.trim(),
+          aspectRatio: aspectRatio,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+          videoClips: updatedClips,
+          userId: currentUserId,
+          userEmail: currentUserEmail,
+          syncStatus: SyncStatusType.localOnly,
+        );
+
+        await saveProjectUseCase(newProject);
+        if (onProjectCreatedOrUpdated != null) {
+          onProjectCreatedOrUpdated!(newProject.id).catchError((_) {});
+        }
+        await loadProjects();
+        return newProject;
+      } catch (_) {
+        // Fallback to procedural generator below if json parsing fails
+      }
+    }
+
     final List<VideoClipEntity> templateClips = [];
     final int clipDuration = (durationMs / clipsCount).round();
     int currentOffset = 0;
 
     final sampleAssets = [
-      'assets/branding/demo_vid1.mp4',
-      'assets/branding/demo_vid2.mp4',
-      'assets/branding/demo_vid3.mp4',
-      'assets/branding/demo_vid4.mp4',
-      'assets/branding/demo_photo1.jpg',
-      'assets/branding/demo_photo2.jpg',
+      'assets/demo/alps_sunrise.mp4',
+      'assets/demo/tokyo_shinjuku.mp4',
+      'assets/demo/cyberpunk_arcade.mp4',
+      'assets/demo/urban_skate.mp4',
+      'assets/demo/ramen_bar.mp4',
+      'assets/demo/alps_drone.mp4',
+      'assets/demo/tokyo_street.mp4',
+      'assets/demo/sunset_beach.jpg',
     ];
 
     final filters = FilterType.values;
@@ -250,7 +323,7 @@ class ProjectsNotifier extends StateNotifier<ProjectsState> {
     final templateAudio = [
       AudioClipEntity(
         id: IdGenerator.generate(),
-        mediaPath: audioPath ?? 'assets/demo/lofi_beat.mp3',
+        mediaPath: audioPath ?? 'assets/demo/phonk_beat.wav',
         title: audioTrackTitle ?? 'Template Beat Mix',
         timelineStartMs: 0,
         timelineEndMs: durationMs,
@@ -373,6 +446,8 @@ class ProjectsNotifier extends StateNotifier<ProjectsState> {
 
 final projectsNotifierProvider =
     StateNotifierProvider<ProjectsNotifier, ProjectsState>((ref) {
+  // Watch currentUserProvider so this provider rebuilds whenever the
+  // user logs in or out — critical for showing the correct user's projects.
   final currentUser = ref.watch(currentUserProvider);
   return ProjectsNotifier(
     getProjectsUseCase: ref.watch(getProjectsUseCaseProvider),

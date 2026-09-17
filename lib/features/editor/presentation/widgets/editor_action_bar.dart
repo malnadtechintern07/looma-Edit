@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
+import '../../../../core/services/app_remote_config_service.dart';
 import '../../../../core/widgets/responsive_tap_button.dart';
 import '../../../audio/presentation/widgets/audio_mixer_sheet.dart';
 import '../../../audio/presentation/widgets/voiceover_modal.dart';
@@ -26,7 +28,7 @@ import 'mask_sheet.dart';
 import 'reorder_clips_sheet.dart';
 import 'transition_picker_sheet.dart';
 
-class EditorActionBar extends StatelessWidget {
+class EditorActionBar extends ConsumerWidget {
   final TimelineState state;
   final EditorController controller;
 
@@ -554,7 +556,84 @@ class EditorActionBar extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Remote config tools — sorted, filtered by enabled
+    final remoteTools = ref.watch(appRemoteConfigProvider).valueOrNull?.videoEditorTools ?? [];
+    final enabledKeys = remoteTools.isEmpty
+        ? null // null = no remote config, show all
+        : {for (final t in remoteTools) t.key: t};
+
+    // Helper: should a given tool key be shown?
+    bool shouldShow(String key) {
+      if (enabledKeys == null) return true;
+      return enabledKeys[key]?.enabled ?? true;
+    }
+
+    // Helper: label from remote config, fallback to local label
+    String toolLabel(String key, String fallback) {
+      if (enabledKeys == null) return fallback;
+      return enabledKeys[key]?.label ?? fallback;
+    }
+
+    // Build the ordered list of buttons
+    final List<Widget> toolButtons = [];
+
+    void addBtn(String key, String defaultLabel, IconData icon, Color color, VoidCallback onTap, {Widget? customWidget}) {
+      if (!shouldShow(key)) return;
+      if (customWidget != null) {
+        toolButtons.add(customWidget);
+      } else {
+        toolButtons.add(_buildActionButton(
+          icon: icon,
+          label: toolLabel(key, defaultLabel),
+          color: color,
+          onTap: onTap,
+        ));
+      }
+    }
+
+    addBtn('add_media',   'Add Media',    Icons.add_photo_alternate,        const Color(0xFF00FF88),   () => _openMediaPicker(context));
+    addBtn('split',       'Split',        Icons.splitscreen,                 AppColors.primaryLight,    _handleSplitAction);
+    addBtn('reorder',     'Reorder',      Icons.reorder,                     const Color(0xFF00E5FF),   () => _openReorderSheet(context));
+    addBtn('speed',       'Speed',        Icons.speed,                       AppColors.accent,          () => _openSpeedSheet(context));
+    addBtn('volume',      'Volume',
+      (state.selectedVideoClip?.isMuted ?? state.activeVideoClip?.isMuted ?? false) ? Icons.volume_off : Icons.volume_up,
+      (state.selectedVideoClip?.isMuted ?? state.activeVideoClip?.isMuted ?? false) ? AppColors.error : const Color(0xFF00E5FF),
+      () => _openVolumeSheet(context));
+    addBtn('animation',   'Animation',    Icons.animation,                   AppColors.accent,          () => _openAnimationSheet(context));
+    addBtn('effects',     'Effects',      Icons.auto_fix_high,               const Color(0xFF00E5FF),   () => _openEffectsSheet(context));
+    addBtn('mask',        'Mask',         Icons.masks,                       AppColors.secondary,       () => _openMaskSheet(context));
+    addBtn('chroma_key',  'Chroma Key',   Icons.colorize,                    const Color(0xFF00FF88),   () => _openChromaKeySheet(context));
+    addBtn('filters',     'Filters',      Icons.filter_vintage,              AppColors.secondary,       () => _openFilterPicker(context));
+    addBtn('adjust',      'Adjust',       Icons.tune,                        AppColors.secondaryLight,  () => _openColorAdjustments(context));
+    addBtn('overlay',     'Overlay (PIP)',Icons.layers,                      AppColors.accentRose,      () => _openOverlayPicker(context));
+
+    // Keyframe — special (needs Builder for live state)
+    if (shouldShow('keyframe')) {
+      toolButtons.add(Builder(builder: (context) {
+        final clipId = state.selectedItemId ?? state.activeVideoClip?.id;
+        final isAtKf = clipId != null && controller.isAtKeyframe(clipId);
+        return _buildActionButton(
+          icon: isAtKf ? Icons.diamond : Icons.diamond_outlined,
+          label: isAtKf ? 'Remove KF' : toolLabel('keyframe', 'Keyframe'),
+          color: isAtKf ? AppColors.accentRose : AppColors.accent,
+          onTap: _handleKeyframeAction,
+        );
+      }));
+    }
+
+    addBtn('duplicate',   'Duplicate',    Icons.control_point_duplicate,     AppColors.primaryLight,    _handleDuplicateAction);
+    addBtn('replace',     'Replace',      Icons.swap_horiz,                  AppColors.secondary,       () => _handleReplaceAction(context));
+    addBtn('crop',        'Crop/Frame',   Icons.crop,                        AppColors.primaryLight,    () => _openCropTransformSheet(context));
+    addBtn('text',        'Text',         Icons.title,                       AppColors.textTrack,       () => _openTextEditor(context, forceAddNew: true));
+    addBtn('stickers',    'Stickers',     Icons.emoji_emotions,              AppColors.stickerTrack,    () => _openStickerPicker(context));
+    addBtn('voiceover',   'Voiceover',    Icons.mic,                         AppColors.voiceoverTrack,  () => _openVoiceoverModal(context));
+    addBtn('audio_mix',   'Audio Mix',    Icons.equalizer,                   AppColors.audioTrack,      () => _openAudioMixer(context));
+    addBtn('transitions', 'Transitions',  Icons.transform,                   AppColors.primaryLight,    () => _openTransitionPicker(context));
+    addBtn('add_clip',    'Add Clip',     Icons.add_to_photos,               AppColors.success,         () => _openMediaPicker(context));
+    addBtn('captions',    'Captions',     Icons.subtitles,                   AppColors.textTrack,       () => _openCaptionSheet(context));
+    addBtn('delete',      'Delete',       Icons.delete_outline,              AppColors.error,           controller.deleteSelected);
+
     return Container(
       height: 64,
       decoration: const BoxDecoration(
@@ -570,209 +649,7 @@ class EditorActionBar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
           child: Row(
             mainAxisSize: MainAxisSize.min,
-            children: [
-              // 0. Add Media (Videos & Photos)
-              _buildActionButton(
-                icon: Icons.add_photo_alternate,
-                label: 'Add Media',
-                color: const Color(0xFF00FF88),
-                onTap: () => _openMediaPicker(context),
-              ),
-
-              // 1. Split
-              _buildActionButton(
-                icon: Icons.splitscreen,
-                label: 'Split',
-                color: AppColors.primaryLight,
-                onTap: _handleSplitAction,
-              ),
-
-              // 2. Reorder Clips
-              _buildActionButton(
-                icon: Icons.reorder,
-                label: 'Reorder',
-                color: const Color(0xFF00E5FF),
-                onTap: () => _openReorderSheet(context),
-              ),
-
-              // 3. Speed
-              _buildActionButton(
-                icon: Icons.speed,
-                label: 'Speed',
-                color: AppColors.accent,
-                onTap: () => _openSpeedSheet(context),
-              ),
-
-              // 3. Volume / Original Audio
-              _buildActionButton(
-                icon: (state.selectedVideoClip?.isMuted ?? state.activeVideoClip?.isMuted ?? false)
-                    ? Icons.volume_off
-                    : Icons.volume_up,
-                label: 'Volume',
-                color: (state.selectedVideoClip?.isMuted ?? state.activeVideoClip?.isMuted ?? false)
-                    ? AppColors.error
-                    : const Color(0xFF00E5FF),
-                onTap: () => _openVolumeSheet(context),
-              ),
-
-              // 4. Animations
-              _buildActionButton(
-                icon: Icons.animation,
-                label: 'Animation',
-                color: AppColors.accent,
-                onTap: () => _openAnimationSheet(context),
-              ),
-
-              // 4. Effects (70+ CapCut effects)
-              _buildActionButton(
-                icon: Icons.auto_fix_high,
-                label: 'Effects',
-                color: const Color(0xFF00E5FF),
-                onTap: () => _openEffectsSheet(context),
-              ),
-
-              // 5. Mask
-              _buildActionButton(
-                icon: Icons.masks,
-                label: 'Mask',
-                color: AppColors.secondary,
-                onTap: () => _openMaskSheet(context),
-              ),
-
-              // 6. Chroma Key
-              _buildActionButton(
-                icon: Icons.colorize,
-                label: 'Chroma Key',
-                color: const Color(0xFF00FF88),
-                onTap: () => _openChromaKeySheet(context),
-              ),
-
-              // 7. Filters
-              _buildActionButton(
-                icon: Icons.filter_vintage,
-                label: 'Filters',
-                color: AppColors.secondary,
-                onTap: () => _openFilterPicker(context),
-              ),
-
-              // 8. Adjust (Color & Brightness)
-              _buildActionButton(
-                icon: Icons.tune,
-                label: 'Adjust',
-                color: AppColors.secondaryLight,
-                onTap: () => _openColorAdjustments(context),
-              ),
-
-              // 9. Overlay (PIP)
-              _buildActionButton(
-                icon: Icons.layers,
-                label: 'Overlay (PIP)',
-                color: AppColors.accentRose,
-                onTap: () => _openOverlayPicker(context),
-              ),
-
-              // 10. Keyframe
-              Builder(
-                builder: (context) {
-                  final clipId = state.selectedItemId ?? state.activeVideoClip?.id;
-                  final isAtKf = clipId != null && controller.isAtKeyframe(clipId);
-                  return _buildActionButton(
-                    icon: isAtKf ? Icons.diamond : Icons.diamond_outlined,
-                    label: isAtKf ? 'Remove KF' : 'Keyframe',
-                    color: isAtKf ? AppColors.accentRose : AppColors.accent,
-                    onTap: _handleKeyframeAction,
-                  );
-                },
-              ),
-
-              // 11. Duplicate
-              _buildActionButton(
-                icon: Icons.control_point_duplicate,
-                label: 'Duplicate',
-                color: AppColors.primaryLight,
-                onTap: _handleDuplicateAction,
-              ),
-
-              // 12. Replace
-              _buildActionButton(
-                icon: Icons.swap_horiz,
-                label: 'Replace',
-                color: AppColors.secondary,
-                onTap: () => _handleReplaceAction(context),
-              ),
-
-              // 13. Crop / Frame
-              _buildActionButton(
-                icon: Icons.crop,
-                label: 'Crop/Frame',
-                color: AppColors.primaryLight,
-                onTap: () => _openCropTransformSheet(context),
-              ),
-
-              // 14. Text
-              _buildActionButton(
-                icon: Icons.title,
-                label: 'Text',
-                color: AppColors.textTrack,
-                onTap: () => _openTextEditor(context, forceAddNew: true),
-              ),
-
-              // 15. Stickers
-              _buildActionButton(
-                icon: Icons.emoji_emotions,
-                label: 'Stickers',
-                color: AppColors.stickerTrack,
-                onTap: () => _openStickerPicker(context),
-              ),
-
-              // 16. Voiceover
-              _buildActionButton(
-                icon: Icons.mic,
-                label: 'Voiceover',
-                color: AppColors.voiceoverTrack,
-                onTap: () => _openVoiceoverModal(context),
-              ),
-
-              // 17. Audio Mix
-              _buildActionButton(
-                icon: Icons.equalizer,
-                label: 'Audio Mix',
-                color: AppColors.audioTrack,
-                onTap: () => _openAudioMixer(context),
-              ),
-
-              // 18. Transitions
-              _buildActionButton(
-                icon: Icons.transform,
-                label: 'Transitions',
-                color: AppColors.primaryLight,
-                onTap: () => _openTransitionPicker(context),
-              ),
-
-              // 19. Add Clip
-              _buildActionButton(
-                icon: Icons.add_to_photos,
-                label: 'Add Clip',
-                color: AppColors.success,
-                onTap: () => _openMediaPicker(context),
-              ),
-
-              // 20. Captions
-              _buildActionButton(
-                icon: Icons.subtitles,
-                label: 'Captions',
-                color: AppColors.textTrack,
-                onTap: () => _openCaptionSheet(context),
-              ),
-
-              // 21. Delete
-              _buildActionButton(
-                icon: Icons.delete_outline,
-                label: 'Delete',
-                color: AppColors.error,
-                onTap: controller.deleteSelected,
-              ),
-            ],
+            children: toolButtons,
           ),
         ),
       ),

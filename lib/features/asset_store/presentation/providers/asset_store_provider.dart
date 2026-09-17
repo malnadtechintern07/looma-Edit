@@ -30,12 +30,12 @@ final downloadAssetUseCaseProvider = Provider<DownloadAssetUseCase>((ref) {
 
 final selectedAssetCategoryProvider = StateProvider<AssetCategory>((ref) => AssetCategory.templates);
 
-final storeTemplatesFutureProvider = FutureProvider<List<StoreTemplateEntity>>((ref) async {
+final storeTemplatesFutureProvider = FutureProvider.autoDispose<List<StoreTemplateEntity>>((ref) async {
   final useCase = ref.watch(getStoreTemplatesUseCaseProvider);
   return await useCase();
 });
 
-final musicCatalogFutureProvider = FutureProvider<List<RoyaltyFreeMusicEntity>>((ref) async {
+final musicCatalogFutureProvider = FutureProvider.autoDispose<List<RoyaltyFreeMusicEntity>>((ref) async {
   final useCase = ref.watch(getMusicCatalogUseCaseProvider);
   return await useCase();
 });

@@ -5,6 +5,8 @@ class UserEntity {
   final String id;
   final String email;
   final String displayName;
+  final String? handle;
+  final String? bio;
   final String? avatarUrl;
   final bool isPro;
   final DateTime createdAt;
@@ -14,6 +16,8 @@ class UserEntity {
     required this.id,
     required this.email,
     required this.displayName,
+    this.handle,
+    this.bio,
     this.avatarUrl,
     this.isPro = true,
     required this.createdAt,
@@ -24,6 +28,8 @@ class UserEntity {
         'id': id,
         'email': email,
         'displayName': displayName,
+        'handle': handle,
+        'bio': bio,
         'avatarUrl': avatarUrl,
         'isPro': isPro,
         'createdAt': createdAt.toIso8601String(),
@@ -34,6 +40,8 @@ class UserEntity {
         id: json['id'] as String,
         email: json['email'] as String,
         displayName: json['displayName'] as String? ?? 'ProCut Creator',
+        handle: json['handle'] as String?,
+        bio: json['bio'] as String?,
         avatarUrl: json['avatarUrl'] as String?,
         isPro: json['isPro'] as bool? ?? true,
         createdAt: json['createdAt'] != null
@@ -48,6 +56,8 @@ class UserEntity {
     String? id,
     String? email,
     String? displayName,
+    String? handle,
+    String? bio,
     String? avatarUrl,
     bool? isPro,
     DateTime? createdAt,
@@ -57,6 +67,8 @@ class UserEntity {
       id: id ?? this.id,
       email: email ?? this.email,
       displayName: displayName ?? this.displayName,
+      handle: handle ?? this.handle,
+      bio: bio ?? this.bio,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       isPro: isPro ?? this.isPro,
       createdAt: createdAt ?? this.createdAt,

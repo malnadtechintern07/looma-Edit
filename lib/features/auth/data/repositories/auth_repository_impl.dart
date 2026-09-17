@@ -38,6 +38,25 @@ class AuthRepositoryImpl implements AuthRepository {
       throw Exception('Please enter your name or creator handle');
     }
 
+    // Server-authoritative registration: password is securely hashed with bcrypt on the server
+    if (remoteDataSource != null) {
+      try {
+        final serverUserMap = await remoteDataSource!.register(cleanEmail, password, cleanName);
+        await localDataSource.saveAccount(serverUserMap);
+        final user = UserEntity.fromJson(serverUserMap);
+        await localDataSource.saveSession(user.id, true);
+        _currentUser = user;
+        return user;
+      } catch (e) {
+        // If server returned specific error, rethrow directly
+        final errText = e.toString().replaceFirst('Exception: ', '');
+        if (!errText.contains('Unable to reach') && !errText.contains('Cannot connect')) {
+          rethrow;
+        }
+      }
+    }
+
+    // Fallback if server is temporarily unreachable offline
     final existingLocal = await localDataSource.getAccountByEmail(cleanEmail);
     if (existingLocal != null) {
       final localSalt = existingLocal['salt'] as String?;
@@ -48,22 +67,6 @@ class AuthRepositoryImpl implements AuthRepository {
         return _currentUser!;
       }
       throw Exception('An account with this email already exists. Please log in.');
-    }
-
-    // Check cloud storage to prevent duplicate registrations across devices
-    if (remoteDataSource != null) {
-      final existingRemote = await remoteDataSource!.getAccountByEmail(cleanEmail);
-      if (existingRemote != null) {
-        await localDataSource.saveAccount(existingRemote);
-        final remoteSalt = existingRemote['salt'] as String?;
-        final remoteHash = existingRemote['passwordHash'] as String?;
-        if (remoteSalt != null && remoteHash != null && PasswordHasher.verifyPassword(password, remoteSalt, remoteHash)) {
-          await localDataSource.saveSession(existingRemote['id'] as String, true);
-          _currentUser = UserEntity.fromJson(existingRemote);
-          return _currentUser!;
-        }
-        throw Exception('An account with this email already exists. Please log in or tap Forgot Password.');
-      }
     }
 
     final salt = PasswordHasher.generateSalt();
@@ -83,18 +86,12 @@ class AuthRepositoryImpl implements AuthRepository {
 
     final accountMap = {
       ...newUser.toJson(),
+      'password': password,
       'passwordHash': hash,
       'salt': salt,
     };
 
-    // Save locally on this device
     await localDataSource.saveAccount(accountMap);
-
-    // Sync to cloud storage so user can log in on all devices
-    if (remoteDataSource != null) {
-      await remoteDataSource!.saveAccount(accountMap);
-    }
-
     await localDataSource.saveSession(userId, true);
     _currentUser = newUser;
     return newUser;
@@ -109,72 +106,54 @@ class AuthRepositoryImpl implements AuthRepository {
     final cleanEmail = email.trim().toLowerCase();
     _validateEmail(cleanEmail);
 
-    // 1. Look up account in local storage first
-    var account = await localDataSource.getAccountByEmail(cleanEmail);
+    // 1. Server-authoritative login first: supports cross-device sign-in and bcrypt verification
+    if (remoteDataSource != null) {
+      try {
+        final serverUser = await remoteDataSource!.login(cleanEmail, password);
+        if (serverUser != null) {
+          await localDataSource.saveAccount(serverUser);
+          final user = UserEntity.fromJson(serverUser).copyWith(lastLoginAt: DateTime.now());
+          final updatedAccount = {...serverUser, 'lastLoginAt': user.lastLoginAt.toIso8601String()};
+          await localDataSource.updateAccount(updatedAccount);
+          await localDataSource.saveSession(user.id, rememberMe);
+          _currentUser = user;
+          return user;
+        }
+      } catch (e) {
+        final errorText = e.toString().replaceFirst('Exception: ', '');
+        // If it's an offline connectivity error, fallback to offline local cache check
+        final isNetworkError = errorText.contains('Unable to reach') ||
+            errorText.contains('Cannot connect') ||
+            errorText.contains('SocketException') ||
+            errorText.contains('connection timeout');
 
-    // 2. If not found on this device, fetch from cloud remote
-    if (account == null && remoteDataSource != null) {
-      account = await remoteDataSource!.getAccountByEmail(cleanEmail);
-      if (account != null) {
-        // Sync down to local storage on this device
-        await localDataSource.saveAccount(account);
-      }
-    }
-
-    if (account == null) {
-      throw Exception('No account found with this email. Please register.');
-    }
-
-    var salt = account['salt'] as String?;
-    var expectedHash = account['passwordHash'] as String?;
-
-    if (salt == null || expectedHash == null) {
-      throw Exception('Corrupted account credentials. Please reset password.');
-    }
-
-    var isValid = PasswordHasher.verifyPassword(password, salt, expectedHash);
-
-    // 3. If password failed locally, check cloud remote in case password was changed from another device
-    if (!isValid && remoteDataSource != null) {
-      final remoteAccount = await remoteDataSource!.getAccountByEmail(cleanEmail);
-      if (remoteAccount != null) {
-        final remoteSalt = remoteAccount['salt'] as String?;
-        final remoteHash = remoteAccount['passwordHash'] as String?;
-        if (remoteSalt != null && remoteHash != null) {
-          final remoteValid = PasswordHasher.verifyPassword(password, remoteSalt, remoteHash);
-          if (remoteValid) {
-            account = remoteAccount;
-            salt = remoteSalt;
-            expectedHash = remoteHash;
-            isValid = true;
-            await localDataSource.updateAccount(account);
-          }
+        if (!isNetworkError) {
+          rethrow;
         }
       }
     }
 
-    if (!isValid) {
-      throw Exception('Incorrect password. Please try again or tap Forgot password to reset it.');
+    // 2. Offline fallback if device cannot reach the server
+    final account = await localDataSource.getAccountByEmail(cleanEmail);
+    if (account != null) {
+      final salt = account['salt'] as String?;
+      final expectedHash = account['passwordHash'] as String?;
+
+      if (salt != null && expectedHash != null) {
+        final isValid = PasswordHasher.verifyPassword(password, salt, expectedHash);
+        if (isValid) {
+          final user = UserEntity.fromJson(account).copyWith(lastLoginAt: DateTime.now());
+          final updatedAccount = {...account, 'lastLoginAt': user.lastLoginAt.toIso8601String()};
+          await localDataSource.updateAccount(updatedAccount);
+          await localDataSource.saveSession(user.id, rememberMe);
+          _currentUser = user;
+          return user;
+        }
+      }
+      throw Exception('Incorrect password. Please try again.');
     }
 
-    final user = UserEntity.fromJson(account).copyWith(
-      lastLoginAt: DateTime.now(),
-    );
-
-    final updatedAccount = {
-      ...account,
-      'lastLoginAt': user.lastLoginAt.toIso8601String(),
-    };
-
-    // Update last login locally and in the cloud
-    await localDataSource.updateAccount(updatedAccount);
-    if (remoteDataSource != null) {
-      await remoteDataSource!.updateAccount(updatedAccount);
-    }
-
-    await localDataSource.saveSession(user.id, rememberMe);
-    _currentUser = user;
-    return user;
+    throw Exception('No account found with this email. Please create an account first.');
   }
 
   @override
@@ -186,29 +165,28 @@ class AuthRepositoryImpl implements AuthRepository {
     _validateEmail(cleanEmail);
     _validatePassword(newPassword);
 
-    var account = await localDataSource.getAccountByEmail(cleanEmail);
-    if (account == null && remoteDataSource != null) {
-      account = await remoteDataSource!.getAccountByEmail(cleanEmail);
-    }
-
-    if (account == null) {
-      throw Exception('No account found with this email address.');
-    }
-
-    final newSalt = PasswordHasher.generateSalt();
-    final newHash = PasswordHasher.hashPassword(newPassword, newSalt);
-
-    final updated = {
-      ...account,
-      'passwordHash': newHash,
-      'salt': newSalt,
-    };
-
-    await localDataSource.updateAccount(updated);
     if (remoteDataSource != null) {
-      await remoteDataSource!.updateAccount(updated);
+      try {
+        await remoteDataSource!.forgotPassword(cleanEmail, newPassword);
+      } catch (e) {
+        rethrow;
+      }
+    }
+
+    var account = await localDataSource.getAccountByEmail(cleanEmail);
+    if (account != null) {
+      final newSalt = PasswordHasher.generateSalt();
+      final newHash = PasswordHasher.hashPassword(newPassword, newSalt);
+      final updated = {
+        ...account,
+        'passwordHash': newHash,
+        'salt': newSalt,
+      };
+      await localDataSource.updateAccount(updated);
     }
   }
+
+
 
   @override
   Future<void> logout() async {
@@ -254,6 +232,57 @@ class AuthRepositoryImpl implements AuthRepository {
         }
       }
     } catch (_) {}
+  }
+
+  @override
+  Future<UserEntity> updateProfile({
+    required String displayName,
+    String? handle,
+    String? bio,
+    String? avatarUrl,
+  }) async {
+    final cleanName = displayName.trim();
+    if (cleanName.isEmpty) {
+      throw Exception('Display name cannot be empty');
+    }
+
+    if (_currentUser != null) {
+      final updatedUser = _currentUser!.copyWith(
+        displayName: cleanName,
+        handle: handle?.trim(),
+        bio: bio?.trim(),
+        avatarUrl: avatarUrl,
+      );
+
+      final existingAccount = await localDataSource.getAccountById(updatedUser.id) ?? {};
+      final updatedAccount = {
+        ...existingAccount,
+        ...updatedUser.toJson(),
+      };
+
+      await localDataSource.updateAccount(updatedAccount);
+
+      if (remoteDataSource != null) {
+        await remoteDataSource!.updateAccount(updatedAccount).catchError((_) => false);
+      }
+
+      _currentUser = updatedUser;
+      return updatedUser;
+    } else {
+      final guestUser = UserEntity(
+        id: 'guest_user',
+        email: 'guest@procut.app',
+        displayName: cleanName,
+        handle: handle?.trim(),
+        bio: bio?.trim(),
+        avatarUrl: avatarUrl,
+        isPro: false,
+        createdAt: DateTime.now(),
+        lastLoginAt: DateTime.now(),
+      );
+      _currentUser = guestUser;
+      return guestUser;
+    }
   }
 
   void _validateEmail(String email) {

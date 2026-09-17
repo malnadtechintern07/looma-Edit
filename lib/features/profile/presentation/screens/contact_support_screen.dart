@@ -5,13 +5,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
+import '../../../../core/config/server_config.dart';
+import '../../../../core/network/api_client.dart';
+import '../../../../core/services/app_remote_config_service.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
 /// Contact Us & Support screen for ProCut Creators
 class ContactSupportScreen extends ConsumerStatefulWidget {
   const ContactSupportScreen({super.key});
 
-  static const String supportEmail = 'support@procut.app';
+  /// Fallback email — overridden by admin remote config at runtime
+  static const String defaultSupportEmail = 'support@procut.app';
+  static const String supportEmail = defaultSupportEmail; // backward compat alias
 
   @override
   ConsumerState<ContactSupportScreen> createState() => _ContactSupportScreenState();
@@ -55,12 +60,13 @@ class _ContactSupportScreenState extends ConsumerState<ContactSupportScreen> {
     super.dispose();
   }
 
-  void _copySupportEmail() {
-    Clipboard.setData(const ClipboardData(text: ContactSupportScreen.supportEmail));
+  void _copySupportEmail([String? dynamicEmail]) {
+    final email = dynamicEmail ?? ContactSupportScreen.supportEmail;
+    Clipboard.setData(ClipboardData(text: email));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Support email copied to clipboard (support@procut.app)'),
-        duration: Duration(seconds: 2),
+      SnackBar(
+        content: Text('Support email copied to clipboard ($email)'),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -93,13 +99,37 @@ Generated At: ${DateTime.now().toIso8601String()}
 
     setState(() => _isSubmitting = true);
 
-    // Simulate short network ticket dispatch
-    await Future.delayed(const Duration(milliseconds: 600));
+    String? generatedTicketId;
+
+    try {
+      final baseUrl = await ServerConfig.getBaseUrl();
+      final uri = Uri.parse('$baseUrl/api/app/support-ticket');
+      final res = await ApiClient.post(
+        uri,
+        body: {
+          'email': _emailCtrl.text.trim(),
+          'subject': _subjectCtrl.text.trim(),
+          'message': _messageCtrl.text.trim(),
+          'category': _selectedCategory,
+          'diagnostics': _attachDiagnostics ? 'ProCut v2.4.0 (Build 240) - Attached' : null,
+        },
+        timeout: const Duration(seconds: 10),
+      );
+
+      if (res.isOk && res.json is Map) {
+        final data = res.json as Map<String, dynamic>;
+        if (data['success'] == true) {
+          generatedTicketId = data['ticket_id'] as String?;
+        }
+      }
+    } catch (_) {
+      // Fallback ticket generated if server offline
+    }
 
     if (!mounted) return;
     setState(() => _isSubmitting = false);
 
-    final ticketId = '#LMA-${10000 + Random().nextInt(89999)}';
+    final ticketId = generatedTicketId ?? '#LMA-${10000 + Random().nextInt(89999)}';
 
     showDialog(
       context: context,
@@ -165,6 +195,13 @@ Generated At: ${DateTime.now().toIso8601String()}
 
   @override
   Widget build(BuildContext context) {
+    final supportConfig = ref.watch(appRemoteConfigProvider).valueOrNull?.support;
+    final activeEmail = supportConfig?.email.isNotEmpty == true
+        ? supportConfig!.email
+        : ContactSupportScreen.defaultSupportEmail;
+    final activePhone = supportConfig?.phone;
+    final activeHours = supportConfig?.hours;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
       appBar: AppBar(
@@ -232,8 +269,8 @@ Generated At: ${DateTime.now().toIso8601String()}
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text(
+                          children: [
+                            const Text(
                               'Official Creator Support',
                               style: TextStyle(
                                 color: Colors.white,
@@ -241,10 +278,12 @@ Generated At: ${DateTime.now().toIso8601String()}
                                 fontSize: 16,
                               ),
                             ),
-                            SizedBox(height: 2),
+                            const SizedBox(height: 2),
                             Text(
-                              'Direct line to ProCut engineers & specialists',
-                              style: TextStyle(color: Color(0xFFC7D2FE), fontSize: 11.5),
+                              activeHours?.isNotEmpty == true
+                                  ? 'Hours: $activeHours'
+                                  : 'Direct line to ProCut engineers & specialists',
+                              style: const TextStyle(color: Color(0xFFC7D2FE), fontSize: 11.5),
                             ),
                           ],
                         ),
@@ -274,19 +313,22 @@ Generated At: ${DateTime.now().toIso8601String()}
                       children: [
                         const Icon(Icons.alternate_email, color: Colors.white, size: 18),
                         const SizedBox(width: 10),
-                        const Text(
-                          ContactSupportScreen.supportEmail,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            letterSpacing: 0.3,
+                        Expanded(
+                          child: Text(
+                            activeEmail,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              letterSpacing: 0.3,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const Spacer(),
+                        const SizedBox(width: 8),
                         InkWell(
                           key: const Key('copy_support_email_btn'),
-                          onTap: _copySupportEmail,
+                          onTap: () => _copySupportEmail(activeEmail),
                           borderRadius: BorderRadius.circular(8),
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -307,6 +349,33 @@ Generated At: ${DateTime.now().toIso8601String()}
                       ],
                     ),
                   ),
+                  if (activePhone?.isNotEmpty == true) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.phone_rounded, color: Colors.white, size: 18),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              activePhone!,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

@@ -54,6 +54,14 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<void> syncLocalAccountsToCloud() async {}
+
+  @override
+  Future<UserEntity> updateProfile({
+    required String displayName,
+    String? handle,
+    String? bio,
+    String? avatarUrl,
+  }) async => _user;
 }
 
 class _FakeCloudStorageDataSource implements CloudStorageDataSource {

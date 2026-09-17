@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/services/app_actions_service.dart';
+import '../../../../core/services/app_remote_config_service.dart';
 import '../../../../core/services/gallery_saver_service.dart';
 import '../../../../core/widgets/procut_button.dart';
 import '../../../../core/widgets/procut_card.dart';
@@ -41,6 +42,13 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   void initState() {
     super.initState();
     _loadProject();
+    // Initialise watermark based on remote config (deferred until first frame)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final wmCfg = ref.read(appRemoteConfigProvider).valueOrNull?.watermark;
+      if (wmCfg != null && mounted) {
+        setState(() => _includeWatermark = wmCfg.enabledFree);
+      }
+    });
   }
 
   Future<void> _loadProject() async {
@@ -326,41 +334,56 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                   }),
                   const SizedBox(height: 20),
 
-                  // ProCut Watermark Toggle
-                  ProCutCard(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    child: Row(
-                      children: [
-                        const ProCutWatermark(opacity: 0.85, scale: 0.95),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('ProCut Watermark', style: AppTypography.titleSmall),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Clean watermark in bottom-right corner',
-                                style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
-                              ),
-                            ],
+                  // ProCut Watermark Toggle — reads text/opacity/size from Admin remote config
+                  Builder(builder: (ctx) {
+                    final wmCfg = ref.watch(appRemoteConfigProvider).valueOrNull?.watermark;
+                    final wmText = wmCfg?.text ?? 'ProCut';
+                    final wmOpacity = wmCfg?.opacity ?? 0.8;
+                    final wmSize = wmCfg?.size ?? 0.8;
+                    final wmForced = wmCfg?.enabledFree ?? true;
+                    return ProCutCard(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      child: Row(
+                        children: [
+                          ProCutWatermark(
+                            opacity: wmOpacity,
+                            scale: wmSize,
+                            text: wmText,
                           ),
-                        ),
-                        Switch(
-                          key: const Key('watermark_toggle'),
-                          value: _includeWatermark,
-                          activeTrackColor: AppColors.primary,
-                          activeThumbColor: Colors.white,
-                          inactiveTrackColor: const Color(0xFFCBD5E1),
-                          inactiveThumbColor: Colors.white,
-                          trackOutlineColor: WidgetStateProperty.resolveWith((states) =>
-                            states.contains(WidgetState.selected) ? Colors.transparent : const Color(0xFF94A3B8),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('$wmText Watermark', style: AppTypography.titleSmall),
+                                const SizedBox(height: 2),
+                                Text(
+                                  wmForced
+                                      ? 'Required on free exports (remove with PRO)'
+                                      : 'Watermark in bottom-right corner',
+                                  style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                                ),
+                              ],
+                            ),
                           ),
-                          onChanged: (val) => setState(() => _includeWatermark = val),
-                        ),
-                      ],
-                    ),
-                  ),
+                          Switch(
+                            key: const Key('watermark_toggle'),
+                            value: _includeWatermark,
+                            activeTrackColor: AppColors.primary,
+                            activeThumbColor: Colors.white,
+                            inactiveTrackColor: const Color(0xFFCBD5E1),
+                            inactiveThumbColor: Colors.white,
+                            trackOutlineColor: WidgetStateProperty.resolveWith((states) =>
+                              states.contains(WidgetState.selected) ? Colors.transparent : const Color(0xFF94A3B8),
+                            ),
+                            onChanged: wmForced
+                                ? null // disabled when forced by admin
+                                : (val) => setState(() => _includeWatermark = val),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
                   const SizedBox(height: 16),
 
                   // Estimated Size Banner

@@ -149,4 +149,18 @@ class BunnyAuthRemoteDataSource implements AuthRemoteDataSource {
   Future<bool> updateAccount(Map<String, dynamic> accountData) async {
     return await saveAccount(accountData);
   }
+
+  @override
+  Future<Map<String, dynamic>> register(String email, String password, String displayName) async {
+    throw UnimplementedError('Registration is handled via MySQL backend');
+  }
+
+  @override
+  Future<Map<String, dynamic>?> login(String email, String password) async => null;
+
+  @override
+  Future<bool> checkEmailExists(String email) async => (await getAccountByEmail(email)) != null;
+
+  @override
+  Future<bool> forgotPassword(String email, String newPassword) async => false;
 }
