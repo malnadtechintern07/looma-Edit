@@ -9,10 +9,11 @@ class FirebaseAnalyticsService {
   FirebaseAnalyticsService._internal();
 
   FirebaseAnalytics? _analytics;
-  FirebaseAnalytics? get analytics => _analytics;
+  FirebaseAnalytics get analytics => _analytics ??= FirebaseAnalytics.instance;
 
   FirebaseAnalyticsObserver? _observer;
-  FirebaseAnalyticsObserver? get observer => _observer;
+  FirebaseAnalyticsObserver get observer =>
+      _observer ??= FirebaseAnalyticsObserver(analytics: analytics);
 
   bool _initialized = false;
   bool get isInitialized => _initialized;
@@ -26,8 +27,8 @@ class FirebaseAnalyticsService {
     }
 
     try {
-      _analytics = FirebaseAnalytics.instance;
-      _observer = FirebaseAnalyticsObserver(analytics: _analytics!);
+      _analytics ??= FirebaseAnalytics.instance;
+      _observer ??= FirebaseAnalyticsObserver(analytics: _analytics!);
       await _analytics!.setAnalyticsCollectionEnabled(true);
       _initialized = true;
       debugPrint('FirebaseAnalyticsService: Successfully initialized.');
