@@ -217,11 +217,11 @@ require_once __DIR__ . '/includes/navbar.php';
         <button type="button" class="btn btn-primary rounded-pill px-3 shadow-sm" onclick="openNewPreset('video')">
             <i class="bi bi-camera-reels-fill me-1"></i> Add Video Prompt
         </button>
-        <form method="POST" action="" style="display:inline;" onsubmit="return confirm('Sync all 95 AI photo and video presets into the database? This is safe to run multiple times.');">
+        <form method="POST" action="" style="display:inline;" onsubmit="return confirm('Sync all 108 AI photo and video presets into the database? This is safe to run multiple times.');">
             <input type="hidden" name="csrf_token" value="<?= Auth::generateCsrfToken() ?>">
             <input type="hidden" name="action" value="sync_bundled_presets">
             <button type="submit" class="btn rounded-pill px-3 shadow-sm" style="background:linear-gradient(135deg,#7928CA,#FF0080);color:#fff;border:none;">
-                <i class="bi bi-cloud-download-fill me-1"></i> Sync All Presets (95)
+                <i class="bi bi-cloud-download-fill me-1"></i> Sync All Presets (108)
             </button>
         </form>
     </div>

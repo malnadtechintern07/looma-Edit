@@ -296,18 +296,25 @@ class _AiVideoEditScreenState extends ConsumerState<AiVideoEditScreen> {
               child: const Icon(Icons.movie_filter_rounded, size: 20, color: Colors.white),
             ),
             const SizedBox(width: 10),
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'AI Video Edit',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white),
-                ),
-                Text(
-                  'Playable AI Video Generation & Prompts',
-                  style: TextStyle(fontSize: 11, color: Colors.white54),
-                ),
-              ],
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'AI Video Edit',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    'Playable AI Video Generation & Prompts',
+                    style: TextStyle(fontSize: 11, color: Colors.white54),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -350,6 +357,7 @@ class _AiVideoCardState extends State<_AiVideoCard> {
   late VideoPlayerController _controller;
   bool _isInitialized = false;
   bool _isMuted = true;
+  bool _isPromptExpanded = false;
 
   @override
   void initState() {
@@ -460,27 +468,33 @@ class _AiVideoCardState extends State<_AiVideoCard> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.7),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFF6C5CE7).withValues(alpha: 0.6)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.bolt, color: Colors.amber, size: 14),
-                            const SizedBox(width: 4),
-                            Text(
-                              preset.modelName,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.7),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFF6C5CE7).withValues(alpha: 0.6)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.bolt, color: Colors.amber, size: 14),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  preset.modelName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                       Container(
@@ -614,44 +628,75 @@ class _AiVideoCardState extends State<_AiVideoCard> {
                 ),
                 const SizedBox(height: 8),
 
-                // Complete Generation Prompt box
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0F1018),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.white10),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(
-                        children: [
-                          Icon(Icons.auto_awesome, color: Color(0xFF00CEC9), size: 13),
-                          SizedBox(width: 5),
-                          Text(
-                            'PROMPT',
-                            style: TextStyle(
-                              color: Color(0xFF00CEC9),
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.8,
+                // Complete Generation Prompt box (interactive & expandable)
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _isPromptExpanded = !_isPromptExpanded;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0F1018),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.white10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.auto_awesome, color: Color(0xFF00CEC9), size: 13),
+                                SizedBox(width: 5),
+                                Text(
+                                  'PROMPT',
+                                  style: TextStyle(
+                                    color: Color(0xFF00CEC9),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        preset.prompt,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          height: 1.35,
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _isPromptExpanded ? 'Less' : 'More',
+                                  style: const TextStyle(
+                                    color: Color(0xFF00CEC9),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                Icon(
+                                  _isPromptExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                                  color: const Color(0xFF00CEC9),
+                                  size: 14,
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 5),
+                        Text(
+                          preset.prompt,
+                          maxLines: _isPromptExpanded ? null : 3,
+                          overflow: _isPromptExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -663,36 +708,43 @@ class _AiVideoCardState extends State<_AiVideoCard> {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: widget.onCopyPrompt,
-                        icon: const Icon(Icons.copy_rounded, size: 14),
-                        label: const Text('Copy Prompt', style: TextStyle(fontSize: 11)),
+                        icon: const Icon(Icons.copy_rounded, size: 13),
+                        label: const Text(
+                          'Copy',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 11),
+                        ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.white70,
                           side: const BorderSide(color: Colors.white24),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
 
                     // Native Share Prompt Button (for ChatGPT, Sora, Gemini, Runway)
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: widget.onSharePrompt,
-                        icon: const Icon(Icons.share_rounded, size: 14, color: Color(0xFF00CEC9)),
+                        icon: const Icon(Icons.share_rounded, size: 13, color: Color(0xFF00CEC9)),
                         label: const Text(
-                          'Share Prompt',
+                          'Share',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(fontSize: 11, color: Color(0xFF00CEC9)),
                         ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF00CEC9),
                           side: BorderSide(color: const Color(0xFF00CEC9).withValues(alpha: 0.4)),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
 
                     // Use/Create Button
                     ElevatedButton(
@@ -700,15 +752,15 @@ class _AiVideoCardState extends State<_AiVideoCard> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF6C5CE7),
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.video_call_rounded, size: 16),
-                          SizedBox(width: 4),
-                          Text('Use', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                          Icon(Icons.video_call_rounded, size: 15),
+                          SizedBox(width: 3),
+                          Text('Use', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
                         ],
                       ),
                     ),
