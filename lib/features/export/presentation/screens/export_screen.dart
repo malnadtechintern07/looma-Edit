@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
+import '../../../../core/firebase/firebase_service.dart';
 import '../../../../core/services/app_actions_service.dart';
 import '../../../../core/services/app_remote_config_service.dart';
 import '../../../../core/services/gallery_saver_service.dart';
@@ -143,6 +144,11 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       // Prompt Rate Us dialog once after first successful export
       if (next.status == RenderStatus.completed && prev?.status != RenderStatus.completed) {
         _checkAndShowFirstExportRating();
+        FirebaseService.analytics.logProjectExport(
+          resolution: _selectedResolution.name,
+          durationMs: _project?.durationMs ?? 0,
+          clipCount: _project?.videoClips.length ?? 0,
+        );
       }
     });
 

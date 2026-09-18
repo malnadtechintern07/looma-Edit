@@ -2,11 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app/app.dart';
 import 'core/config/server_config.dart';
+import 'core/firebase/firebase_service.dart';
 import 'core/storage/local_storage_service.dart';
 import 'core/storage/storage_providers.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase (Push Notifications & Analytics)
+  await FirebaseService.initialize();
+
   final storageService = LocalStorageService();
   await storageService.init();
 

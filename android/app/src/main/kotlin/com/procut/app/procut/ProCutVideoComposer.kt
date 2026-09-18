@@ -1,4 +1,4 @@
-package com.procut.app.procut
+package com.procut.app
 
 import android.content.Context
 import android.graphics.Bitmap

@@ -3,11 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/server_config.dart';
+import '../firebase/firebase_service.dart';
 
 /// Service for native app actions: Google Play Store rating, in-app rating storage & native share sheet
 class AppActionsService {
   static const MethodChannel _channel = MethodChannel('procut/app_actions');
-  static const String procutPackageName = 'com.procut.app.procut';
+  static const String procutPackageName = 'com.procut.app';
   static const String loomaPackageName = procutPackageName;
   static const String playStoreWebUrl = 'https://play.google.com/store/apps/details?id=$procutPackageName';
 
@@ -123,6 +124,12 @@ class AppActionsService {
     final uri = Uri.parse('$baseUrl/prompt.php').replace(queryParameters: queryParams);
     final link = uri.toString();
 
+    // Track share in Firebase Analytics
+    FirebaseService.analytics.logPromptShare(
+      promptTitle: title,
+      promptType: 'photo_link',
+    );
+
     final text = '✨ Check out "$title" AI Photo Style on ProCut!\n\n'
         'View prompt & download ProCut app to copy in 8K:\n'
         '$link\n\n'
@@ -160,7 +167,16 @@ class AppActionsService {
     // Always copy prompt to clipboard first for convenience
     try {
       await Clipboard.setData(ClipboardData(text: prompt));
+      FirebaseService.analytics.logPromptCopy(
+        promptTitle: title ?? 'AI Prompt',
+        promptType: category ?? 'photo',
+      );
     } catch (_) {}
+
+    FirebaseService.analytics.logPromptShare(
+      promptTitle: title ?? 'AI Prompt',
+      promptType: category ?? 'photo',
+    );
 
     try {
       if (Platform.isAndroid) {

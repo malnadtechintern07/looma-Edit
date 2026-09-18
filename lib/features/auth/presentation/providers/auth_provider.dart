@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:procut/core/firebase/firebase_service.dart';
 import 'package:procut/core/storage/storage_providers.dart';
 import 'package:procut/features/cloud_sync/domain/entities/bunny_storage_config.dart';
 import '../../data/datasources/auth_local_datasource.dart';
@@ -137,6 +138,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoading: false,
         clearError: true,
       );
+      FirebaseService.analytics.logLogin(method: 'email', userId: user.id).ignore();
       if (onUserAuthenticated != null) {
         onUserAuthenticated!().catchError((_) {});
       }
@@ -170,6 +172,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoading: false,
         clearError: true,
       );
+      FirebaseService.analytics.logSignUp(method: 'email').ignore();
+      FirebaseService.analytics.setUserId(user.id).ignore();
       if (onUserAuthenticated != null) {
         onUserAuthenticated!().catchError((_) {});
       }
@@ -213,6 +217,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       await _repository.logout();
     } finally {
+      FirebaseService.analytics.setUserId(null).ignore();
       state = state.copyWith(
         status: AuthStatus.unauthenticated,
         clearUser: true,

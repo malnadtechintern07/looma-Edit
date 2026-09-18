@@ -12,6 +12,8 @@ import '../../../../core/services/app_remote_config_service.dart';
 import '../../../../core/utils/id_generator.dart';
 import '../../../../core/widgets/permissions_primer_dialog.dart';
 import '../../../../core/widgets/responsive_tap_button.dart';
+import '../../../../core/widgets/notification_center_sheet.dart';
+import '../../../../core/firebase/firebase_providers.dart';
 import '../../../ai_photo_edit/data/ai_photo_presets_data.dart';
 import '../../../ai_photo_edit/presentation/screens/ai_photo_edit_screen.dart';
 import '../../../asset_store/presentation/providers/asset_store_provider.dart';
@@ -75,6 +77,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     Future.microtask(() async {
       if (mounted) {
         ref.read(projectsNotifierProvider.notifier).loadProjects();
+        ref.read(fetchBackendNotificationsProvider);
         if (ref.read(authNotifierProvider).isAuthenticated) {
           ref.read(syncNotifierProvider.notifier).triggerSync();
         }
@@ -219,6 +222,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         onRefresh: () async {
           ref.invalidate(appRemoteConfigProvider);
           ref.invalidate(storeTemplatesFutureProvider);
+          ref.invalidate(fetchBackendNotificationsProvider);
           await ref.read(appRemoteConfigProvider.future).catchError((_) => const AppRemoteConfig());
           await ref.read(projectsNotifierProvider.notifier).loadProjects();
           if (ref.read(authNotifierProvider).isAuthenticated) {
@@ -376,6 +380,48 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                               ),
                                               alignment: Alignment.center,
                                               child: const Icon(Icons.cloud_done_outlined, color: Colors.white, size: 16),
+                                            ),
+                                          ),
+
+                                          const SizedBox(width: 6),
+
+                                          // Notifications Bell Button
+                                          ResponsiveTapButton(
+                                            key: const Key('home_notifications_button'),
+                                            onTap: () => showNotificationCenterSheet(context),
+                                            child: Stack(
+                                              clipBehavior: Clip.none,
+                                              children: [
+                                                Container(
+                                                  width: 30,
+                                                  height: 30,
+                                                  decoration: BoxDecoration(
+                                                    shape: BoxShape.circle,
+                                                    color: Colors.white.withValues(alpha: 0.18),
+                                                    border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+                                                  ),
+                                                  alignment: Alignment.center,
+                                                  child: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 16),
+                                                ),
+                                                ValueListenableBuilder<int>(
+                                                  valueListenable: ref.watch(firebaseMessagingServiceProvider).unreadCountNotifier,
+                                                  builder: (ctx, unreadCount, _) {
+                                                    if (unreadCount <= 0) return const SizedBox.shrink();
+                                                    return Positioned(
+                                                      top: -1,
+                                                      right: -1,
+                                                      child: Container(
+                                                        width: 8,
+                                                        height: 8,
+                                                        decoration: const BoxDecoration(
+                                                          color: Color(0xFFFF3B30),
+                                                          shape: BoxShape.circle,
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                              ],
                                             ),
                                           ),
 

@@ -48,6 +48,9 @@ dependencies:
   crypto: ^3.0.7
   image: ^4.5.4
   encrypt: ^5.0.3
+  firebase_core: ^4.15.0
+  firebase_messaging: ^16.7.0
+  firebase_analytics: ^12.6.0
 
 dev_dependencies:
   flutter_test:

@@ -12,6 +12,7 @@ import '../../features/profile/presentation/screens/contact_support_screen.dart'
 import '../../features/profile/presentation/screens/help_center_screen.dart';
 import '../../features/profile/presentation/screens/privacy_policy_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
+import '../../core/firebase/firebase_service.dart';
 import '../../features/projects/presentation/screens/home_screen.dart';
 import 'route_names.dart';
 import 'route_paths.dart';
@@ -21,6 +22,10 @@ final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
   initialLocation: RoutePaths.home,
+  observers: [
+    if (FirebaseService.analytics.observer != null)
+      FirebaseService.analytics.observer!,
+  ],
   routes: [
     GoRoute(
       path: RoutePaths.home,

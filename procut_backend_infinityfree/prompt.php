@@ -47,7 +47,7 @@ if (!str_starts_with($imageUrl, 'http://') && !str_starts_with($imageUrl, 'https
     $imageUrl = APP_BASE_URL . '/' . ltrim($imageUrl, '/');
 }
 
-$playStoreUrl = 'https://play.google.com/store/apps/details?id=com.procut.app.procut';
+$playStoreUrl = 'https://play.google.com/store/apps/details?id=com.procut.app';
 $appSchemeUrl = 'procut://prompt?id=' . urlencode($presetId);
 ?>
 <!DOCTYPE html>
