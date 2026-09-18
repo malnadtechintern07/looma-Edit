@@ -68,11 +68,19 @@ class AiPhotoPresetsData {
               cameraLens: p['camera_movement'] as String?,
             );
           }).toList();
-          _cachedPresets = fetched;
-          return fetched;
+
+          // ── Merge server presets WITH local bundled presets ──
+          // Local presets with unique IDs are always preserved (new images, new prompts).
+          // Server presets override locals only when IDs match.
+          final serverIds = fetched.map((e) => e.id).toSet();
+          final localOnly = presets.where((e) => !serverIds.contains(e.id)).toList();
+          _cachedPresets = [...fetched, ...localOnly];
+          return _cachedPresets;
         }
       }
     } catch (_) {}
+    // Fallback: always use full local presets list
+    _cachedPresets = presets;
     return _cachedPresets;
   }
 
@@ -1083,7 +1091,7 @@ class AiPhotoPresetsData {
       aspectRatio: '3:4',
       styleKeywords: ['Makoto Shinkai', 'Double Rainbow', 'Volumetric Clouds', 'Rooftop Tokyo'],
       prompt:
-          'Poetic and emotionally resonant anime portrait inspired by Makoto Shinkai’s Weathering with You and Your Name. Young protagonist standing atop an overgrown rooftop garden overlooking a panoramic Tokyo skyline just as storm clouds part, revealing a brilliant double rainbow. Spectacular volumetric cumulus clouds glowing with warm apricot and azure sunset light, crystalline raindrops falling in slow motion catching individual prismatic sun glints, hyper-detailed railway tracks and green train cars below, 8K CoMix Wave anime art.',
+          'Poetic and emotionally resonant anime portrait inspired by Makoto Shinkai\'s Weathering with You and Your Name. Young protagonist standing atop an overgrown rooftop garden overlooking a panoramic Tokyo skyline just as storm clouds part, revealing a brilliant double rainbow. Spectacular volumetric cumulus clouds glowing with warm apricot and azure sunset light, crystalline raindrops falling in slow motion catching individual prismatic sun glints, hyper-detailed railway tracks and green train cars below, 8K CoMix Wave anime art.',
       negativePrompt: 'dark gloom, messy lines, flat boring sky, pixelated, 3D polygon look',
       modelRecommendation: 'Midjourney v6.1 (Niji)',
       lightingStyle: 'Sunset Breakthrough Golden Rays & Refracted Raindrops',
@@ -1264,6 +1272,279 @@ class AiPhotoPresetsData {
       modelRecommendation: 'Flux.1 Pro',
       lightingStyle: 'Cold Cyan Rim Light & Ethereal Frost Halo',
       cameraLens: '105mm f/1.4 Bokeh Master Telephoto',
+    ),
+
+    // ── 12. New Styles & Categories (15 New Presets) ──
+    const AiPhotoPresetEntity(
+      id: 'photo_galaxy_cosmic_beauty',
+      title: 'Cosmic Galaxy Body Art',
+      category: 'Trending',
+      badgeText: '🌌 GALAXY SKIN',
+      referenceImagePath: 'assets/demo/ai_galaxy_beauty.jpg',
+      likesCount: 14200,
+      aspectRatio: '3:4',
+      styleKeywords: ['Galaxy Skin', 'Nebula Makeup', 'Cosmic Body Art', 'Star Freckles', 'Deep Space'],
+      prompt:
+          'Breathtaking avant-garde beauty editorial portrait of a subject whose entire visible skin has been transformed into a living swirling galaxy. Every centimeter of skin surface painted with hyper-realistic spiral galaxy arms, glowing nebula clouds in electric cobalt blue, swirling amethyst violet, iridescent rose pink, and deep emerald green luminous dust. Ultra-tiny pinpoint star clusters scattered across the jawline, temples, and décolletage like thousands of real diamonds. Each painted brushstroke seamlessly blending into the next with zero hard edges, creating the illusion that the Milky Way itself is contained beneath the skin. Shimmering interference pigments producing wet metallic galaxy sheen under dramatic three-point studio lighting. Background composed of genuine deep-space Hubble telescope imagery — actual Andromeda spiral galaxy, Orion Nebula pink hydrogen-alpha gas clouds, and distant quasars. Subject wearing a sheer midnight-black organza gown embedded with fiber-optic threading that pulses with soft white light like distant stars. Shot on Hasselblad H6D-400c medium format camera with Zeiss HCB 100mm f/2.2 lens at ISO 200, processed with astrophotography color science, magazine cover beauty retouching, award-winning fine art photography, 8K ultra-detailed masterwork.',
+      negativePrompt: 'flat body paint, solid colors, smeared edges, low quality, blurry stars, amateur makeup, plastic skin, grey background',
+      modelRecommendation: 'Midjourney v6.1',
+      lightingStyle: 'Three-Point Studio Astrophotography Setup with Fiber-Optic Practicals',
+      cameraLens: 'Hasselblad HCB 100mm f/2.2 Medium Format',
+    ),
+
+    const AiPhotoPresetEntity(
+      id: 'photo_ice_crystal_queen',
+      title: 'Eternal Frost Ice Crystal Queen',
+      category: 'Fantasy',
+      badgeText: '🧊 ICE QUEEN',
+      referenceImagePath: 'assets/demo/ai_ice_crystal_queen.jpg',
+      likesCount: 13750,
+      aspectRatio: '3:4',
+      styleKeywords: ['Ice Queen', 'Crystal Crown', 'Blizzard Armor', 'Frozen Shard', 'Arctic Sovereign'],
+      prompt:
+          'Majestic high-fantasy portrait of an ancient Ice Queen sovereign standing at the shattered threshold of her towering palace of eternal ice deep within the Arctic wilderness. Elaborate sculptural crown composed of dozens of naturally-grown glacier ice spires, each one uniquely faceted and refracting the cold blue-white arctic light into miniature prisms along the crown\'2 jagged peaks. Long cascading silver-platinum hair flowing downward and freezing mid-air into crystalline ice tendrils encrusted with natural frost formations. Full-body intricately-detailed translucent ice armor sculpted organically over centuries of supernatural cold — each pauldron features laser-engraved snowflake fractal patterns, the breastplate shows branching dendritic frost crystal formations in exquisite relief. Piercing light-blue eyes radiating supernatural icy luminescence in the deep arctic darkness. Exhaled breath crystallizing into a fine white mist cloud. Background shows a catastrophic polar blizzard with suspended ice crystals catching the faint arctic twilight, distant frozen mountain peaks barely visible through the churning storm. Foreground ice floor showing refracted caustic light patterns and deep fissures with glowing cold-blue interior. Photographed on Sony FX9 cinema camera with 85mm f/1.4 GM lens, sweeping dramatic lighting, Peter Jackson cinematic grandeur, 8K photorealistic masterwork.',
+      negativePrompt: 'summer tropical, fire, warm colors, modern clothing, cheap plastic crown, cartoonish, blurry, deformed face, low quality',
+      modelRecommendation: 'Flux.1 Pro',
+      lightingStyle: 'Cold Arctic Twilight with Internal Ice Refraction & Frozen Breath Practicals',
+      cameraLens: 'Sony 85mm f/1.4 GM Cinematic Portrait Lens',
+    ),
+
+    const AiPhotoPresetEntity(
+      id: 'photo_dragon_fire_warrior',
+      title: 'Dragonfire Rune Berserker',
+      category: 'Fantasy',
+      badgeText: '🔥 BERSERKER',
+      referenceImagePath: 'assets/demo/ai_dragon_warrior.jpg',
+      likesCount: 12840,
+      aspectRatio: '3:4',
+      styleKeywords: ['Dragon Armor', 'Rune Berserker', 'Fire Axe', 'Volcanic Battlefield', 'Norse'],
+      prompt:
+          'Epic high-fantasy Norse berserker warrior portrait on a blazing volcanic battlefield at the edge of Ragnarok. Powerful female warrior clad in masterwork dragon-forged battle armor — each articulated plate segment hand-hammered from molten dragonscale alloy and engraved with glowing orange-red Futhark runic inscriptions that pulse and flare with magical energy during battle. Massive two-handed war axe with a blade forged from meteorite iron, wreathed in crackling living wildfire that spirals up the handle. Flame-red braided battle hair whipping violently in the scalding thermal wind updraft from flowing lava rivers below. Fierce battle-hardened face with ancient kohl warrior eye markings and fresh combat scars with pride, jaw set in total determination. Volcanic eruption in the background with towering pyroclastic columns illuminating everything in dramatic orange and crimson strobe-like flashes. Bolts of natural lightning cracking across the heavy ash cloud sky, raining glowing embers and molten lava droplets in the foreground. Shot in the visual language of God of War Ragnarök and Warhammer Fantasy cinematics, ARRI Alexa Mini LF camera with anamorphic 70mm wide-angle lens, ultra-dynamic HDR range, 8K cinematic concept art masterpiece.',
+      negativePrompt: 'cheerful happy pose, modern clothes, smooth clean armor, flat lighting, cartoon, low detail, blurry background',
+      modelRecommendation: 'Midjourney v6.1',
+      lightingStyle: 'Volcanic Eruption Dramatic Orange-Red Practicals & Lava River Bounce Fill',
+      cameraLens: 'ARRI 70mm Anamorphic Wide-Angle Epic Cine Lens',
+    ),
+
+    const AiPhotoPresetEntity(
+      id: 'photo_bioluminescent_spirit',
+      title: 'Bioluminescent Spirit Forest Goddess',
+      category: 'Fantasy',
+      badgeText: '✨ SPIRIT GLOW',
+      referenceImagePath: 'assets/demo/ai_bioluminescent_forest.jpg',
+      likesCount: 11960,
+      aspectRatio: '3:4',
+      styleKeywords: ['Bioluminescent', 'Spirit Goddess', 'Glowing Forest', 'Mushroom Circle', 'Ethereal Light'],
+      prompt:
+          'Transcendently beautiful high-fantasy spirit goddess portrait deep within a primeval bioluminescent enchanted forest at the witching hour of midnight. The ancient forest radiates supernatural luminescence — towering centuries-old oak and ash trees draped in cascading glowing cyan-teal bioluminescent moss, hundreds of softly pulsating toadstools and fly agaric mushrooms in translucent turquoise, electric blue, and warm amber, each one casting its own gentle halo of living light onto the loamy forest floor. Millions of tiny bioluminescent firefly organisms drifting like suspended living embers between the ancient gnarled trunks. The spirit goddess herself appears semi-translucent — her flowing gown woven entirely from living photophore-embedded moonspider silk that emits soft white-gold inner luminescence that shimmers and shifts like auroras as she moves. Her long cascading hair interlaced with glowing starlight flowers and phosphorescent river pearl beads. Bare skin showing delicate bioluminescent geometric sigil markings tracing from temples, down the neck, along the collarbones and forearms in soft cyan glow. Expression serene and ancient with quiet supernatural wisdom. Tiny woodland creatures — deer, foxes, owls — gathering silently at the edge of the clearing. Shot with magical atmosphere that blends fine-art photography and Peter Mohrbacher angelic fantasy illustration, Nikon Z9 with 50mm f/1.2 S-Line lens, extreme depth and atmosphere, 8K resolution masterwork.',
+      negativePrompt: 'electric city lights, harsh daylight, ugly muddy colors, plastic glow, deformed anatomy, horror atmosphere',
+      modelRecommendation: 'Flux.1 Pro',
+      lightingStyle: 'Pure Bioluminescent Organic Light Sources & Floating Particle Practicals',
+      cameraLens: 'Nikon Nikkor Z 50mm f/1.2 S-Line Nocturnal Portrait',
+    ),
+
+    const AiPhotoPresetEntity(
+      id: 'photo_renaissance_old_master',
+      title: 'Renaissance Old Master Oil Portrait',
+      category: 'Vintage',
+      badgeText: '🎨 OLD MASTER',
+      referenceImagePath: 'assets/demo/ai_renaissance_painting.jpg',
+      likesCount: 10780,
+      aspectRatio: '3:4',
+      styleKeywords: ['Renaissance Oil Painting', 'Old Master Style', 'Rembrandt Lighting', 'Velvet Gown', 'Baroque'],
+      prompt:
+          'Masterwork photorealistic old master oil painting portrait executed in the authentic style of the Italian and Dutch Golden Age Renaissance masters — Raphael, Titian, Rembrandt van Rijn, and Johannes Vermeer. The subject is a noble Renaissance noblewoman seated in three-quarter pose in an elaborately decorated palace interior. Wearing a breathtaking court gown of deep carmine-crimson Venetian cut-velvet with gold passementerie trim, puffed slashed sleeves of ivory silk damask revealing the lining beneath, a flat square neckline bordered with fine Bruges bobbin lace. Heavy baroque pearl drop earrings and a cascading multi-strand pearl rope necklace with an oval pietre dure pendant. Dark braided hair coiled into an architectural bun adorned with golden hairpins and a single perfect white rose. The face rendered with extraordinary delicacy — porcelain skin with incredibly subtle sfumato transitions, individually visible fine skin texture, faint rosiness across the cheekbones and nose bridge, perfectly shaped lips with micro-specular highlights on the cupid\'2 bow. One hand resting gently on a leather-bound illuminated manuscript, long elegant fingers with oval thumbnails. Background featuring a heavy tapestry with hunting scene on the left, through an arched window on the right a distant Italian countryside landscape with cypress trees, church campanile and fading blue atmospheric perspective. The entire scene lit by a single directional window light source from the upper-left creating dramatic Rembrandt triangle on the near cheek, with rich dark tonal values in the shadows following the Caravaggio chiaroscuro tradition. Oil paint texture visible in every inch of the composition — visible individual brushstrokes, palette knife texture, fine grisaille underdrawing peeking through glazed layers. Examined as if viewed up close in a museum gallery, 8K digital masterpiece indistinguishable from original oil on linen canvas.',
+      negativePrompt: 'modern clothing, neon colors, photography flat lighting, digital clean render, contemporary hairstyle, watermark, signature',
+      modelRecommendation: 'Midjourney v6.1',
+      lightingStyle: 'Single North-Facing Window Rembrandt Chiaroscuro with Shadow Bounce',
+      cameraLens: 'Museum Macro Reproduction Camera — 120mm f/5.6 APO Lens',
+    ),
+
+    const AiPhotoPresetEntity(
+      id: 'photo_double_exposure_nature',
+      title: 'Surreal Double Exposure Portrait',
+      category: 'Editorial',
+      badgeText: '🌲 DOUBLE EXP',
+      referenceImagePath: 'assets/demo/ai_double_exposure.jpg',
+      likesCount: 10240,
+      aspectRatio: '3:4',
+      styleKeywords: ['Double Exposure', 'Forest Silhouette', 'Fine Art Photography', 'Misty Mountains', 'Conceptual Art'],
+      prompt:
+          'Extraordinary fine art double-exposure portrait combining the stoic profile silhouette of a contemplative bearded man with the vast wilderness of a primeval misty mountain forest. The man\'s facial silhouette and head form the perfect negative space frame — within its boundary, an entire temperate rainforest ecosystem exists: towering centuries-old Sitka spruce and western red cedar trees with their roots disappearing into deep mossy forest floor, a winding glacial river catching silver light, layers of blue-grey mountain ranges fading into atmospheric aerial perspective and swirling morning mist clouds. The trees and landscape appear to emerge organically from the contours of the face — hairline becomes the canopy treeline, the beard becomes dense undergrowth, the strong jawline follows a cliff edge. Tonal integration is flawless — monochromatic deep charcoal shadows in the outer edges transitioning through rich middle grey tones to pure crisp white specular highlights on the nearest tree trunks and river surface. Fine art gallery quality black and white tonal range from absolute rich deep blacks (Zone 0) to brilliant whites (Zone X), Ansel Adams zone system mastery. Shot on 35mm Ilford HP5+ black and white film and scanned at 8K drum scanner resolution, ultimate fine art double-exposure photograph.',
+      negativePrompt: 'color image, busy cluttered background, soft out of focus silhouette, modern urban city, mediocre tonal range',
+      modelRecommendation: 'Flux.1 Pro',
+      lightingStyle: 'Diffused Overcast Daylight — Full Tonal Ansel Adams Zone System',
+      cameraLens: '35mm f/2.0 Zeiss Planar T* B&W Prime — Ilford HP5+',
+    ),
+
+    const AiPhotoPresetEntity(
+      id: 'photo_samurai_sakura_dusk',
+      title: 'Bushido Samurai Sakura Dusk',
+      category: 'Cinematic',
+      badgeText: '⛩️ BUSHIDO',
+      referenceImagePath: 'assets/demo/ai_samurai_sakura.jpg',
+      likesCount: 13120,
+      aspectRatio: '3:4',
+      styleKeywords: ['Samurai', 'Sakura Petals', 'Golden Hour Dusk', 'Katana', 'Ancient Japan', 'Feudal'],
+      prompt:
+          'Breathtaking cinematic portrait of a legendary Japanese samurai warrior executing a precise kenjutsu kata stance at the entrance of a sacred Shinto mountain shrine at dusk during peak cherry blossom season. Full hand-forged traditional o-yoroi lamellar armor in jet-lacquered black with deep navy-blue silk lacing and ornate gilded hardware, mon family crest embossed on the do breastplate. The samurai\'s katana raised to a high Jodan-no-kamae guard position — the blade catching the dying sunset light along its mirror-polished shinogi-ji and revealing the dramatic undulating hamon temper line. Cascades of pink sakura petals swirling through the scene in slow motion, each individual petal catching the warm amber backlight and glowing translucently. Ancient weathered stone lanterns flanking the moss-covered shrine pathway, their oil flames casting flickering warm amber pools of light onto rain-wet cobblestones. Distant five-story pagoda silhouette against a breathtaking layered dusk sky transitioning from fiery terracotta to deep violet-indigo at zenith. A single blood-red torii gate stands in the middle distance. Captured with Panavision DXL2 cinema camera and Primo 85mm T1.5 anamorphic prime lens, 2.39:1 widescreen format, exquisite anamorphic lens flares, cinematic color grade matching Akira Kurosawa\'s Ran and Kagemusha in color palette, 8K masterwork.',
+      negativePrompt: 'modern cars, anachronistic props, plastic armor, bad katana geometry, cartoon faces, blurry cherry blossoms, cold blue tones',
+      modelRecommendation: 'Flux.1 Pro',
+      lightingStyle: 'Dramatic Golden Dusk Backlight with Shrine Oil Lantern Practicals & Anamorphic Flares',
+      cameraLens: 'Panavision Primo 85mm T1.5 Anamorphic Cinema Prime',
+    ),
+
+    const AiPhotoPresetEntity(
+      id: 'photo_neon_tokyo_geisha_walk',
+      title: 'Neon Tokyo Geisha Street Walk',
+      category: 'Cyberpunk',
+      badgeText: '🏮 NEON GEISHA',
+      referenceImagePath: 'assets/demo/ai_neon_tattoo_geisha.jpg',
+      likesCount: 14680,
+      aspectRatio: '3:4',
+      styleKeywords: ['Neon Geisha', 'Tokyo Night Walk', 'Holographic Kimono', 'Illuminated Umbrella', 'Shinjuku'],
+      prompt:
+          'Stunning neo-traditional cyberpunk fusion portrait of an authentic maiko geisha walking alone through the glittering neon labyrinth of Shinjuku\'s entertainment district during a warm summer night rain. Wearing an exquisite futuristic reinterpretation of a formal hikizuri kimono crafted from iridescent holographic smart-fabric that shifts between deep midnight blue, electric teal, and vivid magenta as she moves — the traditional dragon and chrysanthemum motifs subtly replaced with glowing circuit-trace patterns woven in phosphorescent thread that pulses with bioluminescent light. Carrying an antique oil-paper wagasa umbrella upgraded with embedded LED strips recreating glowing neon kanji characters as the rain catches the light. Traditional shironuri white face makeup applied with contemporary flawlessness, dramatic charcoal kohl elongated cat-eye liner, deep oxblood lips with high-gloss patent finish. The narrow alleyway surrounding her completely saturated in competing neon sign illumination — ramen stall paper lanterns in amber, izakaya signage in red and orange, pachinko parlor LEDs in cyan and violet — all reflected in an undulating mirror of rainwater across the wet asphalt, creating infinite depth. Rain falling in visible individual drops catching the neon spectrum and glistening on the kimono surface. Shot on Fujifilm GFX 100S with 80mm f/1.7 medium format lens, hyper-detailed global illumination rendering, 8K cinematic photorealism.',
+      negativePrompt: 'daytime, dry street, cheap synthetic kimono, bad face, western clothing, cartoonish, blurry neon',
+      modelRecommendation: 'Midjourney v6.1',
+      lightingStyle: 'Multi-Source Neon Practical Illumination & Wet Pavement Global Reflections',
+      cameraLens: 'Fujifilm GFX 80mm f/1.7 Medium Format Portrait',
+    ),
+
+    const AiPhotoPresetEntity(
+      id: 'photo_rainy_city_street_photo',
+      title: 'Cinematic Rainy Night Street',
+      category: 'Cinematic',
+      badgeText: '🌧️ WET CITY',
+      referenceImagePath: 'assets/demo/ai_rainy_street.jpg',
+      likesCount: 11340,
+      aspectRatio: '3:4',
+      styleKeywords: ['Rainy Night', 'Asian City Street', 'Umbrella Bokeh', 'Neon Reflections', 'Street Photography'],
+      prompt:
+          'Award-winning cinematic street photography portrait capturing the hushed melancholy beauty of a solitary figure navigating a drenched Tokyo backstreet at midnight during monsoon season. The scene unfolds in a narrow covered shotengai shopping arcade whose vinyl awning is overflowing with cascading waterfalls of rain. The lone subject — a young office worker in a dark peacoat — walks toward the camera holding a simple black umbrella catching millions of individual suspended rain droplets in the streetlamp light above. The wet asphalt beneath functions as an almost perfect mirror — reflecting the entire landscape of competing neon signs overhead in shimmering, rippling pools of color: scarlet ramen kanji signs, orange convenience store awnings, green pharmacy crosses, white konbini refrigerator glow, all reflected and distorted by the continuous rain creating kaleidoscopic ripple rings expanding outward in every puddle. Dozens of blurred bokeh circles of various sizes from distant lanterns fill the background atmosphere in luminous warm amber and cool blue circles. Wet bicycle frames leaning against shopfronts, steaming manholes, crinkled vending machine labels, faded vintage shop signage all contributing to the authentic Tokyo night texture. Captured at 1/60th shutter speed — enough to freeze the rain drops while allowing the distant passing traffic lights to create gentle motion blur streaks. Leica M11 Monochrom + Summilux-M 50mm f/1.4 ASPH at f/2.0, ISO 3200, cross-processed in Kodak T-MAX aesthetic with desaturated city glow except for neon practicals preserved at full vibrancy, 8K fine art street photography.',
+      negativePrompt: 'sunny daytime, empty pristine streets, suburban America, tourist crowd, flat artificial lighting, HDR oversaturation',
+      modelRecommendation: 'Flux.1 Dev',
+      lightingStyle: 'Available Neon Practical Light Sources & Wet Street Mirror Reflections',
+      cameraLens: 'Leica Summilux-M 50mm f/1.4 ASPH Classic Street Lens',
+    ),
+
+    const AiPhotoPresetEntity(
+      id: 'photo_pop_art_warhol',
+      title: 'Neo Pop Art Warhol Remix',
+      category: 'Editorial',
+      badgeText: '🎭 POP ART',
+      referenceImagePath: 'assets/demo/ai_prismatic_crystal.jpg',
+      likesCount: 9870,
+      aspectRatio: '1:1',
+      styleKeywords: ['Pop Art', 'Andy Warhol', 'Screen Print', 'Bold Colors', 'Graphic Art'],
+      prompt:
+          'Bold neo-pop art graphic portrait in the iconic visual language of Andy Warhol\'s Factory era combined with Roy Lichtenstein\'s Ben-Day dot screen printing aesthetic — but elevated to hyper-modern 8K digital perfection. The subject\'s face rendered in the bold halftone dot matrix screen-print technique with individual visible dots of varying diameter and density creating all tonal values. The skin tones replaced with vivid Pantone-perfect flat colors — one version in neon orange skin, electric cyan eye shadow, hot magenta lips; another adjacent panel in acid yellow skin, cobalt blue eye shadow, lime green lips; a third in chrome silver skin, fluorescent violet make-up, fire-engine red lips. Bold black outline strokes with varying thickness follow the contours of the facial features in Lichtenstein\'s comic-book style, each stroke perfectly placed at the ridge of the nose, along the jaw, around the eyes. Background split into quadrants of complementary vibrating colors — orange against violet, yellow against purple, green against red — creating maximum simultaneous contrast optical vibration. Iconic 60s graphic design lettering elements floating in the composition. Shot on Canon EOS R5 and processed through Risograph and offset lithography simulation pipeline, presented as a large-format screen-printed art canvas photographed under gallery lighting, 8K fine art edition.',
+      negativePrompt: 'realistic photography, subtle colors, soft gradients, photographic skin tone, complex background',
+      modelRecommendation: 'Midjourney v6.1',
+      lightingStyle: 'Flat Studio Gallery Even Illumination for Screen Print Simulation',
+      cameraLens: 'Canon 85mm f/1.4L IS USM for Art Reproduction',
+    ),
+
+    const AiPhotoPresetEntity(
+      id: 'photo_aurora_ice_dancer',
+      title: 'Arctic Aurora Ice Dancer',
+      category: 'Cinematic',
+      badgeText: '🌠 AURORA DANCE',
+      referenceImagePath: 'assets/demo/ai_cosmic_astronaut.jpg',
+      likesCount: 13550,
+      aspectRatio: '3:4',
+      styleKeywords: ['Northern Lights', 'Ice Dancer', 'Tromso', 'Frozen Lake', 'Celestial Performance'],
+      prompt:
+          'Ethereal and breathtaking cinematic portrait of a solitary ballet dancer performing on a perfectly frozen Norwegian lake at 2:00 AM under the most spectacular aurora borealis display in decades. The dancer executes a transcendent arabesque en pointe — arms extended wide, one leg extended horizontal behind her, the other planted precisely on the ice, her entire silhouette framed perfectly against the swirling curtains of supernatural green, violet, emerald, and electric magenta Northern Lights that arc and billow overhead like living celestial silk. Traditional white tulle ballet tutu and fitted bodice with delicate beading, ballet slippers tied with satin ribbons around the ankle, hair pulled into a perfect French chignon with a crystal tiara. The frozen lake surface beneath her reflecting the entire aurora display — creating a mirror world effect where she appears to float suspended between two aurora skies, one above and one below. Breath misting in the crisp -25°C arctic air, ice crystals on eyelashes, skin radiant from cold exertion. Around the lake perimeter: snow-laden arctic birch forests, distant mountains with fresh powder snow, and a tiny remote Sami cabin with a single warm amber lantern window in the extreme background. Shot on RED Dragon-X 6K camera with Leica Summicron 75mm f/2.0 lens adapted, ISO 12800 high-sensitivity night mode, 1/125th to freeze the dancer\'s movement against the long-exposure aurora, teal and orange film grade, 8K masterwork.',
+      negativePrompt: 'indoor studio, harsh artificial light, warm summer, city buildings, yoga clothes, overexposed aurora, flat star sky',
+      modelRecommendation: 'Flux.1 Pro',
+      lightingStyle: 'Natural Aurora Borealis Spectrum Glow & Frozen Lake Mirror Reflections',
+      cameraLens: 'RED Dragon-X with Leica 75mm Summicron High-ISO Night Cinema',
+    ),
+
+    const AiPhotoPresetEntity(
+      id: 'photo_impressionist_monet_garden',
+      title: 'Monet Water Garden Impressionist',
+      category: 'Vintage',
+      badgeText: '🌸 IMPRESSIONISM',
+      referenceImagePath: 'assets/demo/ai_watercolor_dream.jpg',
+      likesCount: 9440,
+      aspectRatio: '3:4',
+      styleKeywords: ['Claude Monet', 'Impressionist Painting', 'Water Lilies', 'Giverny', 'Oil on Canvas'],
+      prompt:
+          'Exquisite Impressionist oil painting portrait executed in the authentic visual language of Claude Monet\'s celebrated Giverny water garden series. A young woman in an Edwardian white muslin dress and wide-brimmed straw hat adorned with dried flowers stands at the edge of Monet\'s iconic Japanese footbridge spanning the lily pond, peering thoughtfully into the water below. The entire scene composed and executed with historically-authentic Impressionist technique — short, visible, textured broken brushstrokes of pure unmixed pigment placed side by side in the Divisionist tradition, each stroke of paint physically raised from the canvas surface creating genuine impasto texture visible as individual physical paint ridges that catch raking light. Colours are pure, unmuddied, and vibrant — emerald, viridian, and sap green in the trailing willow foliage; rose madder, cobalt violet, and titanium white in the water lily flowers; cerulean blue, cobalt blue, and French ultramarine reflected in the trembling water surface; Prussian blue shadows beneath the bridge planks. Dappled afternoon sun filtering through weeping willow curtains, creating shifting patterns of light and shade that move across the water in the Impressionist moment-capture tradition. The reflection of the sky, bridge, and surrounding greenery shimmering and fracturing across the water\'s surface in dozens of interacting broken ellipses of color. Viewed as a large 60×80cm oil on linen canvas in a museum gallery, illuminated by directed spotlights from above, 8K digital masterwork.',
+      negativePrompt: 'photography style, photorealistic skin, digital clean render, modern clothing, sharp hard edges, flat paint',
+      modelRecommendation: 'Midjourney v6.1',
+      lightingStyle: 'Dappled Afternoon Plein Air Impressionist Sunlight Filtered Through Willows',
+      cameraLens: 'Museum Macro Lens — Viewing Oil on Linen Canvas at 8K Resolution',
+    ),
+
+    const AiPhotoPresetEntity(
+      id: 'photo_superhero_lightning_storm',
+      title: 'Dark Vigilante Lightning Storm',
+      category: 'Sci-Fi',
+      badgeText: '⚡ VIGILANTE',
+      referenceImagePath: 'assets/demo/ai_cyber_samurai.jpg',
+      likesCount: 12670,
+      aspectRatio: '3:4',
+      styleKeywords: ['Dark Superhero', 'Lightning Storm', 'Cape Silhouette', 'Rooftop', 'Storm Vigilante'],
+      prompt:
+          'Cinematic dark superhero vigilante portrait on a rain-drenched Gotham-inspired skyscraper rooftop during a violent midnight thunderstorm. The masked figure stands at the very edge of a gargoyle-adorned neogothic parapet, tattered battle-scarred cape billowing dramatically in the storm wind creating a massive swirling silhouette against the churning tempest sky. Custom tactical body armor with deep matte carbon fiber panels, integrated weapon holsters, glowing amber tactical visor casting a thin strip of light across the lower face in the darkness. A massive lightning bolt strikes the building directly behind the figure at the exact frame — the violent white-blue electrical discharge illuminating the entire scene with its split-second blast of cold white-blue light, creating one perfectly-exposed ultra-dramatic split-second frozen moment in time. The monstrous bolt forks into secondary branches across the sky, each one captured in razor-sharp frozen detail. In the background, the rain-blurred city of a thousand tiny windows and wet-smeared neon stretches to the horizon in tones of deep indigo, slate blue, and distant amber. Rain running in rivulets down the stone gargoyle faces, puddling on the rooftop tar surface. Shot on Phase One XF 100MP medium format camera with Schneider 80mm f/2.8 LS lens, 1/8000th shutter speed to freeze the lightning, HDR composite capture, desaturated noir color grade with isolated amber visor accent, 8K award-winning photography.',
+      negativePrompt: 'daytime, clear skies, bright comic book colors, cartoonish suit, happy expression, plastic armor, blurry lightning',
+      modelRecommendation: 'Flux.1 Pro',
+      lightingStyle: 'Single Lightning Strike Split-Second Practical Strobe & City Ambient Rain',
+      cameraLens: 'Phase One Schneider 80mm f/2.8 LS Medium Format at 1/8000s',
+    ),
+
+    const AiPhotoPresetEntity(
+      id: 'photo_underwater_biolum_deep',
+      title: 'Deep Ocean Bioluminescent Dive',
+      category: 'Sci-Fi',
+      badgeText: '🌊 DEEP DIVE',
+      referenceImagePath: 'assets/demo/ai_underwater_siren.jpg',
+      likesCount: 11780,
+      aspectRatio: '3:4',
+      styleKeywords: ['Underwater Photography', 'Bioluminescence', 'Deep Ocean', 'Freediver', 'Midnight Ocean'],
+      prompt:
+          'Awe-inspiring ultra-wide cinematic underwater photography portrait of a trained competitive freediver suspended motionless at 30 meters depth in the absolute pitch-dark midnight ocean, surrounded by the rarest and most spectacular phenomenon in nature: a complete bioluminescent plankton bloom. The freediver\'s streamlined body in a high-performance monofin wetsuit is completely surrounded and illuminated by tens of millions of individual living Noctiluca scintillans organisms, each tiny dinoflagellate emitting its own quantum of cold blue-white bioluminescent light in response to the water movement — creating a dense glowing galaxy of living light that wraps around every curve of the diver\'s body like a second skin of light. The diver\'s face visible through a clear freediving mask, expression completely serene and transcendent, eyes wide open taking in the impossible alien beauty of the scene with total wonder. Arms extended wide at sides in a cruciform position, maximizing the surface area for the bioluminescence to paint. The living light extends in every direction into the infinite black ocean abyss — above, below, and in every direction — creating the sensation of floating alone in an infinite living universe of cold fire. Occasional deep-water jellyfish with their own natural bioluminescent trailing tentacles drifting at various distances. Shot with specially-designed deep-water cinema housing for Sony Venice 2 camera, 16mm ultra-wide T1.5 cine dome port lens, ISO 12800, capturing every individual point of bioluminescent light, National Geographic quality, 8K masterwork.',
+      negativePrompt: 'artificial diving lights, swimming pool tiles, shallow water, scuba tank, murky dirty water, daytime surface',
+      modelRecommendation: 'Flux.1 Dev',
+      lightingStyle: 'Pure Natural Bioluminescent Plankton Bloom — Zero External Light Sources',
+      cameraLens: 'Sony Venice 2 with 16mm T1.5 Deep Water Dome Port Cinema Wide Angle',
+    ),
+
+    const AiPhotoPresetEntity(
+      id: 'photo_levitation_magic_portrait',
+      title: 'Gravity-Defying Levitation Art',
+      category: 'Editorial',
+      badgeText: '🌀 LEVITATION',
+      referenceImagePath: 'assets/demo/ai_prismatic_crystal.jpg',
+      likesCount: 10390,
+      aspectRatio: '3:4',
+      styleKeywords: ['Levitation Photography', 'Objects in Flight', 'Gravity Defying', 'Studio Concept', 'Fine Art'],
+      prompt:
+          'Extraordinary high-concept fine art levitation portrait executed in the visual tradition of Antoine Lavoisier experimental photography. The subject — an elegantly dressed young woman in a flowing ivory silk dress — is captured suspended 1.5 meters above the polished concrete floor of a minimalist white photography studio, in a seated cross-legged meditative pose as if floating on an invisible cushion of air. Surrounding her in precise orbit, dozens of everyday objects appear frozen mid-flight, each one at a different distance and angle: leather-bound books splayed open with individual pages fluttering; vintage alarm clocks mid-rotation with rotating hands; coffee cups with coffee spiraling upward in slow-motion freeze-frame; bunches of roses and lavender drifting apart with individual petals suspended at various distances; a vintage typewriter with letter keys floating independently; a crystal wine glass releasing upward-floating drops of red wine in frozen spherical beads. Each individual element captured in razor-sharp focus using extreme depth of field. The color palette is a refined monochromatic ivory, warm grey, and deep charcoal with the single accent of the red rose petals and red wine drops providing the only chromatic notes. Shot on PhaseOne XT with 80mm f/2.8 lens at f/16 for maximum depth of field, multiple studio strobes synced at 1/8000th second to freeze absolute motion, tonal grade inspired by Gregory Crewdson\'s studio work, 8K fine art photography masterpiece.',
+      negativePrompt: 'obvious wires, bad compositing, busy colorful background, motion blur, low quality, cartoonish props',
+      modelRecommendation: 'Midjourney v6.1',
+      lightingStyle: 'Multi-Strobe Ultra-High-Speed Sync Studio at 1/8000s — Gregory Crewdson Style',
+      cameraLens: 'Phase One XT 80mm f/2.8 @ f/16 Maximum Depth of Field',
+    ),
+
+    const AiPhotoPresetEntity(
+      id: 'photo_tribal_warrior_savanna',
+      title: 'African Maasai Warrior Savanna',
+      category: 'Cinematic',
+      badgeText: '🌍 SAVANNA',
+      referenceImagePath: 'assets/demo/ai_viking_warrior.jpg',
+      likesCount: 11050,
+      aspectRatio: '3:4',
+      styleKeywords: ['Maasai Warrior', 'Savanna Sunset', 'Red Shuka', 'Beadwork', 'African Portrait'],
+      prompt:
+          'Powerful and dignified National Geographic documentary portrait of a Maasai morani warrior standing tall and proud in the vast golden Kenyan savanna at the precise moment of the most dramatic East African sunset imaginable — the sky behind him a breathtaking canvas of deep crimson, volcanic orange, layered terracotta, and dark purple-grey storm clouds building at the horizon. The warrior stands with quiet confidence in the classic elder\'s posture — spine perfectly upright, chin slightly elevated in dignified bearing, one hand resting on a long red ocher-stained ceremonial spear planted in the ochre earth. Wearing the traditional warrior\'s shuka kanga in vivid hand-dyed scarlet and blue-check wool wrapped expertly around the torso in the authentic Maasai fashion. Elaborate multi-strand neck collar necklaces in thousands of individual hand-strung glass microbeads in complex geometric patterns of turquoise, white, red, and cobalt blue that took months to complete. Long ochre-treated braided hair extensions coiled and bound. Stretched earlobes adorned with hand-carved wooden and brass disc earrings. The warm golden savanna extends to the horizon behind him with silhouettes of iconic flat-topped acacia trees against the burning sky, a small herd of elephants barely visible at the treeline 3km distant. Shot by a National Geographic senior photographer on Nikon D6 with AF-S NIKKOR 85mm f/1.4G lens, golden-hour exposure at f/2.0, warm cinematic grade, 8K resolution editorial masterpiece.',
+      negativePrompt: 'tourist costume, cheap beads, modern clothing, urban background, staged studio, bad anatomy, disrespectful caricature',
+      modelRecommendation: 'Flux.1 Pro',
+      lightingStyle: 'Direct Equatorial Golden Hour Sunset Backlight & Warm Sky Fill',
+      cameraLens: 'Nikon AF-S NIKKOR 85mm f/1.4G National Geographic Portrait Lens',
     ),
   ];
 }

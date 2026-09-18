@@ -131,6 +131,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             Database::query("DELETE FROM ai_presets WHERE id = ?", [$id]);
             Auth::logActivity('admin', (string)$currentAdmin['id'], $currentAdmin['name'], 'ai_preset_deleted', "Deleted AI preset: " . ($preset['title'] ?? $id));
             $success = "AI preset deleted permanently.";
+
+        } elseif ($action === 'sync_bundled_presets') {
+            // ── Sync all 95 bundled presets to database ──
+            $syncFile = dirname(__DIR__) . '/sync_ai_presets.php';
+            $seedFile = dirname(__DIR__) . '/database/seed_ai_presets.php';
+            if (file_exists($syncFile)) {
+                ob_start();
+                $_GET['format'] = 'json';
+                include $syncFile;
+                ob_end_clean();
+            } elseif (file_exists($seedFile)) {
+                ob_start();
+                include $seedFile;
+                ob_end_clean();
+            }
+            $totalCount = (int)(Database::fetchOne("SELECT COUNT(*) as c FROM ai_presets")['c'] ?? 0);
+            $photoCount = (int)(Database::fetchOne("SELECT COUNT(*) as c FROM ai_presets WHERE type = 'photo'")['c'] ?? 0);
+            $videoCount = (int)(Database::fetchOne("SELECT COUNT(*) as c FROM ai_presets WHERE type = 'video'")['c'] ?? 0);
+            Auth::logActivity('admin', (string)$currentAdmin['id'], $currentAdmin['name'], 'ai_presets_synced', "Synced AI presets: {$totalCount} total ({$photoCount} photos, {$videoCount} videos).");
+            $success = "✅ AI presets synced! Database now has {$totalCount} presets ({$photoCount} photos, {$videoCount} videos).";
         }
     }
 }
@@ -190,13 +210,20 @@ require_once __DIR__ . '/includes/navbar.php';
         </div>
         <p class="text-muted small mb-0">Control AI Photo & Video prompt presets, reference images, playable video previews, negative prompts, and AI model parameters.</p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 flex-wrap">
         <button type="button" class="btn btn-outline-dark rounded-pill px-3" onclick="openNewPreset('photo')">
             <i class="bi bi-image me-1 text-primary"></i> Add Photo Prompt
         </button>
         <button type="button" class="btn btn-primary rounded-pill px-3 shadow-sm" onclick="openNewPreset('video')">
             <i class="bi bi-camera-reels-fill me-1"></i> Add Video Prompt
         </button>
+        <form method="POST" action="" style="display:inline;" onsubmit="return confirm('Sync all 95 AI photo and video presets into the database? This is safe to run multiple times.');">
+            <input type="hidden" name="csrf_token" value="<?= Auth::generateCsrfToken() ?>">
+            <input type="hidden" name="action" value="sync_bundled_presets">
+            <button type="submit" class="btn rounded-pill px-3 shadow-sm" style="background:linear-gradient(135deg,#7928CA,#FF0080);color:#fff;border:none;">
+                <i class="bi bi-cloud-download-fill me-1"></i> Sync All Presets (95)
+            </button>
+        </form>
     </div>
 </div>
 
