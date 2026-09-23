@@ -266,3 +266,26 @@ final projectAutoSyncProvider = Provider<void>((ref) {
     }
   });
 });
+
+/// Automatically triggers cloud synchronization when authentication state changes to authenticated
+final authSyncProvider = Provider<void>((ref) {
+  // Listen to auth state transitions
+  ref.listen<AuthState>(authNotifierProvider, (previous, next) {
+    if (next.isAuthenticated && next.user != null) {
+      if (previous == null || !previous.isAuthenticated || previous.user?.id != next.user?.id) {
+        Future.microtask(() {
+          ref.read(syncNotifierProvider.notifier).triggerSync();
+        });
+      }
+    }
+  });
+
+  // Also if already authenticated on initial build, trigger sync
+  final currentAuth = ref.read(authNotifierProvider);
+  if (currentAuth.isAuthenticated && currentAuth.user != null) {
+    Future.microtask(() {
+      ref.read(syncNotifierProvider.notifier).triggerSync();
+    });
+  }
+});
+

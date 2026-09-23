@@ -26,30 +26,62 @@ class MySqlCloudStorageDataSource implements CloudStorageDataSource {
   String _userCatalogLocalFile(String userId) => '${_userLocalDir(userId)}/catalog.json';
   String _userBackupsLocalFile(String userId) => '${_userLocalDir(userId)}/backups.json';
 
-  String _userLocalPath(String userId) => 'cloud_storage/auth/users/user_$userId.json';
-
   void _assertAuthenticated(String userId) {
     if (userId.trim().isEmpty) {
       throw Exception('Authentication required to access cloud storage space.');
     }
   }
 
+  /// Resolves the user's email address by checking active accounts and session
+  Future<String?> _resolveUserEmail(String userId, [String? explicitEmail]) async {
+    if (explicitEmail != null && explicitEmail.trim().isNotEmpty) {
+      return explicitEmail.trim().toLowerCase();
+    }
+
+    // 1. Try reading from auth/accounts.json
+    try {
+      final raw = await localStorageService.readString('auth/accounts.json');
+      if (raw != null && raw.isNotEmpty) {
+        final list = jsonDecode(raw) as List<dynamic>;
+        for (final acc in list) {
+          if (acc is Map && acc['id'] == userId) {
+            final email = acc['email'] as String?;
+            if (email != null && email.trim().isNotEmpty) {
+              return email.trim().toLowerCase();
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 2. Try reading from auth/session.json
+    try {
+      final session = await localStorageService.readJson('auth/session.json');
+      if (session != null) {
+        if (session['userId'] == userId && session['email'] != null) {
+          final email = session['email'] as String?;
+          if (email != null && email.trim().isNotEmpty) {
+            return email.trim().toLowerCase();
+          }
+        }
+      }
+    } catch (_) {}
+
+    return null;
+  }
+
   @override
-  Future<List<ProjectEntity>> getCloudProjects(String userId) async {
+  Future<List<ProjectEntity>> getCloudProjects(String userId, [String? userEmail]) async {
     _assertAuthenticated(userId);
     final List<ProjectEntity> projects = [];
     final baseUrl = await ServerConfig.getBaseUrl();
 
     try {
-      String? userEmail;
-      try {
-        final userJson = await localStorageService.readJson(_userLocalPath(userId));
-        if (userJson != null) userEmail = userJson['email'] as String?;
-      } catch (_) {}
+      final resolvedEmail = await _resolveUserEmail(userId, userEmail);
 
       final queryParts = ['userId=${Uri.encodeComponent(userId)}'];
-      if (userEmail != null && userEmail.isNotEmpty) {
-        queryParts.add('userEmail=${Uri.encodeComponent(userEmail)}');
+      if (resolvedEmail != null && resolvedEmail.isNotEmpty) {
+        queryParts.add('userEmail=${Uri.encodeComponent(resolvedEmail)}');
       }
 
       final uri = Uri.parse('$baseUrl/api/projects?${queryParts.join('&')}');
@@ -63,6 +95,8 @@ class MySqlCloudStorageDataSource implements CloudStorageDataSource {
               try {
                 final project = ProjectModel.fromJson(item).copyWith(
                   syncStatus: SyncStatusType.synced,
+                  userId: userId,
+                  userEmail: resolvedEmail ?? item['userEmail'] as String?,
                 );
                 projects.add(project);
                 // Cache locally
@@ -123,12 +157,20 @@ class MySqlCloudStorageDataSource implements CloudStorageDataSource {
   Future<CloudBackupRecord> backupProject(String userId, ProjectEntity project) async {
     _assertAuthenticated(userId);
     final now = DateTime.now();
+    final resolvedEmail = await _resolveUserEmail(userId, project.userEmail);
+
     final syncedProject = project.copyWith(
       syncStatus: SyncStatusType.synced,
+      userId: userId,
+      userEmail: resolvedEmail ?? project.userEmail,
       updatedAt: now,
     );
 
     final projectJson = ProjectModel.toJson(syncedProject);
+    projectJson['userId'] = userId;
+    if (resolvedEmail != null && resolvedEmail.isNotEmpty) {
+      projectJson['userEmail'] = resolvedEmail;
+    }
     final jsonString = jsonEncode(projectJson);
     final jsonBytes = utf8.encode(jsonString);
     final checksum = sha256.convert(jsonBytes).toString().substring(0, 16);
@@ -153,7 +195,7 @@ class MySqlCloudStorageDataSource implements CloudStorageDataSource {
         uri,
         body: {
           'userId': userId,
-          'userEmail': project.userEmail ?? '',
+          'userEmail': resolvedEmail ?? '',
           'project': projectJson,
         },
       );
@@ -173,7 +215,13 @@ class MySqlCloudStorageDataSource implements CloudStorageDataSource {
     // 2. Delete on MySQL server
     final baseUrl = await ServerConfig.getBaseUrl();
     try {
-      final uri = Uri.parse('$baseUrl/api/projects/$projectId?userId=${Uri.encodeComponent(userId)}');
+      final resolvedEmail = await _resolveUserEmail(userId);
+      final queryParts = ['userId=${Uri.encodeComponent(userId)}'];
+      if (resolvedEmail != null && resolvedEmail.isNotEmpty) {
+        queryParts.add('userEmail=${Uri.encodeComponent(resolvedEmail)}');
+      }
+
+      final uri = Uri.parse('$baseUrl/api/projects/$projectId?${queryParts.join('&')}');
       await ApiClient.delete(uri);
     } catch (e) {
       debugPrint('MySqlCloudStorageDataSource.deleteCloudProject server error: $e');

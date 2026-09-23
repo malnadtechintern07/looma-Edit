@@ -46,7 +46,7 @@ class BunnyCloudStorageDataSource implements CloudStorageDataSource {
   }
 
   @override
-  Future<List<ProjectEntity>> getCloudProjects(String userId) async {
+  Future<List<ProjectEntity>> getCloudProjects(String userId, [String? userEmail]) async {
     _assertAuthenticated(userId);
     final Set<String> projectIds = {};
 

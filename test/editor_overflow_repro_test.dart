@@ -34,7 +34,7 @@ class _FakeProjectRepo implements ProjectRepository {
   Future<void> deleteProject(String id) async {}
 
   @override
-  Future<void> claimGuestProjects(String userId) async {}
+  Future<void> claimGuestProjects(String userId, [String? userEmail]) async {}
 }
 
 void main() {

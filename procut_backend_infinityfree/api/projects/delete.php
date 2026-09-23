@@ -26,7 +26,7 @@ $userEmail = strtolower(trim($_GET['userEmail'] ?? $_GET['user_email'] ?? ''));
 $tokenUser = Auth::authenticateApiUser();
 if ($tokenUser) {
     $userId = $tokenUser['user_id'];
-    $userEmail = $tokenUser['email'];
+    $userEmail = strtolower($tokenUser['email']);
 }
 
 $existing = Database::fetchOne("SELECT user_id, user_email, title FROM projects WHERE id = ?", [$pid]);
@@ -34,24 +34,31 @@ if (!$existing) {
     Response::success(['deleted' => $pid], 'Project already deleted or not found');
 }
 
-// Check ownership if user details provided
-if (!empty($userId) && $existing['user_id'] !== $userId) {
-    Response::error('Unauthorized: You can only delete your own projects.', 403);
-}
-if (!empty($userEmail) && strtolower($existing['user_email']) !== $userEmail) {
-    Response::error('Unauthorized: You can only delete your own projects.', 403);
-}
-
-// Delete project files on disk if any
-$files = Database::fetchAll("SELECT file_path FROM project_files WHERE project_id = ?", [$pid]);
-foreach ($files as $f) {
-    if (file_exists($f['file_path'])) {
-        @unlink($f['file_path']);
+// Check ownership if user details provided: allow match by either userId OR userEmail
+if (!empty($userId) || !empty($userEmail)) {
+    $ownerUid = $existing['user_id'] ?? '';
+    $ownerEmail = strtolower($existing['user_email'] ?? '');
+    $isOwner = (!empty($userId) && $ownerUid === $userId) ||
+               (!empty($userEmail) && !empty($ownerEmail) && $ownerEmail === $userEmail);
+    if (!$isOwner) {
+        Response::error('Unauthorized: You can only delete your own projects.', 403);
     }
 }
 
+// Delete project files on disk if any
+try {
+    $files = Database::fetchAll("SELECT file_path FROM project_files WHERE project_id = ?", [$pid]);
+    foreach ($files as $f) {
+        if (file_exists($f['file_path'])) {
+            @unlink($f['file_path']);
+        }
+    }
+} catch (Throwable $e) {}
+
 Database::query("DELETE FROM projects WHERE id = ?", [$pid]);
-Auth::logActivity('user', $existing['user_id'], $existing['user_email'], 'project_deleted', "Deleted project: {$existing['title']} ({$pid})");
+try {
+    Auth::logActivity('user', $existing['user_id'], $existing['user_email'], 'project_deleted', "Deleted project: {$existing['title']} ({$pid})");
+} catch (Throwable $e) {}
 
 Response::success([
     'deleted'   => $pid,

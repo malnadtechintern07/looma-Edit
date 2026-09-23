@@ -7,7 +7,7 @@ import 'package:procut/features/projects/domain/entities/sync_status_type.dart';
 import '../../domain/entities/cloud_backup_record.dart';
 
 abstract class CloudStorageDataSource {
-  Future<List<ProjectEntity>> getCloudProjects(String userId);
+  Future<List<ProjectEntity>> getCloudProjects(String userId, [String? userEmail]);
   Future<ProjectEntity?> getCloudProject(String userId, String projectId);
   Future<CloudBackupRecord> backupProject(String userId, ProjectEntity project);
   Future<List<CloudBackupRecord>> getBackupRecords(String userId);
@@ -34,7 +34,7 @@ class CloudStorageDataSourceImpl implements CloudStorageDataSource {
   }
 
   @override
-  Future<List<ProjectEntity>> getCloudProjects(String userId) async {
+  Future<List<ProjectEntity>> getCloudProjects(String userId, [String? userEmail]) async {
     _assertAuthenticated(userId);
     final catalogRaw = await storageService.readString(_userCatalogFile(userId));
     final Set<String> projectIds = {};

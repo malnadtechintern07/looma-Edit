@@ -392,7 +392,10 @@ class ProjectsNotifier extends StateNotifier<ProjectsState> {
 
   Future<void> duplicateProject(String id) async {
     try {
-      await duplicateProjectUseCase(id);
+      final duplicated = await duplicateProjectUseCase(id);
+      if (onProjectCreatedOrUpdated != null) {
+        onProjectCreatedOrUpdated!(duplicated.id).catchError((_) {});
+      }
       if (!mounted) return;
       await loadProjects();
     } catch (e) {
@@ -415,6 +418,9 @@ class ProjectsNotifier extends StateNotifier<ProjectsState> {
           userEmail: current.userEmail ?? currentUserEmail,
         );
         await saveProjectUseCase(updated);
+        if (onProjectCreatedOrUpdated != null) {
+          onProjectCreatedOrUpdated!(updated.id).catchError((_) {});
+        }
         final list = List<ProjectEntity>.from(state.projects);
         list[index] = updated;
         list.sort((a, b) {

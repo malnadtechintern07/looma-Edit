@@ -3,7 +3,7 @@ import '../../domain/entities/cloud_backup_record.dart';
 import 'cloud_storage_datasource.dart';
 
 /// Composite cloud storage data source that orchestrates multiple cloud storage providers:
-/// (Ntfy.sh Global Pub/Sub, Zero-Config Cloud Registry, and Optional Bunny.net Storage)
+/// (MySQL Server primary, Ntfy.sh Global Pub/Sub, Zero-Config Cloud Registry, and Optional Bunny.net Storage)
 class CompositeCloudStorageDataSource implements CloudStorageDataSource {
   final List<CloudStorageDataSource> _sources;
 
@@ -17,12 +17,12 @@ class CompositeCloudStorageDataSource implements CloudStorageDataSource {
         ];
 
   @override
-  Future<List<ProjectEntity>> getCloudProjects(String userId) async {
+  Future<List<ProjectEntity>> getCloudProjects(String userId, [String? userEmail]) async {
     final Map<String, ProjectEntity> projectMap = {};
 
     for (final source in _sources) {
       try {
-        final projects = await source.getCloudProjects(userId);
+        final projects = await source.getCloudProjects(userId, userEmail);
         for (final p in projects) {
           final existing = projectMap[p.id];
           if (existing == null || p.updatedAt.isAfter(existing.updatedAt)) {

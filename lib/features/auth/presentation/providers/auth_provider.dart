@@ -104,6 +104,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
           isLoading: false,
           clearError: true,
         );
+        if (onUserAuthenticated != null) {
+          onUserAuthenticated!().catchError((_) {});
+        }
       } else {
         state = state.copyWith(
           status: AuthStatus.unauthenticated,

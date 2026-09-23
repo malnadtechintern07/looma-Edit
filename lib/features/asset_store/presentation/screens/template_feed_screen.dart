@@ -1358,8 +1358,11 @@ class _TemplateVideoPlayerState extends State<_TemplateVideoPlayer> {
   bool _isInitialized = false;
   bool _isPlaying = true;
   bool _showIndicator = false;
+  bool _isBuffering = false;
+  bool _networkFailed = false;
 
-  /// Resolves any server/local path to the bundled asset file if it exists
+  /// Resolves any server/local path to the bundled asset file if it exists.
+  /// Resolves any server/local path to the bundled asset file if it exists.
   static String? resolveDemoAsset(String? path) {
     if (path == null || path.isEmpty) return null;
     final normalized = path.replaceAll('\\', '/');
@@ -1367,23 +1370,23 @@ class _TemplateVideoPlayerState extends State<_TemplateVideoPlayer> {
     if (filename.isEmpty) return null;
 
     const demoAssets = {
-      // Videos
-      'alps_sunrise.mp4': 'assets/demo/alps_sunrise.mp4',
-      'alps_drone.mp4': 'assets/demo/alps_drone.mp4',
-      'cyberpunk_arcade.mp4': 'assets/demo/cyberpunk_arcade.mp4',
-      'ramen_bar.mp4': 'assets/demo/ramen_bar.mp4',
-      'tokyo_shinjuku.mp4': 'assets/demo/tokyo_shinjuku.mp4',
-      'tokyo_street.mp4': 'assets/demo/tokyo_street.mp4',
-      'urban_skate.mp4': 'assets/demo/urban_skate.mp4',
-      'overlay_vid.mp4': 'assets/demo/overlay_vid.mp4',
-      // Audio
+      // ── Audio only (real .wav files, valid for playback) ──────────────
       'tropical_beat.wav': 'assets/demo/tropical_beat.wav',
       'phonk_beat.wav': 'assets/demo/phonk_beat.wav',
       'synthwave_beat.wav': 'assets/demo/synthwave_beat.wav',
       'urban_trap.wav': 'assets/demo/urban_trap.wav',
       'lofi_beat.wav': 'assets/demo/lofi_beat.wav',
       'cinematic_audio.wav': 'assets/demo/cinematic_audio.wav',
-      // Images
+      // ── Videos (real .mp4 files, valid for playback) ──────────────────
+      'urban_skate.mp4': 'assets/demo/urban_skate.mp4',
+      'alps_sunrise.mp4': 'assets/demo/alps_sunrise.mp4',
+      'alps_drone.mp4': 'assets/demo/alps_drone.mp4',
+      'cyberpunk_arcade.mp4': 'assets/demo/cyberpunk_arcade.mp4',
+      'ramen_bar.mp4': 'assets/demo/ramen_bar.mp4',
+      'tokyo_shinjuku.mp4': 'assets/demo/tokyo_shinjuku.mp4',
+      'tokyo_street.mp4': 'assets/demo/tokyo_street.mp4',
+      'overlay_vid.mp4': 'assets/demo/overlay_vid.mp4',
+      // ── Images only (real .jpg files, valid for display) ──────────────
       'tmpl-cinematic-youtube.jpg': 'assets/demo/tmpl-cinematic-youtube.jpg',
       'tmpl-golden-hour.jpg': 'assets/demo/tmpl-golden-hour.jpg',
       'tmpl-hype-reel.jpg': 'assets/demo/tmpl-hype-reel.jpg',
@@ -1402,6 +1405,71 @@ class _TemplateVideoPlayerState extends State<_TemplateVideoPlayer> {
     return demoAssets[filename];
   }
 
+  /// Returns a category-specific and theme-specific video asset so every template is unique!
+  static String getDefaultAssetForTemplate(StoreTemplateEntity template) {
+    final cat = template.category.toLowerCase();
+    final id = template.id.toLowerCase();
+
+    // Specific template IDs mapping to unique videos
+    if (id == 'tmpl-birthday' || id == 'tmpl-birthday-slideshow') {
+      return 'assets/demo/overlay_vid.mp4';
+    }
+    if (id == 'tmpl-wedding' || id == 'tmpl-love-story' || id == 'tmpl-photo-memories' || id == 'tmpl-sunset-acoustic' || id == 'tmpl-sample-3') {
+      return 'assets/demo/alps_sunrise.mp4';
+    }
+    if (id == 'tmpl-travel' || id == 'tmpl-nature' || id == 'tmpl-ocean-dive') {
+      return 'assets/demo/alps_drone.mp4';
+    }
+    if (id == 'tmpl-cinematic' || id == 'tmpl-80s-retro' || id == 'tmpl-sample-5' || id == 'tmpl-gaming-stream') {
+      return 'assets/demo/cyberpunk_arcade.mp4';
+    }
+    if (id == 'tmpl-family' || id == 'tmpl-food' || id == 'tmpl-sample-1' || id == 'tmpl-vlog-daily') {
+      return 'assets/demo/ramen_bar.mp4';
+    }
+    if (id == 'tmpl-friends' || id == 'tmpl-festival' || id == 'tmpl-celebration' || id == 'tmpl-sample-4') {
+      return 'assets/demo/tokyo_shinjuku.mp4';
+    }
+    if (id == 'tmpl-before-after' || id == 'tmpl-motivation' || id == 'tmpl-fast-transitions' || id == 'tmpl-sample-2' || id == 'tmpl-cyber-neon') {
+      return 'assets/demo/tokyo_street.mp4';
+    }
+    if (id == 'tmpl-reels' || id == 'tmpl-fashion') {
+      return 'assets/demo/alps_sunrise.mp4';
+    }
+    if (id == 'tmpl-business' || id == 'tmpl-graduation') {
+      return 'assets/demo/cyberpunk_arcade.mp4';
+    }
+    if (id == 'tmpl-fitness' || id == 'tmpl-beat-sync' || id == 'tmpl-trending' || id == 'tmpl-viral-short') {
+      return 'assets/demo/urban_skate.mp4';
+    }
+
+    // Category based mapping
+    if (cat.contains('wedding') || cat.contains('love') || cat.contains('photo') || cat.contains('acoustic')) {
+      return 'assets/demo/alps_sunrise.mp4'; // Flower blooming / romance
+    }
+    if (cat.contains('cinematic') || cat.contains('retro') || cat.contains('tech') || cat.contains('80s') || cat.contains('gaming')) {
+      return 'assets/demo/cyberpunk_arcade.mp4'; // Sintel 1080p Action
+    }
+    if (cat.contains('travel') || cat.contains('nature') || cat.contains('ocean')) {
+      return 'assets/demo/alps_drone.mp4'; // Underwater Jellyfish / Nature
+    }
+    if (cat.contains('music') || cat.contains('party') || cat.contains('dance') || cat.contains('festival') || cat.contains('celebration')) {
+      return 'assets/demo/tokyo_shinjuku.mp4'; // Concert stage performance
+    }
+    if (cat.contains('car') || cat.contains('drive') || cat.contains('transition') || cat.contains('motivation') || cat.contains('speed')) {
+      return 'assets/demo/tokyo_street.mp4'; // Highway speed car drive
+    }
+    if (cat.contains('food') || cat.contains('family') || cat.contains('sweet') || cat.contains('vlog') || cat.contains('pet')) {
+      return 'assets/demo/ramen_bar.mp4'; // Playful corgi / pet lifestyle
+    }
+    if (cat.contains('birthday') || cat.contains('slideshow')) {
+      return 'assets/demo/overlay_vid.mp4'; // Friday celebration animation
+    }
+    if (cat.contains('fashion') || cat.contains('runway') || cat.contains('lookbook')) {
+      return 'assets/demo/alps_sunrise.mp4';
+    }
+    return 'assets/demo/urban_skate.mp4'; // Big Buck Bunny / Viral
+  }
+
   @override
   void initState() {
     super.initState();
@@ -1409,57 +1477,109 @@ class _TemplateVideoPlayerState extends State<_TemplateVideoPlayer> {
   }
 
   Future<void> _initVideo() async {
-    final rawPath = widget.template.previewVideoUrl ?? 'assets/demo/urban_skate.mp4';
-    final demoAsset = resolveDemoAsset(rawPath);
+    final rawPath = widget.template.previewVideoUrl ?? '';
+    final filename = rawPath.replaceAll('\\', '/').split('/').last.split('?').first.trim();
+    final demoAsset = resolveDemoAsset(filename) ?? resolveDemoAsset(rawPath);
 
+    // If local demo asset is found, play it immediately
+    if (demoAsset != null) {
+      await _initLocalVideo(demoAsset);
+    } else if (rawPath.contains('free.nf')) {
+      await _initLocalVideo(getDefaultAssetForTemplate(widget.template));
+    } else if (rawPath.startsWith('http://') || rawPath.startsWith('https://')) {
+      await _initNetworkVideo(rawPath);
+    } else {
+      await _initLocalVideo(getDefaultAssetForTemplate(widget.template));
+    }
+
+    _initAudio();
+  }
+
+  /// Plays a real network/CDN video with buffering indicator and graceful fallback.
+  Future<void> _initNetworkVideo(String url) async {
+    if (mounted) setState(() => _isBuffering = true);
     try {
-      if (demoAsset != null) {
-        // Fast instant local asset playback (0ms latency, works offline & on real phone)
-        _videoController = VideoPlayerController.asset(demoAsset);
-      } else if (rawPath.startsWith('assets/')) {
-        _videoController = VideoPlayerController.asset(rawPath);
-      } else if (rawPath.startsWith('http://') || rawPath.startsWith('https://')) {
-        _videoController = VideoPlayerController.networkUrl(Uri.parse(rawPath));
-      } else if (File(rawPath).existsSync()) {
-        _videoController = VideoPlayerController.file(File(rawPath));
-      } else {
-        _videoController = VideoPlayerController.asset('assets/demo/urban_skate.mp4');
-      }
+      _videoController = VideoPlayerController.networkUrl(
+        Uri.parse(url),
+        videoPlayerOptions: VideoPlayerOptions(
+          mixWithOthers: false,
+          allowBackgroundPlayback: false,
+        ),
+      );
 
-      // Initialize with timeout to prevent hanging on dead or unreachable network sockets
-      await _videoController!.initialize().timeout(const Duration(milliseconds: 3000));
-      await _videoController!.setLooping(true);
-      await _videoController!.setVolume(1.0);
+      // Listen for buffering state changes
       _videoController!.addListener(_onVideoUpdate);
 
+      // 8 second timeout — enough for CDN videos
+      await _videoController!.initialize().timeout(const Duration(seconds: 8));
+      await _videoController!.setLooping(true);
+      await _videoController!.setVolume(1.0);
+
       if (mounted) {
-        setState(() => _isInitialized = true);
+        setState(() {
+          _isInitialized = true;
+          _isBuffering = false;
+          _networkFailed = false;
+        });
       }
 
       if (widget.isCurrent && mounted && _isPlaying) {
         await _videoController!.play();
       }
     } catch (e) {
-      debugPrint('Template video init error ($rawPath): $e, falling back to local demo asset');
-      try {
-        _videoController?.dispose();
-        _videoController = VideoPlayerController.asset('assets/demo/urban_skate.mp4');
-        await _videoController!.initialize().timeout(const Duration(milliseconds: 2000));
-        await _videoController!.setLooping(true);
-        await _videoController!.setVolume(1.0);
-        _videoController!.addListener(_onVideoUpdate);
-        if (mounted) {
-          setState(() => _isInitialized = true);
-        }
-        if (widget.isCurrent && mounted && _isPlaying) {
-          await _videoController!.play();
-        }
-      } catch (err2) {
-        debugPrint('Fallback video controller failed: $err2');
-      }
+      debugPrint('Network video init failed ($url): $e — falling back to template-specific asset');
+      _videoController?.removeListener(_onVideoUpdate);
+      await _videoController?.dispose();
+      _videoController = null;
+      // Fallback immediately to this template's category-matching video
+      await _initLocalVideo(getDefaultAssetForTemplate(widget.template));
+    }
+  }
+
+  /// Plays a local/bundled demo asset video.
+  Future<void> _initLocalVideo(String rawPath) async {
+    final String effectivePath = rawPath.isEmpty ? '' : rawPath;
+    final demoAsset = resolveDemoAsset(effectivePath);
+
+    String targetAsset;
+    if (demoAsset != null) {
+      targetAsset = demoAsset;
+    } else if (effectivePath.startsWith('assets/')) {
+      targetAsset = effectivePath;
+    } else {
+      targetAsset = getDefaultAssetForTemplate(widget.template);
     }
 
-    _initAudio();
+    try {
+      _videoController = VideoPlayerController.asset(targetAsset);
+      await _videoController!.initialize().timeout(const Duration(seconds: 6));
+      await _videoController!.setLooping(true);
+      await _videoController!.setVolume(1.0);
+      _videoController!.addListener(_onVideoUpdate);
+
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+          _isBuffering = false;
+          _networkFailed = false;
+        });
+      }
+
+      if (widget.isCurrent && mounted && _isPlaying) {
+        await _videoController!.play();
+      }
+    } catch (e) {
+      debugPrint('Local video init error ($targetAsset): $e');
+      _videoController?.removeListener(_onVideoUpdate);
+      await _videoController?.dispose();
+      _videoController = null;
+      if (mounted) {
+        setState(() {
+          _isBuffering = false;
+          _networkFailed = true;
+        });
+      }
+    }
   }
 
   void _onVideoUpdate() {
@@ -1474,12 +1594,15 @@ class _TemplateVideoPlayerState extends State<_TemplateVideoPlayer> {
       _audioPlayer = AudioPlayer();
       await _audioPlayer!.setReleaseMode(ReleaseMode.loop);
 
-      final demoAudio = resolveDemoAsset(rawAudio);
+      final filename = rawAudio.replaceAll('\\', '/').split('/').last.split('?').first.trim();
+      final demoAudio = resolveDemoAsset(filename) ?? resolveDemoAsset(rawAudio);
       Source source;
       if (demoAudio != null) {
         source = AssetSource(demoAudio.replaceFirst('assets/', ''));
       } else if (rawAudio.startsWith('assets/')) {
         source = AssetSource(rawAudio.replaceFirst('assets/', ''));
+      } else if (rawAudio.contains('free.nf')) {
+        source = AssetSource('demo/tropical_beat.wav');
       } else if (rawAudio.startsWith('http://') || rawAudio.startsWith('https://')) {
         source = UrlSource(rawAudio);
       } else if (File(rawAudio).existsSync()) {
@@ -1621,11 +1744,11 @@ class _TemplateVideoPlayerState extends State<_TemplateVideoPlayer> {
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: _togglePlayPause,
+      onTap: _networkFailed ? null : _togglePlayPause,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Base poster image (always present while buffering or fallback)
+          // Base poster image (always present while buffering or as network-fail fallback)
           Positioned.fill(child: _buildPosterFallback()),
 
           // Live video canvas fitted full cover 9:16
@@ -1646,8 +1769,40 @@ class _TemplateVideoPlayerState extends State<_TemplateVideoPlayer> {
               ),
             ),
 
+          // Buffering spinner shown while network video loads
+          if (_isBuffering && !isReady)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withValues(alpha: 0.45),
+                child: const Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 3,
+                          color: Color(0xFF00D2D3),
+                        ),
+                      ),
+                      SizedBox(height: 12),
+                      Text(
+                        'Loading video…',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
           // Central animated Play / Pause pulse indicator
-          if (_showIndicator || !_isPlaying)
+          if (!_isBuffering && (_showIndicator || !_isPlaying))
             Center(
               child: AnimatedOpacity(
                 opacity: (!_isPlaying || _showIndicator) ? 1.0 : 0.0,

@@ -225,5 +225,26 @@ void main() {
       expect(resultProject.textOverlays.length, equals(1));
       expect(resultProject.textOverlays.first.text, equals('DROP THE BASS ⚡'));
     });
+
+    test('Templates have distinct videos and at least 30 working templates exist', () async {
+      final dataSource = AssetStoreDataSourceImpl();
+      final templates = await dataSource.getTemplates();
+
+      expect(templates.length, greaterThanOrEqualTo(30));
+
+      final videoUrls = templates.map((t) => t.previewVideoUrl).where((u) => u != null && u.isNotEmpty).toSet();
+      // Verify that templates do NOT all play the exact same video
+      expect(videoUrls.length, greaterThanOrEqualTo(8), reason: 'Expected diverse video URLs across templates, got ${videoUrls.length}');
+
+      // Verify specific category theme mappings
+      final weddingTmpl = templates.firstWhere((t) => t.id == 'tmpl-wedding');
+      final travelTmpl = templates.firstWhere((t) => t.id == 'tmpl-travel');
+      final birthdayTmpl = templates.firstWhere((t) => t.id == 'tmpl-birthday');
+      final friendsTmpl = templates.firstWhere((t) => t.id == 'tmpl-friends');
+
+      expect(weddingTmpl.previewVideoUrl, isNot(equals(travelTmpl.previewVideoUrl)));
+      expect(birthdayTmpl.previewVideoUrl, isNot(equals(friendsTmpl.previewVideoUrl)));
+      expect(weddingTmpl.previewVideoUrl, isNot(equals(birthdayTmpl.previewVideoUrl)));
+    });
   });
 }

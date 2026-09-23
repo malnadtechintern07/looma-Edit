@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/constants/app_constants.dart';
 import '../core/services/app_remote_config_service.dart';
 import '../core/services/live_admin_sync_service.dart';
+import '../features/cloud_sync/presentation/providers/cloud_sync_provider.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 
@@ -11,8 +12,10 @@ class ProCutApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Automatically keep app in real-time sync with hosted Admin Panel
+    // Automatically keep app in real-time sync with hosted Admin Panel & Cloud Sync
     ref.watch(liveAdminSyncServiceProvider);
+    ref.watch(authSyncProvider);
+    ref.watch(projectAutoSyncProvider);
 
     final configAsync = ref.watch(appRemoteConfigProvider);
 

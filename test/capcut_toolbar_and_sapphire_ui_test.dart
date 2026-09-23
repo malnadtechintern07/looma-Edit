@@ -278,7 +278,7 @@ class _FakeProjectsRepository implements ProjectRepository {
   Future<void> deleteProject(String id) async {}
 
   @override
-  Future<void> claimGuestProjects(String userId) async {}
+  Future<void> claimGuestProjects(String userId, [String? userEmail]) async {}
 }
 
 class _FakeAuthNotifier extends AuthNotifier {

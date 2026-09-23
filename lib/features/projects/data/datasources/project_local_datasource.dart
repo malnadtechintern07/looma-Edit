@@ -15,7 +15,7 @@ abstract class ProjectLocalDataSource {
   Future<void> updateProject(ProjectEntity project);
   Future<ProjectEntity> duplicateProject(String id);
   Future<void> deleteProject(String id);
-  Future<void> claimGuestProjects(String userId);
+  Future<void> claimGuestProjects(String userId, [String? userEmail]);
 }
 
 class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
@@ -209,7 +209,7 @@ class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
   }
 
   @override
-  Future<void> claimGuestProjects(String userId) async {
+  Future<void> claimGuestProjects(String userId, [String? userEmail]) async {
     final cleanUid = userId.trim();
     if (cleanUid.isEmpty) return;
     activeUserId = cleanUid;
@@ -230,7 +230,10 @@ class ProjectLocalDataSourceImpl implements ProjectLocalDataSource {
               continue;
             }
             if (p.userId == null || p.userId == cleanUid) {
-              final claimed = p.copyWith(userId: cleanUid);
+              final claimed = p.copyWith(
+                userId: cleanUid,
+                userEmail: userEmail ?? p.userEmail,
+              );
               final userPath = '${AppConstants.projectsDirectory}/users/$cleanUid/project_${claimed.id}.json';
               await storageService.writeJson(userPath, ProjectModel.toJson(claimed));
 

@@ -94,7 +94,7 @@ class _FakeCloudStorageDataSource implements CloudStorageDataSource {
   Future<ProjectEntity?> getCloudProject(String userId, String projectId) async => cloudProjects[projectId];
 
   @override
-  Future<List<ProjectEntity>> getCloudProjects(String userId) async => cloudProjects.values.toList();
+  Future<List<ProjectEntity>> getCloudProjects(String userId, [String? userEmail]) async => cloudProjects.values.toList();
 }
 
 void main() {

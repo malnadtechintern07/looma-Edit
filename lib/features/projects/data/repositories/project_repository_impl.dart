@@ -38,7 +38,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
   }
 
   @override
-  Future<void> claimGuestProjects(String userId) async {
-    await localDataSource.claimGuestProjects(userId);
+  Future<void> claimGuestProjects(String userId, [String? userEmail]) async {
+    await localDataSource.claimGuestProjects(userId, userEmail);
   }
 }

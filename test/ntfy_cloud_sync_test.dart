@@ -73,7 +73,7 @@ class _FakeNtfyHttpClient implements AuthRemoteDataSource, CloudStorageDataSourc
   Future<bool> forgotPassword(String email, String newPassword) async => false;
 
   @override
-  Future<List<ProjectEntity>> getCloudProjects(String userId) async {
+  Future<List<ProjectEntity>> getCloudProjects(String userId, [String? userEmail]) async {
     final list = _topics['procut_proj_$userId'] ?? [];
     final Map<String, ProjectEntity> map = {};
     for (final item in list) {

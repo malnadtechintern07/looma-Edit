@@ -21,5 +21,5 @@ abstract class ProjectRepository {
   Future<void> deleteProject(String id);
 
   /// Migrates unassigned guest projects to the authenticated user account
-  Future<void> claimGuestProjects(String userId);
+  Future<void> claimGuestProjects(String userId, [String? userEmail]);
 }

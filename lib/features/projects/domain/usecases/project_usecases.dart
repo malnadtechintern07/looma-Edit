@@ -47,5 +47,5 @@ class ClaimGuestProjectsUseCase {
   final ProjectRepository repository;
   const ClaimGuestProjectsUseCase(this.repository);
 
-  Future<void> call(String userId) => repository.claimGuestProjects(userId);
+  Future<void> call(String userId, [String? userEmail]) => repository.claimGuestProjects(userId, userEmail);
 }

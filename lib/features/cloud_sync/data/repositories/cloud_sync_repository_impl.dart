@@ -58,7 +58,7 @@ class CloudSyncRepositoryImpl implements CloudSyncRepository {
   Future<List<ProjectEntity>> getCloudProjects() async {
     final user = await authRepository.getCurrentUser();
     if (user == null) return [];
-    return await cloudDataSource.getCloudProjects(user.id);
+    return await cloudDataSource.getCloudProjects(user.id, user.email);
   }
 
   @override
@@ -111,10 +111,10 @@ class CloudSyncRepositoryImpl implements CloudSyncRepository {
     projectLocalDataSource.setActiveUserId(user.id);
 
     // 0. Claim any unassigned guest projects on this device for the user
-    await projectLocalDataSource.claimGuestProjects(user.id);
+    await projectLocalDataSource.claimGuestProjects(user.id, user.email);
 
-    // 1. Fetch cloud projects for this user FIRST
-    final cloudProjects = await cloudDataSource.getCloudProjects(user.id);
+    // 1. Fetch cloud projects for this user FIRST by ID and Email
+    final cloudProjects = await cloudDataSource.getCloudProjects(user.id, user.email);
     final cloudProjectMap = {for (final p in cloudProjects) p.id: p};
 
     // 2. Download any cloud projects that don't exist locally into local storage
@@ -137,7 +137,7 @@ class CloudSyncRepositoryImpl implements CloudSyncRepository {
     // 4. Reconcile local and cloud projects
     for (final local in localProjects) {
       // Skip projects belonging to another user
-      if (local.userId != null && local.userId != user.id) continue;
+      if (local.userId != null && local.userId != user.id && local.userEmail != null && local.userEmail != user.email) continue;
 
       final cloud = cloudProjectMap[local.id];
       if (cloud != null && cloud.updatedAt.isAfter(local.updatedAt)) {

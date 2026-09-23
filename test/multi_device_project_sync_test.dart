@@ -36,7 +36,7 @@ class _SimulatedSharedCloudStorageDataSource implements CloudStorageDataSource {
   }
 
   @override
-  Future<List<ProjectEntity>> getCloudProjects(String userId) async {
+  Future<List<ProjectEntity>> getCloudProjects(String userId, [String? userEmail]) async {
     final userData = _getUserData(userId);
     final projectsMap = Map<String, dynamic>.from(userData['projects'] as Map);
     final List<ProjectEntity> list = [];
