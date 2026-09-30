@@ -205,6 +205,7 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
   void _showAlbumSelector() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: const Color(0xFF161822),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -222,76 +223,92 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
           {'name': 'Screenshots', 'icon': Icons.screenshot, 'count': '25'},
         ];
 
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 36,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Select Album',
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-              const Divider(color: Colors.white12),
-              ...albums.map((alb) {
-                final isDirectGallery = alb['name'] == 'Device Gallery (Open Directly)';
-                final isSelected = _selectedAlbum == alb['name'];
-                return ListTile(
-                  leading: Icon(
-                    alb['icon'] as IconData,
-                    color: isDirectGallery
-                        ? const Color(0xFF00C2CB)
-                        : (isSelected ? const Color(0xFF00C2CB) : Colors.white70),
-                  ),
-                  title: Text(
-                    alb['name'] as String,
-                    style: TextStyle(
-                      color: isDirectGallery
-                          ? const Color(0xFF00C2CB)
-                          : (isSelected ? const Color(0xFF00C2CB) : Colors.white),
-                      fontWeight: (isSelected || isDirectGallery) ? FontWeight.bold : FontWeight.normal,
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(ctx).size.height * 0.70,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 12),
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                  trailing: Text(
-                    alb['count'] as String,
-                    style: TextStyle(
-                      color: isDirectGallery ? const Color(0xFF00C2CB) : Colors.white38,
-                      fontSize: 13,
-                      fontWeight: isDirectGallery ? FontWeight.bold : FontWeight.normal,
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Select Album',
+                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ),
-                  onTap: () {
-                    Navigator.of(ctx).pop();
-                    if (isDirectGallery) {
-                      _pickFromGalleryExplicitly();
-                    } else {
-                      setState(() {
-                        _selectedAlbum = alb['name'] as String;
-                        if (alb['name'] == 'Videos') {
-                          _activeSubTab = _PickerSubTab.videos;
-                        } else if (alb['name'] == 'Photos') {
-                          _activeSubTab = _PickerSubTab.photos;
-                        }
-                      });
-                    }
-                  },
-                );
-              }),
-            ],
+                ),
+                const Divider(color: Colors.white12, height: 1),
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.only(bottom: 12),
+                    itemCount: albums.length,
+                    itemBuilder: (itemCtx, index) {
+                      final alb = albums[index];
+                      final isDirectGallery = alb['name'] == 'Device Gallery (Open Directly)';
+                      final isSelected = _selectedAlbum == alb['name'];
+                      return ListTile(
+                        dense: true,
+                        leading: Icon(
+                          alb['icon'] as IconData,
+                          color: isDirectGallery
+                              ? const Color(0xFF00C2CB)
+                              : (isSelected ? const Color(0xFF00C2CB) : Colors.white70),
+                        ),
+                        title: Text(
+                          alb['name'] as String,
+                          style: TextStyle(
+                            color: isDirectGallery
+                                ? const Color(0xFF00C2CB)
+                                : (isSelected ? const Color(0xFF00C2CB) : Colors.white),
+                            fontWeight: (isSelected || isDirectGallery) ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                        trailing: Text(
+                          alb['count'] as String,
+                          style: TextStyle(
+                            color: isDirectGallery ? const Color(0xFF00C2CB) : Colors.white38,
+                            fontSize: 13,
+                            fontWeight: isDirectGallery ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                        onTap: () {
+                          Navigator.of(ctx).pop();
+                          if (isDirectGallery) {
+                            _pickFromGalleryExplicitly();
+                          } else {
+                            setState(() {
+                              _selectedAlbum = alb['name'] as String;
+                              if (alb['name'] == 'Videos') {
+                                _activeSubTab = _PickerSubTab.videos;
+                              } else if (alb['name'] == 'Photos') {
+                                _activeSubTab = _PickerSubTab.photos;
+                              }
+                            });
+                          }
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -319,31 +336,33 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
             const Text('Script to Video AI', style: TextStyle(color: Colors.white, fontSize: 16)),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Enter a story or prompt. ProCut AI will generate cinematic storyboard clips for your timeline.',
-              style: TextStyle(color: Colors.white70, fontSize: 13),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: textController,
-              maxLines: 4,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-              decoration: InputDecoration(
-                hintText: 'e.g. A fast-paced travel vlog exploring Tokyo neon night street...',
-                hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
-                filled: true,
-                fillColor: const Color(0xFF262934),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Enter a story or prompt. ProCut AI will generate cinematic storyboard clips for your timeline.',
+                style: TextStyle(color: Colors.white70, fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: textController,
+                maxLines: 4,
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: 'e.g. A fast-paced travel vlog exploring Tokyo neon night street...',
+                  hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+                  filled: true,
+                  fillColor: const Color(0xFF262934),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -433,6 +452,7 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
                           children: [
                             // Albums Dropdown Pill (Rounded dark pill with white text & down icon)
                             InkWell(
+                              key: const Key('picker_album_selector_button'),
                               onTap: _showAlbumSelector,
                               borderRadius: BorderRadius.circular(16),
                               child: Container(
@@ -535,116 +555,139 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
               height: 40,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               color: Colors.black,
-              child: Row(
-                children: [
-                  // Videos Sub-tab
-                  ResponsiveTapButton(
-                    onTap: () => setState(() => _activeSubTab = _PickerSubTab.videos),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          AnimatedDefaultTextStyle(
-                            duration: const Duration(milliseconds: 150),
-                            style: TextStyle(
-                              color: _activeSubTab == _PickerSubTab.videos ? const Color(0xFF00C2CB) : const Color(0xFF8E95A5),
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            child: const Text('Videos'),
-                          ),
-                          const SizedBox(height: 4),
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            curve: Curves.easeOutCubic,
-                            height: 2.5,
-                            width: 52,
-                            decoration: BoxDecoration(
-                              color: _activeSubTab == _PickerSubTab.videos ? const Color(0xFF00C2CB) : Colors.transparent,
-                              borderRadius: BorderRadius.circular(1.5),
-                            ),
-                          ),
-                        ],
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minWidth: constraints.maxWidth,
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Videos Sub-tab
+                              ResponsiveTapButton(
+                                onTap: () => setState(() => _activeSubTab = _PickerSubTab.videos),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      AnimatedDefaultTextStyle(
+                                        duration: const Duration(milliseconds: 150),
+                                        style: TextStyle(
+                                          color: _activeSubTab == _PickerSubTab.videos ? const Color(0xFF00C2CB) : const Color(0xFF8E95A5),
+                                          fontSize: 14.5,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        child: const Text('Videos'),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      AnimatedContainer(
+                                        duration: const Duration(milliseconds: 150),
+                                        curve: Curves.easeOutCubic,
+                                        height: 2.5,
+                                        width: 52,
+                                        decoration: BoxDecoration(
+                                          color: _activeSubTab == _PickerSubTab.videos ? const Color(0xFF00C2CB) : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(1.5),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
 
-                  // Photos Sub-tab
-                  ResponsiveTapButton(
-                    onTap: () => setState(() => _activeSubTab = _PickerSubTab.photos),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          AnimatedDefaultTextStyle(
-                            duration: const Duration(milliseconds: 150),
-                            style: TextStyle(
-                              color: _activeSubTab == _PickerSubTab.photos ? const Color(0xFF00C2CB) : const Color(0xFF8E95A5),
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            child: const Text('Photos'),
+                              // Photos Sub-tab
+                              ResponsiveTapButton(
+                                onTap: () => setState(() => _activeSubTab = _PickerSubTab.photos),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      AnimatedDefaultTextStyle(
+                                        duration: const Duration(milliseconds: 150),
+                                        style: TextStyle(
+                                          color: _activeSubTab == _PickerSubTab.photos ? const Color(0xFF00C2CB) : const Color(0xFF8E95A5),
+                                          fontSize: 14.5,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        child: const Text('Photos'),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      AnimatedContainer(
+                                        duration: const Duration(milliseconds: 150),
+                                        curve: Curves.easeOutCubic,
+                                        height: 2.5,
+                                        width: 52,
+                                        decoration: BoxDecoration(
+                                          color: _activeSubTab == _PickerSubTab.photos ? const Color(0xFF00C2CB) : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(1.5),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 4),
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            curve: Curves.easeOutCubic,
-                            height: 2.5,
-                            width: 52,
-                            decoration: BoxDecoration(
-                              color: _activeSubTab == _PickerSubTab.photos ? const Color(0xFF00C2CB) : Colors.transparent,
-                              borderRadius: BorderRadius.circular(1.5),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
 
-                  // Prominent Open Gallery button
-                  ResponsiveTapButton(
-                    key: const Key('picker_header_open_gallery_button'),
-                    onTap: _pickFromGalleryExplicitly,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1C1F2A),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: const Color(0xFF00C2CB).withValues(alpha: 0.4),
-                          width: 1,
-                        ),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.photo_library_outlined, color: Color(0xFF00C2CB), size: 14),
-                          SizedBox(width: 5),
-                          Text(
-                            'Open Gallery',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Prominent Open Gallery button
+                              ResponsiveTapButton(
+                                key: const Key('picker_header_open_gallery_button'),
+                                onTap: _pickFromGalleryExplicitly,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1C1F2A),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: const Color(0xFF00C2CB).withValues(alpha: 0.4),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.photo_library_outlined, color: Color(0xFF00C2CB), size: 14),
+                                      SizedBox(width: 5),
+                                      Text(
+                                        'Open Gallery',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              IconButton(
+                                icon: const Icon(Icons.camera_alt_outlined, color: Colors.white70, size: 20),
+                                tooltip: 'Capture Camera',
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                onPressed: _captureCamera,
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  IconButton(
-                    icon: const Icon(Icons.camera_alt_outlined, color: Colors.white70, size: 20),
-                    tooltip: 'Capture Camera',
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                    onPressed: _captureCamera,
-                  ),
-                ],
+                  );
+                },
               ),
             ),
 
@@ -792,28 +835,31 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.image_outlined,
-                                size: 18,
-                                color: _activeBottomNav == _PickerBottomNav.addMedia
-                                    ? Colors.white
-                                    : const Color(0xFF8E95A5),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Add media',
-                                style: TextStyle(
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.image_outlined,
+                                  size: 18,
                                   color: _activeBottomNav == _PickerBottomNav.addMedia
                                       ? Colors.white
                                       : const Color(0xFF8E95A5),
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Add media',
+                                  style: TextStyle(
+                                    color: _activeBottomNav == _PickerBottomNav.addMedia
+                                        ? Colors.white
+                                        : const Color(0xFF8E95A5),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Container(
@@ -841,20 +887,23 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
                       child: const Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.text_fields, size: 18, color: Color(0xFF8E95A5)),
-                              SizedBox(width: 6),
-                              Text(
-                                'Script to video',
-                                style: TextStyle(
-                                  color: Color(0xFF8E95A5),
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.text_fields, size: 18, color: Color(0xFF8E95A5)),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Script to video',
+                                  style: TextStyle(
+                                    color: Color(0xFF8E95A5),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                           SizedBox(height: 6),
                         ],
@@ -889,48 +938,54 @@ class _MediaPickerModalState extends State<MediaPickerModal> {
             end: Alignment.bottomRight,
           ),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFF00C2CB).withValues(alpha: 0.15),
-                border: Border.all(
-                  color: const Color(0xFF00C2CB),
-                  width: 1.2,
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFF00C2CB).withValues(alpha: 0.15),
+                    border: Border.all(
+                      color: const Color(0xFF00C2CB),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.add_photo_alternate_rounded,
+                    color: Color(0xFF00C2CB),
+                    size: 19,
+                  ),
                 ),
-              ),
-              child: const Icon(
-                Icons.add_photo_alternate_rounded,
-                color: Color(0xFF00C2CB),
-                size: 20,
-              ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Open Gallery',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.2,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  isVideos ? 'Device Videos' : 'Device Photos',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.55),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Open Gallery',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.2,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              isVideos ? 'Device Videos' : 'Device Photos',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.55),
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+          ),
         ),
       ),
     );

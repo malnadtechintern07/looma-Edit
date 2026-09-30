@@ -23,13 +23,27 @@ class NotificationCenterSheet extends ConsumerStatefulWidget {
 }
 
 class _NotificationCenterSheetState extends ConsumerState<NotificationCenterSheet> {
+  bool _isLoading = false;
+
   @override
   void initState() {
     super.initState();
-    // Refresh notifications from backend when sheet opens
-    Future.microtask(() {
-      ref.invalidate(fetchBackendNotificationsProvider);
+    // Actively refresh notifications from backend when sheet opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshNotifications();
     });
+  }
+
+  Future<void> _refreshNotifications() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
+    try {
+      ref.invalidate(fetchBackendNotificationsProvider);
+      await ref.read(fetchBackendNotificationsProvider.future);
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   String _formatTimestamp(DateTime dt) {
@@ -187,95 +201,142 @@ class _NotificationCenterSheetState extends ConsumerState<NotificationCenterShee
                     ],
                   ),
                 ),
-                if (notifications.isNotEmpty)
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        service.markAllAsRead();
-                      });
-                    },
-                    child: const Text(
-                      'Mark read',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF0D6EFD)),
-                    ),
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_isLoading)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 6),
+                        child: SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0D6EFD)),
+                        ),
+                      )
+                    else
+                      IconButton(
+                        icon: const Icon(Icons.refresh_rounded, size: 20, color: Color(0xFF0D6EFD)),
+                        tooltip: 'Refresh Notifications',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                        onPressed: _refreshNotifications,
+                      ),
+                    if (notifications.isNotEmpty) ...[
+                      const SizedBox(width: 4),
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            service.markAllAsRead();
+                          });
+                        },
+                        child: const Text(
+                          'Mark read',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF0D6EFD)),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ],
             ),
           ),
           const Divider(height: 1, color: Color(0xFFE5E7EB)),
 
-          // Notifications List
+          // Notifications List with Pull-to-Refresh
           Expanded(
-            child: notifications.isEmpty
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF3F4F6),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.notifications_none_rounded,
-                              size: 44,
-                              color: Color(0xFF9CA3AF),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'No notifications yet',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF374151),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          const Text(
-                            'Announcements and project alerts will show up right here.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 13, color: Color(0xFF9CA3AF)),
-                          ),
-                          const SizedBox(height: 20),
-                          // Device token copy helper for testing
-                          OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFF0D6EFD),
-                              side: const BorderSide(color: Color(0xFFBFDBFE)),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            icon: const Icon(Icons.token_rounded, size: 14),
-                            label: const Text('Copy FCM Device Token', style: TextStyle(fontSize: 12)),
-                            onPressed: () async {
-                              final messenger = ScaffoldMessenger.of(context);
-                              final token = await service.getSavedToken();
-                              if (token != null) {
-                                await Clipboard.setData(ClipboardData(text: token));
-                                messenger.showSnackBar(
-                                  const SnackBar(
-                                    content: Text('FCM Token copied to clipboard!'),
-                                    duration: Duration(seconds: 2),
+            child: RefreshIndicator(
+              onRefresh: _refreshNotifications,
+              color: const Color(0xFF0D6EFD),
+              child: notifications.isEmpty
+                  ? ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: [
+                        SizedBox(height: MediaQuery.of(context).size.height * 0.08),
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(32),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(20),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFF3F4F6),
+                                    shape: BoxShape.circle,
                                   ),
-                                );
-                              } else {
-                                messenger.showSnackBar(
-                                  const SnackBar(
-                                    content: Text('FCM token not available on this platform/emulator.'),
-                                    duration: Duration(seconds: 2),
+                                  child: const Icon(
+                                    Icons.notifications_none_rounded,
+                                    size: 44,
+                                    color: Color(0xFF9CA3AF),
                                   ),
-                                );
-                              }
-                            },
+                                ),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'No notifications yet',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF374151),
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                const Text(
+                                  'Announcements and project alerts will show up right here.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontSize: 13, color: Color(0xFF9CA3AF)),
+                                ),
+                                const SizedBox(height: 20),
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF0D6EFD),
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
+                                  ),
+                                  icon: const Icon(Icons.refresh_rounded, size: 16),
+                                  label: const Text('Refresh Notifications', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                  onPressed: _refreshNotifications,
+                                ),
+                                const SizedBox(height: 12),
+                                // Device token copy helper for testing
+                                OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: const Color(0xFF0D6EFD),
+                                    side: const BorderSide(color: Color(0xFFBFDBFE)),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                  icon: const Icon(Icons.token_rounded, size: 14),
+                                  label: const Text('Copy FCM Device Token', style: TextStyle(fontSize: 12)),
+                                  onPressed: () async {
+                                    final messenger = ScaffoldMessenger.of(context);
+                                    final token = await service.getSavedToken();
+                                    if (token != null) {
+                                      await Clipboard.setData(ClipboardData(text: token));
+                                      messenger.showSnackBar(
+                                        const SnackBar(
+                                          content: Text('FCM Token copied to clipboard!'),
+                                          duration: Duration(seconds: 2),
+                                        ),
+                                      );
+                                    } else {
+                                      messenger.showSnackBar(
+                                        const SnackBar(
+                                          content: Text('FCM token not available on this platform/emulator.'),
+                                          duration: Duration(seconds: 2),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
                           ),
-                        ],
-                      ),
-                    ),
-                  )
-                : ListView.separated(
+                        ),
+                      ],
+                    )
+                  : ListView.separated(
+                      physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     itemCount: notifications.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 8),
@@ -362,6 +423,7 @@ class _NotificationCenterSheetState extends ConsumerState<NotificationCenterShee
                       );
                     },
                   ),
+            ),
           ),
         ],
       ),

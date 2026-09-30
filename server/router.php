@@ -21,6 +21,7 @@ if ($ext !== 'php' && $uri !== '/' && file_exists($staticFile) && !is_dir($stati
         'css'   => 'text/css',
         'js'    => 'application/javascript',
         'json'  => 'application/json',
+        'webmanifest' => 'application/manifest+json',
         'png'   => 'image/png',
         'jpg'   => 'image/jpeg',
         'jpeg'  => 'image/jpeg',

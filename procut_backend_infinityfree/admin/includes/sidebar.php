@@ -4,8 +4,8 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
         <div class="d-flex align-items-center justify-content-between w-100">
-            <div class="d-flex align-items-center gap-2">
-                <i class="bi bi-film fs-3 text-primary"></i>
+            <div class="d-inline-flex align-items-center gap-2">
+                <img src="<?= defined('APP_BASE_URL') ? APP_BASE_URL : '' ?>/favicon-32x32.png" width="30" height="30" style="border-radius: 7px; box-shadow: 0 2px 8px rgba(13, 110, 253, 0.35);" alt="ProCut Logo" onerror="this.src='favicon-32x32.png'">
                 <div>
                     <div class="d-flex align-items-center gap-2">
                         <span class="fs-5 fw-bold text-white brand-font">PROCUT</span>

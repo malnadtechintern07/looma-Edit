@@ -1,9 +1,27 @@
 <?php
 $pageTitle = 'In-App Notifications';
 require_once __DIR__ . '/includes/auth_check.php';
+require_once __DIR__ . '/../helpers/fcm_helper.php';
 
 $error = '';
 $success = '';
+
+// Ensure notifications table exists
+try {
+    Database::query("
+        CREATE TABLE IF NOT EXISTS notifications (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            message TEXT NOT NULL,
+            type VARCHAR(50) NOT NULL DEFAULT 'info',
+            target_user_id VARCHAR(64) NULL,
+            is_active TINYINT(1) DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_notif_target (target_user_id),
+            INDEX idx_notif_active (is_active)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+} catch (\Throwable $e) {}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrf = $_POST['csrf_token'] ?? '';
@@ -17,6 +35,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = trim($_POST['message'] ?? '');
             $type = trim($_POST['type'] ?? 'info');
             $targetUserId = trim($_POST['target_user_id'] ?? '');
+            if ($targetUserId === 'all' || $targetUserId === 'global' || $targetUserId === '0') {
+                $targetUserId = '';
+            }
 
             if (empty($title) || empty($message)) {
                 $error = 'Title and message are required.';
@@ -28,7 +49,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 );
                 $targetLabel = !empty($targetUserId) ? "user {$targetUserId}" : 'all users';
                 Auth::logActivity('admin', (string)$currentAdmin['id'], $currentAdmin['name'], 'notification_sent', "Dispatched announcement '{$title}' to {$targetLabel}");
-                $success = "Notification sent successfully to {$targetLabel}.";
+
+                // ── Send real device push notification via FCM ─────────────────────────
+                if (!empty($targetUserId)) {
+                    // Targeted: send to the specific user's registered device tokens
+                    $fcmResult = FcmHelper::sendToUser($targetUserId, $title, $message, $type);
+                } else {
+                    // Global broadcast: send to the 'all_users' topic
+                    // All ProCut devices auto-subscribe to this topic on first launch.
+                    $fcmResult = FcmHelper::send($title, $message, $type, 'all_users');
+                }
+
+                if (!empty($fcmResult['success'])) {
+                    $success = "Notification dispatched to {$targetLabel} and device push sent ✓";
+                } else {
+                    // In-app notification still saved; push may fail if service account is not yet configured.
+                    $pushErr = $fcmResult['error'] ?? 'Unknown FCM error';
+                    $success = "Notification saved for {$targetLabel}. Device push: {$pushErr}";
+                }
             }
         } elseif ($action === 'delete_notification') {
             $id = (int)($_POST['id'] ?? 0);

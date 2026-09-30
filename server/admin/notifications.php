@@ -5,6 +5,23 @@ require_once __DIR__ . '/includes/auth_check.php';
 $error = '';
 $success = '';
 
+// Ensure notifications table exists
+try {
+    Database::query("
+        CREATE TABLE IF NOT EXISTS notifications (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            message TEXT NOT NULL,
+            type VARCHAR(50) NOT NULL DEFAULT 'info',
+            target_user_id VARCHAR(64) NULL,
+            is_active TINYINT(1) DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_notif_target (target_user_id),
+            INDEX idx_notif_active (is_active)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+} catch (\Throwable $e) {}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrf = $_POST['csrf_token'] ?? '';
     if (!Auth::validateCsrfToken($csrf)) {
@@ -17,6 +34,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = trim($_POST['message'] ?? '');
             $type = trim($_POST['type'] ?? 'info');
             $targetUserId = trim($_POST['target_user_id'] ?? '');
+            if ($targetUserId === 'all' || $targetUserId === 'global' || $targetUserId === '0') {
+                $targetUserId = '';
+            }
 
             if (empty($title) || empty($message)) {
                 $error = 'Title and message are required.';

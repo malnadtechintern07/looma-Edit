@@ -63,26 +63,27 @@ class ServerConfig {
     return null;
   }
 
-  /// Gets the currently configured or auto-detected server base URL
+  /// Gets the currently configured server base URL instantly without blocking network timeouts.
   static Future<String> getBaseUrl({bool forceRefresh = false}) async {
     if (!forceRefresh && _cachedUrl != null) {
-      if (await isReachable(_cachedUrl!, timeoutMs: 3000)) {
-        return _cachedUrl!;
-      }
+      return _cachedUrl!;
     }
 
     try {
       final prefs = await SharedPreferences.getInstance();
       final saved = prefs.getString(_prefKey)?.trim();
       if (saved != null && saved.isNotEmpty) {
-        if (await isReachable(saved, timeoutMs: 4000)) {
-          _cachedUrl = saved;
-          return saved;
-        }
+        _cachedUrl = saved;
+        return saved;
       }
     } catch (_) {}
 
-    // Priority candidates: 1. Live production server, 2. LAN IP, 3. Emulator, 4. Localhost
+    _cachedUrl = defaultUrl;
+    return defaultUrl;
+  }
+
+  /// Explicitly auto-detects reachable server (used when user tests/detects server in Settings)
+  static Future<String> autoDetectServerCandidates() async {
     final candidates = <String>[
       liveHostUrl,
       'http://$defaultLocalIp:$defaultPort',
@@ -91,26 +92,33 @@ class ServerConfig {
       'http://localhost:$defaultPort',
     ];
 
-    final detected = await _autoDetectServer(candidates);
-    _cachedUrl = detected;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_prefKey, detected);
-    } catch (_) {}
-    return detected;
-  }
-
-  static Future<String> _autoDetectServer(List<String> candidates) async {
-    // Check live server first
     for (final candidate in candidates) {
-      if (await isReachable(candidate, timeoutMs: 5000)) {
+      if (await isReachable(candidate, timeoutMs: 2500)) {
         debugPrint('ServerConfig: Connected to backend at $candidate');
+        await setBaseUrl(candidate);
         return candidate;
       }
     }
 
-    // Default to live production server if offline
-    return liveHostUrl;
+    return defaultUrl;
+  }
+
+  static final List<void Function(String newUrl)> _listeners = [];
+
+  static void addListener(void Function(String newUrl) listener) {
+    _listeners.add(listener);
+  }
+
+  static void removeListener(void Function(String newUrl) listener) {
+    _listeners.remove(listener);
+  }
+
+  static void _notifyListeners(String url) {
+    for (final listener in List.of(_listeners)) {
+      try {
+        listener(url);
+      } catch (_) {}
+    }
   }
 
   /// Sets and persists a custom server base URL
@@ -121,6 +129,7 @@ class ServerConfig {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_prefKey, clean);
     } catch (_) {}
+    _notifyListeners(clean);
   }
 
   /// Resets back to the live production URL
@@ -130,5 +139,6 @@ class ServerConfig {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_prefKey, liveHostUrl);
     } catch (_) {}
+    _notifyListeners(liveHostUrl);
   }
 }

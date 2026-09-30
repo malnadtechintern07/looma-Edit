@@ -75,6 +75,10 @@
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>ProCut requires permission to save rendered and exported videos directly to your photo library.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>ProCut uses location data to optionally tag video and photo project media with location metadata.</string>
+	<string>Used to resolve your approximate state/region so notifications can be targeted correctly.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>

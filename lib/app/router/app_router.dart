@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/ai_photo_edit/presentation/screens/ai_photo_edit_screen.dart';
@@ -14,6 +16,8 @@ import '../../features/profile/presentation/screens/privacy_policy_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../core/firebase/firebase_service.dart';
 import '../../features/projects/presentation/screens/home_screen.dart';
+import '../../core/notifications/pusher_hub_client.dart';
+import '../../pusher_hub.dart';
 import 'route_names.dart';
 import 'route_paths.dart';
 
@@ -23,13 +27,17 @@ final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
   initialLocation: RoutePaths.home,
   observers: [
-    FirebaseService.analytics.observer,
+    if (!kIsWeb && !Platform.environment.containsKey('FLUTTER_TEST'))
+      FirebaseService.analytics.observer,
   ],
   routes: [
     GoRoute(
       path: RoutePaths.home,
       name: RouteNames.home,
-      builder: (context, state) => const HomeScreen(),
+      builder: (context, state) => PusherHubMessageHost(
+        pusherHub: pusherHub,
+        child: const HomeScreen(),
+      ),
     ),
     GoRoute(
       path: RoutePaths.settings,

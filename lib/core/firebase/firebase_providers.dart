@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../config/server_config.dart';
 import '../network/api_client.dart';
 import 'firebase_analytics_service.dart';
@@ -44,9 +46,35 @@ final unreadNotificationCountProvider = StateProvider<int>((ref) {
 /// Fetches server announcements and notifications from the backend API
 final fetchBackendNotificationsProvider = FutureProvider<List<AppNotificationItem>>((ref) async {
   try {
+    // Re-fetch automatically whenever authentication changes (login/logout/switch user)
+    final auth = ref.watch(authNotifierProvider);
+    String userId = auth.user?.id ?? '';
+    if (userId.isEmpty) {
+      try {
+        final localDs = ref.read(authLocalDataSourceProvider);
+        userId = await localDs.getActiveSessionUserId() ?? '';
+      } catch (_) {}
+    }
+
     final baseUrl = await ServerConfig.getBaseUrl();
-    final uri = Uri.parse('$baseUrl/api/app/notifications');
-    final res = await ApiClient.get(uri, timeout: const Duration(seconds: 8));
+    final queryParams = <String, String>{};
+    if (userId.isNotEmpty) {
+      queryParams['userId'] = userId;
+    }
+
+    final baseUri = Uri.parse('$baseUrl/api/app/notifications');
+    final uri = queryParams.isNotEmpty
+        ? baseUri.replace(queryParameters: queryParams)
+        : baseUri;
+
+    final res = await ApiClient.get(
+      uri,
+      headers: {
+        'Accept': 'application/json',
+        if (userId.isNotEmpty) 'X-User-Id': userId,
+      },
+      timeout: const Duration(seconds: 4),
+    );
 
     if (res.isOk && res.json is Map) {
       final data = res.json as Map<String, dynamic>;
@@ -58,10 +86,12 @@ final fetchBackendNotificationsProvider = FutureProvider<List<AppNotificationIte
             .toList();
 
         // Feed to FirebaseMessagingService notification state
-        ref.read(firebaseMessagingServiceProvider).addBackendNotifications(items);
+        ref.read(firebaseMessagingServiceProvider).syncBackendNotifications(items);
         return items;
       }
     }
-  } catch (_) {}
+  } catch (e) {
+    debugPrint('fetchBackendNotificationsProvider error: $e');
+  }
   return [];
 });

@@ -249,7 +249,7 @@ function checked_if($s, $key, $expected = '1') {
     <div class="col-lg-5">
         <div class="pro-card p-4 text-center" style="background:linear-gradient(135deg,#084298,#0D6EFD,#0284C7); color:#fff; border-radius:20px;">
             <p class="small mb-2 text-white-50">Live Preview</p>
-            <img src="assets/icon/app_icon.png" width="56" height="56" style="border-radius:14px; margin-bottom:10px;" onerror="this.style.display='none'">
+            <img src="<?= defined('APP_BASE_URL') ? APP_BASE_URL : '' ?>/assets/icon/app_icon.png" width="56" height="56" style="border-radius:14px; margin-bottom:10px; box-shadow: 0 4px 16px rgba(0,0,0,0.25);" onerror="this.src='assets/icon/app_icon.png'">
             <h4 class="fw-black mb-0" id="prev_app_name"><?= sv($s,'app_name','ProCut') ?></h4>
             <small class="text-white-50" id="prev_splash_msg"><?= sv($s,'splash_message','Welcome to ProCut') ?></small>
             <?php if (!empty($s['announcement_enabled']) && $s['announcement_enabled'] === '1'): ?>

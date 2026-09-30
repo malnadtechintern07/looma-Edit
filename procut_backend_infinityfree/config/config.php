@@ -102,3 +102,11 @@ $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
 $protocol = $isHttps ? 'https' : 'http';
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost:5050';
 define('APP_BASE_URL', "{$protocol}://{$host}");
+
+// ============================================================
+// Firebase Cloud Messaging – Service Account Key
+// ============================================================
+// Download from: Firebase Console → Project Settings → Service Accounts
+//                → Generate new private key  → save as firebase-service-account.json
+// Then upload the file to: procut_backend_infinityfree/config/firebase-service-account.json
+define('FCM_SERVICE_ACCOUNT_PATH', BASE_PATH . '/config/firebase-service-account.json');

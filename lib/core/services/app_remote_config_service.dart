@@ -697,7 +697,7 @@ class AppRemoteConfigService {
     try {
       // 1. Fetch config
       final configUri = Uri.parse('$baseUrl/api/app/config');
-      final configRes = await ApiClient.get(configUri, timeout: const Duration(seconds: 8));
+      final configRes = await ApiClient.get(configUri, timeout: const Duration(seconds: 4));
       if (configRes.isOk && configRes.json is Map) {
         final outerJson = configRes.json as Map<String, dynamic>;
         // Server wraps in {success, data} or returns flat
@@ -709,7 +709,7 @@ class AppRemoteConfigService {
         Map<String, dynamic>? contentJson;
         try {
           final contentUri = Uri.parse('$baseUrl/api/app/content');
-          final contentRes = await ApiClient.get(contentUri, timeout: const Duration(seconds: 8));
+          final contentRes = await ApiClient.get(contentUri, timeout: const Duration(seconds: 4));
           if (contentRes.isOk && contentRes.json is Map) {
             final outer = contentRes.json as Map<String, dynamic>;
             contentJson = outer['data'] is Map<String, dynamic>

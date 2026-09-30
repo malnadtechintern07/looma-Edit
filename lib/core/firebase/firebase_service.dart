@@ -16,9 +16,8 @@ class FirebaseService {
   static FirebaseMessagingService get messaging => FirebaseMessagingService();
   static FirebaseAnalyticsService get analytics => FirebaseAnalyticsService();
 
-  /// Initialize Firebase Core, FCM, and Analytics safely.
-  /// Designed to never throw or block app startup even if offline or in test environments.
-  static Future<void> initialize() async {
+  /// Initialize Firebase Core safely with a fast timeout so it NEVER blocks app launch.
+  static Future<void> initializeCore() async {
     if (_isInitialized) return;
 
     if (!kIsWeb && Platform.environment.containsKey('FLUTTER_TEST')) {
@@ -28,23 +27,43 @@ class FirebaseService {
 
     try {
       debugPrint('Initializing Firebase Core...');
-      await Firebase.initializeApp();
+      await Firebase.initializeApp().timeout(const Duration(seconds: 2));
       _isInitialized = true;
       debugPrint('Firebase Core initialized successfully.');
-
-      // Initialize Analytics first
-      await analytics.init();
-
-      // Initialize Messaging & Notification listeners
-      await messaging.init();
-
-      // Log App Open event
-      await analytics.logAppOpen();
     } catch (e, stack) {
-      debugPrint('FirebaseService.initialize() notice: $e');
+      debugPrint('FirebaseService.initializeCore() notice: $e');
       if (kDebugMode) {
         debugPrint('$stack');
       }
     }
+  }
+
+  /// Initialize background services (analytics & messaging) asynchronously without blocking UI
+  static void initializeBackgroundServices() {
+    Future.microtask(() async {
+      try {
+        if (!_isInitialized) {
+          await initializeCore();
+        }
+        if (_isInitialized) {
+          // Initialize Analytics in background
+          analytics.init().ignore();
+
+          // Initialize Messaging in background
+          messaging.init().ignore();
+
+          // Log App Open event in background
+          analytics.logAppOpen().ignore();
+        }
+      } catch (e) {
+        debugPrint('Firebase background services init notice: $e');
+      }
+    });
+  }
+
+  /// Backward compatible initialization method
+  static Future<void> initialize() async {
+    await initializeCore();
+    initializeBackgroundServices();
   }
 }

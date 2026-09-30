@@ -105,6 +105,17 @@ foreach ($presets as $p) {
     }
 }
 
+// Return early if included from admin panel
+if (defined('SYNC_INCLUDED')) {
+    return [
+        'total' => count($presets),
+        'photos' => $photoCount,
+        'videos' => $videoCount,
+        'inserted' => $inserted,
+        'updated' => $updated
+    ];
+}
+
 // JSON response if requested via API or Curl
 if (isset($_GET['format']) && $_GET['format'] === 'json') {
     header('Content-Type: application/json; charset=utf-8');

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -18,6 +19,7 @@ import '../../../ai_photo_edit/data/ai_photo_presets_data.dart';
 import '../../../ai_photo_edit/presentation/screens/ai_photo_edit_screen.dart';
 import '../../../asset_store/presentation/providers/asset_store_provider.dart';
 import '../../../asset_store/presentation/screens/template_feed_screen.dart';
+import '../../../asset_store/presentation/widgets/template_media_picker_dialog.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../cloud_sync/presentation/providers/cloud_sync_provider.dart';
 import '../../../editor/domain/entities/video_clip_entity.dart';
@@ -43,11 +45,12 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObserver {
   int _currentNavIndex = 0;
   final Set<int> _visitedTabs = {0};
   bool _cloudSyncBannerDismissed = false;
   static const _kCloudSyncBannerKey = 'cloud_sync_banner_shown_v1';
+  Timer? _notificationPollTimer;
 
   void _onTabSelected(int index) {
     if (_currentNavIndex != index) {
@@ -59,6 +62,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       // Immediately refresh content from Admin Panel when switching tabs
       if (index == 0) {
         ref.invalidate(appRemoteConfigProvider);
+        ref.invalidate(fetchBackendNotificationsProvider);
       } else if (index == 2) {
         ref.invalidate(storeTemplatesFutureProvider);
       } else if (index == 1) {
@@ -74,6 +78,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
+    // Periodic background check for new admin notifications every 30 seconds
+    if (kIsWeb || !Platform.environment.containsKey('FLUTTER_TEST')) {
+      _notificationPollTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+        if (mounted) {
+          ref.read(fetchBackendNotificationsProvider.future).ignore();
+        }
+      });
+    }
+
     Future.microtask(() async {
       if (mounted) {
         ref.read(projectsNotifierProvider.notifier).loadProjects();
@@ -100,6 +115,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         }
       }
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _notificationPollTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      ref.invalidate(fetchBackendNotificationsProvider);
+      ref.read(fetchBackendNotificationsProvider.future).ignore();
+    }
   }
 
   Future<void> _openPhotoEditor() async {
@@ -192,6 +222,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ref.listen<AuthState>(authNotifierProvider, (prev, next) {
       if ((prev == null || !prev.isAuthenticated) && next.isAuthenticated) {
         ref.read(syncNotifierProvider.notifier).triggerSync();
+        ref.invalidate(fetchBackendNotificationsProvider);
+        ref.read(fetchBackendNotificationsProvider.future).ignore();
       }
     });
 
@@ -882,7 +914,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               ],
                             ),
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 20),
+
+                          // 1.8 Trending Free Templates Horizontal Carousel
+                          _buildHomeTrendingTemplates(),
 
                     // 2. Recent Projects Section Header & Vertical List
                     Row(
@@ -1406,6 +1441,236 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  /// Horizontal carousel of top trending 100% free templates for instant creation
+  Widget _buildHomeTrendingTemplates() {
+    final templatesAsync = ref.watch(storeTemplatesFutureProvider);
+    final freeTemplates = (templatesAsync.valueOrNull ?? []).where((t) => !t.isPro).take(8).toList();
+    if (freeTemplates.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00D2D3).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.bolt, color: Color(0xFF00D2D3), size: 16),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Trending Free Templates',
+                      style: AppTypography.titleMedium.copyWith(
+                        color: const Color(0xFF111827),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            TextButton(
+              onPressed: () => setState(() => _currentNavIndex = 2),
+              child: Text(
+                'Explore All',
+                style: AppTypography.labelLarge.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 170,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: freeTemplates.length,
+            separatorBuilder: (itemCtx, index) => const SizedBox(width: 10),
+            itemBuilder: (itemCtx, index) {
+              final tmpl = freeTemplates[index];
+              final startColor = int.tryParse(tmpl.previewGradientStart) ?? 0xFF00D2D3;
+              final endColor = int.tryParse(tmpl.previewGradientEnd) ?? 0xFF0891B2;
+
+              return GestureDetector(
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (dialogCtx) => TemplateMediaPickerDialog(
+                      template: tmpl,
+                      onConfirm: (userPaths) async {
+                        final notifier = ref.read(projectsNotifierProvider.notifier);
+                        final proj = await notifier.createProjectFromTemplate(
+                          title: tmpl.title,
+                          aspectRatio: tmpl.aspectRatio,
+                          durationMs: tmpl.durationMs,
+                          clipsCount: tmpl.clipsCount,
+                          audioTrackTitle: tmpl.audioTrackTitle,
+                          audioPath: tmpl.audioPath,
+                          userMediaPaths: userPaths,
+                          projectJson: tmpl.projectJson,
+                        );
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Created video from "${tmpl.title}"!')),
+                        );
+                        await context.push(RoutePaths.editorPath(proj.id));
+                        if (mounted) {
+                          ref.read(projectsNotifierProvider.notifier).loadProjects();
+                        }
+                      },
+                    ),
+                  );
+                },
+                child: Container(
+                  width: 130,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    gradient: LinearGradient(
+                      colors: [Color(startColor), Color(endColor)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(startColor).withValues(alpha: 0.25),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Stack(
+                    children: [
+                      if (tmpl.previewImageUrl != null && tmpl.previewImageUrl!.isNotEmpty)
+                        Positioned.fill(
+                          child: Image.asset(
+                            tmpl.previewImageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                          ),
+                        ),
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withValues(alpha: 0.85),
+                              ],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 8,
+                        left: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF00D2D3), Color(0xFF0891B2)],
+                            ),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'FREE',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 8,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.6),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '${tmpl.clipsCount} slots',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 8,
+                        left: 8,
+                        right: 8,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              tmpl.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                height: 1.2,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(Icons.timer_outlined, size: 9, color: Colors.white70),
+                                const SizedBox(width: 2),
+                                Text(
+                                  '${(tmpl.durationMs / 1000).toStringAsFixed(0)}s',
+                                  style: const TextStyle(color: Colors.white70, fontSize: 9),
+                                ),
+                                const Spacer(),
+                                Container(
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF00D2D3),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.play_arrow, size: 10, color: Colors.black),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
     );
   }
 }

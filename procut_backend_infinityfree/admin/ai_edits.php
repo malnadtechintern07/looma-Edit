@@ -5,6 +5,37 @@ require_once __DIR__ . '/includes/auth_check.php';
 $error = '';
 $success = '';
 
+// Auto-create ai_presets table if missing
+try {
+    Database::query("
+        CREATE TABLE IF NOT EXISTS ai_presets (
+            id VARCHAR(64) PRIMARY KEY,
+            type ENUM('photo', 'video') NOT NULL DEFAULT 'photo',
+            title VARCHAR(255) NOT NULL,
+            category VARCHAR(100) NOT NULL DEFAULT 'Trending',
+            prompt TEXT NOT NULL,
+            negative_prompt TEXT NULL,
+            reference_image_url VARCHAR(500) NULL,
+            preview_video_url VARCHAR(500) NULL,
+            model_name VARCHAR(100) NULL,
+            style VARCHAR(100) NULL,
+            camera_movement VARCHAR(100) NULL,
+            lighting VARCHAR(100) NULL,
+            seed VARCHAR(64) NULL,
+            duration_text VARCHAR(50) NULL,
+            tags VARCHAR(500) NULL,
+            is_active TINYINT(1) DEFAULT 1,
+            display_order INT DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_ai_type (type),
+            INDEX idx_ai_order (display_order)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+} catch (Throwable $e) {
+    // Ignore if table exists or connection error handled elsewhere
+}
+
 // Helper for safe file uploads
 function handleMediaUpload($fileKey, $allowedExts, $prefix = 'ai_media_') {
     if (!isset($_FILES[$fileKey]) || $_FILES[$fileKey]['error'] !== UPLOAD_ERR_OK) {
@@ -133,30 +164,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $success = "AI preset deleted permanently.";
 
         } elseif ($action === 'sync_bundled_presets') {
-            // ── Sync all 95 bundled presets to database ──
-            $syncFile = dirname(__DIR__) . '/sync_ai_presets.php';
-            $seedFile = dirname(__DIR__) . '/database/seed_ai_presets.php';
-            if (file_exists($syncFile)) {
-                ob_start();
-                $_GET['format'] = 'json';
-                include $syncFile;
-                ob_end_clean();
-            } elseif (file_exists($seedFile)) {
-                ob_start();
-                include $seedFile;
-                ob_end_clean();
+            // ── Sync all bundled presets to database ──
+            $seedFuncFile = dirname(__DIR__) . '/seed_ai_presets_func.php';
+            if (file_exists($seedFuncFile)) {
+                require_once $seedFuncFile;
+                $syncResult  = seedAiPresets();
+                $totalCount  = $syncResult['total'];
+                $photoCount  = (int)(Database::fetchOne("SELECT COUNT(*) as c FROM ai_presets WHERE type = 'photo'")['c'] ?? 0);
+                $videoCount  = (int)(Database::fetchOne("SELECT COUNT(*) as c FROM ai_presets WHERE type = 'video'")['c'] ?? 0);
+                Auth::logActivity('admin', (string)$currentAdmin['id'], $currentAdmin['name'], 'ai_presets_synced', "Synced AI presets: {$totalCount} total ({$photoCount} photos, {$videoCount} videos).");
+                $success = "✅ AI presets synced! Database now has {$totalCount} presets ({$photoCount} photos, {$videoCount} videos). Added: {$syncResult['inserted']}, Updated: {$syncResult['updated']}";
+            } else {
+                $error = 'Seed function file not found. Please upload seed_ai_presets_func.php to the server root.';
             }
-            $totalCount = (int)(Database::fetchOne("SELECT COUNT(*) as c FROM ai_presets")['c'] ?? 0);
-            $photoCount = (int)(Database::fetchOne("SELECT COUNT(*) as c FROM ai_presets WHERE type = 'photo'")['c'] ?? 0);
-            $videoCount = (int)(Database::fetchOne("SELECT COUNT(*) as c FROM ai_presets WHERE type = 'video'")['c'] ?? 0);
-            Auth::logActivity('admin', (string)$currentAdmin['id'], $currentAdmin['name'], 'ai_presets_synced', "Synced AI presets: {$totalCount} total ({$photoCount} photos, {$videoCount} videos).");
-            $success = "✅ AI presets synced! Database now has {$totalCount} presets ({$photoCount} photos, {$videoCount} videos).";
         }
     }
 }
 
 // Metrics
 $totalPresets = (int)(Database::fetchOne("SELECT COUNT(*) as c FROM ai_presets")['c'] ?? 0);
+
+// Auto-seed presets seamlessly if table is currently empty
+if ($totalPresets === 0) {
+    $seedFuncFile = dirname(__DIR__) . '/seed_ai_presets_func.php';
+    if (file_exists($seedFuncFile)) {
+        require_once $seedFuncFile;
+        $autoSeedResult = seedAiPresets();
+        $totalPresets   = $autoSeedResult['total'];
+        if ($totalPresets > 0 && empty($success)) {
+            $success = "✅ AI presets auto-loaded! {$totalPresets} presets are now ready.";
+        }
+    }
+}
+
 $totalPhotoPresets = (int)(Database::fetchOne("SELECT COUNT(*) as c FROM ai_presets WHERE type = 'photo'")['c'] ?? 0);
 $totalVideoPresets = (int)(Database::fetchOne("SELECT COUNT(*) as c FROM ai_presets WHERE type = 'video'")['c'] ?? 0);
 $totalActiveModels = (int)(Database::fetchOne("SELECT COUNT(DISTINCT model_name) as c FROM ai_presets")['c'] ?? 0);
@@ -211,14 +251,14 @@ require_once __DIR__ . '/includes/navbar.php';
         <p class="text-muted small mb-0">Control AI Photo & Video prompt presets, reference images, playable video previews, negative prompts, and AI model parameters.</p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
-        <button type="button" class="btn btn-outline-dark rounded-pill px-3" onclick="openNewPreset('photo')">
+        <button type="button" class="btn btn-outline-dark rounded-pill px-3" onclick="openNewPreset('photo')" data-bs-toggle="modal" data-bs-target="#presetModal">
             <i class="bi bi-image me-1 text-primary"></i> Add Photo Prompt
         </button>
-        <button type="button" class="btn btn-primary rounded-pill px-3 shadow-sm" onclick="openNewPreset('video')">
+        <button type="button" class="btn btn-primary rounded-pill px-3 shadow-sm" onclick="openNewPreset('video')" data-bs-toggle="modal" data-bs-target="#presetModal">
             <i class="bi bi-camera-reels-fill me-1"></i> Add Video Prompt
         </button>
         <form method="POST" action="" style="display:inline;" onsubmit="return confirm('Sync all 108 AI photo and video presets into the database? This is safe to run multiple times.');">
-            <input type="hidden" name="csrf_token" value="<?= Auth::generateCsrfToken() ?>">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
             <input type="hidden" name="action" value="sync_bundled_presets">
             <button type="submit" class="btn rounded-pill px-3 shadow-sm" style="background:linear-gradient(135deg,#7928CA,#FF0080);color:#fff;border:none;">
                 <i class="bi bi-cloud-download-fill me-1"></i> Sync All Presets (108)
@@ -832,6 +872,47 @@ function previewUploadedVideo(input) {
     }
 }
 
+function showModal(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    try {
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            let instance = bootstrap.Modal.getInstance(el);
+            if (!instance) instance = new bootstrap.Modal(el);
+            instance.show();
+            return;
+        }
+    } catch (e) {
+        console.warn('Bootstrap modal failed, using fallback:', e);
+    }
+    // Vanilla CSS fallback
+    el.classList.add('show');
+    el.style.display = 'block';
+    el.removeAttribute('aria-hidden');
+    let backdrop = document.getElementById('modalBackdropFallback');
+    if (!backdrop) {
+        backdrop = document.createElement('div');
+        backdrop.id = 'modalBackdropFallback';
+        backdrop.className = 'modal-backdrop fade show';
+        document.body.appendChild(backdrop);
+    }
+}
+
+function hideModal(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    try {
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            let instance = bootstrap.Modal.getInstance(el);
+            if (instance) instance.hide();
+        }
+    } catch (e) {}
+    el.classList.remove('show');
+    el.style.display = 'none';
+    const backdrop = document.getElementById('modalBackdropFallback');
+    if (backdrop) backdrop.remove();
+}
+
 function openNewPreset(type) {
     document.getElementById('presetModalTitle').innerText = type === 'video' ? 'Create AI Video Prompt' : 'Create AI Photo Prompt';
     document.getElementById('presetModalSubtitle').innerText = 'Add a high-fidelity generation prompt to the ProCut mobile creative feed';
@@ -857,7 +938,7 @@ function openNewPreset(type) {
     updateModalVideoPreview('');
 
     onTypeChanged(type);
-    new bootstrap.Modal(document.getElementById('presetModal')).show();
+    showModal('presetModal');
 }
 
 function editPreset(p) {
@@ -885,14 +966,14 @@ function editPreset(p) {
     updateModalVideoPreview(p.preview_video_url || '');
 
     onTypeChanged(p.type || 'photo');
-    new bootstrap.Modal(document.getElementById('presetModal')).show();
+    showModal('presetModal');
 }
 
 function showPhotoZoom(url, title) {
     if (!url) return;
     document.getElementById('zoomModalImg').src = url;
     document.getElementById('zoomModalTitle').innerText = title || 'Reference Image Preview';
-    new bootstrap.Modal(document.getElementById('zoomModal')).show();
+    showModal('zoomModal');
 }
 
 function copyToClipboard(text, btn) {

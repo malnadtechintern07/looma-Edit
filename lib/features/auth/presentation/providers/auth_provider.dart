@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:procut/core/firebase/firebase_service.dart';
+import 'package:procut/core/notifications/pusher_hub_client.dart';
 import 'package:procut/core/storage/storage_providers.dart';
 import 'package:procut/features/cloud_sync/domain/entities/bunny_storage_config.dart';
 import '../../data/datasources/auth_local_datasource.dart';
@@ -104,6 +105,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           isLoading: false,
           clearError: true,
         );
+        pusherHub.login(user.id).ignore();
         if (onUserAuthenticated != null) {
           onUserAuthenticated!().catchError((_) {});
         }
@@ -141,6 +143,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoading: false,
         clearError: true,
       );
+      pusherHub.login(user.id).ignore();
       FirebaseService.analytics.logLogin(method: 'email', userId: user.id).ignore();
       if (onUserAuthenticated != null) {
         onUserAuthenticated!().catchError((_) {});
@@ -175,6 +178,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoading: false,
         clearError: true,
       );
+      pusherHub.login(user.id).ignore();
       FirebaseService.analytics.logSignUp(method: 'email').ignore();
       FirebaseService.analytics.setUserId(user.id).ignore();
       if (onUserAuthenticated != null) {
@@ -220,6 +224,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       await _repository.logout();
     } finally {
+      pusherHub.logout().ignore();
       FirebaseService.analytics.setUserId(null).ignore();
       state = state.copyWith(
         status: AuthStatus.unauthenticated,

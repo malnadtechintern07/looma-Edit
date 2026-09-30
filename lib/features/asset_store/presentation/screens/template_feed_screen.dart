@@ -36,40 +36,42 @@ class _TemplateFeedScreenState extends ConsumerState<TemplateFeedScreen>
   Timer? _autoSyncTimer;
   int _currentPage = 0;
   int _selectedFeedType = 0; // 0: Video Templates, 1: AI Video
+  bool _isGridView = false; // Toggle between Vertical Feed and 2-column Grid Browse Mode
   String _searchQuery = '';
   String _selectedCategory = 'All';
   bool _isSearchExpanded = false;
 
-  // 25 Standard Categories + All + Saved + AI Video
+  // Standard Categories + All + Free + Saved + AI Video
   static const List<String> _categories = [
     'All',
+    '🆓 Free',
     '✨ AI Video',
     '🔖 Saved',
-    'Birthday',
-    'Wedding',
-    'Travel',
-    'Love Story',
-    'Family',
-    'Friends',
-    'Birthday Slideshow',
-    'Cinematic',
+    'Trending',
     'Beat Sync',
     'Reels',
+    'Travel',
+    'Aesthetic',
+    'Photo Memories',
+    'Fast Transitions',
+    'Cinematic',
+    '80s Retro',
+    'Fitness',
+    'Viral/Short Video',
+    'Birthday',
+    'Love Story',
+    'Wedding',
+    'Family',
+    'Friends',
+    'Food',
+    'Nature',
     'Festival',
     'Graduation',
     'Before & After',
-    '80s Retro',
-    'Trending',
-    'Photo Memories',
     'Fashion',
-    'Celebration',
     'Business',
     'Motivation',
-    'Nature',
-    'Food',
-    'Fitness',
-    'Fast Transitions',
-    'Viral/Short Video',
+    'Birthday Slideshow',
   ];
 
   // Like & Save interaction states
@@ -86,7 +88,10 @@ class _TemplateFeedScreenState extends ConsumerState<TemplateFeedScreen>
         set.add(t.category.trim());
       }
     }
-    return set.toList();
+    final list = set.toList();
+    list.remove('All');
+    list.remove('🆓 Free');
+    return ['All', '🆓 Free', ...list];
   }
 
   @override
@@ -283,14 +288,16 @@ class _TemplateFeedScreenState extends ConsumerState<TemplateFeedScreen>
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFF084298), Color(0xFF0D6EFD)],
+                                gradient: LinearGradient(
+                                  colors: _selectedCategory == '🆓 Free'
+                                      ? const [Color(0xFF00D2D3), Color(0xFF0891B2)]
+                                      : const [Color(0xFF084298), Color(0xFF0D6EFD)],
                                 ),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: const Text(
-                                '25 Categories',
-                                style: TextStyle(
+                              child: Text(
+                                _selectedCategory == '🆓 Free' ? '100% Free' : '45+ Templates',
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
@@ -301,6 +308,24 @@ class _TemplateFeedScreenState extends ConsumerState<TemplateFeedScreen>
                         ),
                       ],
                     ),
+                  ),
+
+                  // Grid / Feed View Mode Toggle
+                  IconButton(
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                    tooltip: _isGridView ? 'Switch to Vertical Feed' : 'Switch to Grid Browse',
+                    icon: Icon(
+                      _isGridView ? Icons.view_stream_rounded : Icons.grid_view_rounded,
+                      color: _isGridView ? const Color(0xFF00D2D3) : Colors.white70,
+                      size: 20,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isGridView = !_isGridView;
+                      });
+                    },
                   ),
 
                   // Search Toggle Button
@@ -645,15 +670,21 @@ class _TemplateFeedScreenState extends ConsumerState<TemplateFeedScreen>
           if (_selectedCategory == '🔖 Saved') {
             return _savedTemplates[t.id] == true;
           }
-          // 1. Category check
-          final matchesCategory = _selectedCategory == 'All' ||
-              t.category.toLowerCase() == _selectedCategory.toLowerCase() ||
-              t.tags.any((tag) => tag.toLowerCase() == _selectedCategory.toLowerCase());
-          if (!matchesCategory) return false;
+          // 0.1 Free templates filter
+          if (_selectedCategory == '🆓 Free' || _selectedCategory == 'Free') {
+            if (t.isPro) return false;
+          } else {
+            // 1. Category check
+            final matchesCategory = _selectedCategory == 'All' ||
+                t.category.toLowerCase() == _selectedCategory.toLowerCase() ||
+                t.tags.any((tag) => tag.toLowerCase() == _selectedCategory.toLowerCase());
+            if (!matchesCategory) return false;
+          }
 
           // 2. Search check
           if (_searchQuery.isEmpty) return true;
           final q = _searchQuery.toLowerCase();
+          if (q == 'free' && !t.isPro) return true;
           return t.title.toLowerCase().contains(q) ||
               t.description.toLowerCase().contains(q) ||
               t.author.toLowerCase().contains(q) ||
@@ -725,6 +756,11 @@ class _TemplateFeedScreenState extends ConsumerState<TemplateFeedScreen>
               ],
             ),
           );
+        }
+
+        // Render Grid View if toggled
+        if (_isGridView) {
+          return _buildTemplatesGrid(templates);
         }
 
         return Stack(
@@ -804,6 +840,322 @@ class _TemplateFeedScreenState extends ConsumerState<TemplateFeedScreen>
         child: Text('Error loading templates: $err', style: const TextStyle(color: Colors.white)),
       ),
     ),
+    );
+  }
+
+  /// 2-Column Responsive Grid View for Rapid Browsing of Free & Pro Templates
+  Widget _buildTemplatesGrid(List<StoreTemplateEntity> templates) {
+    return GridView.builder(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 80),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.62,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 12,
+      ),
+      itemCount: templates.length,
+      itemBuilder: (context, index) {
+        final tmpl = templates[index];
+        final startColor = int.tryParse(tmpl.previewGradientStart) ?? 0xFF00D2D3;
+        final endColor = int.tryParse(tmpl.previewGradientEnd) ?? 0xFF0891B2;
+        final durationSec = (tmpl.durationMs / 1000).toStringAsFixed(0);
+
+        return GestureDetector(
+          onTap: () {
+            // Switch to full-screen vertical player focused on this template
+            setState(() {
+              _currentPage = index;
+              _isGridView = false;
+            });
+            if (_pageController.hasClients) {
+              _pageController.jumpToPage(index);
+            }
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF141724),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: !tmpl.isPro
+                    ? const Color(0xFF00D2D3).withValues(alpha: 0.3)
+                    : Colors.white12,
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top Media Thumbnail
+                Expanded(
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Gradient or Image Preview
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(startColor), Color(endColor)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        child: (tmpl.previewImageUrl != null && tmpl.previewImageUrl!.isNotEmpty)
+                            ? Image.asset(
+                                tmpl.previewImageUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => const Center(
+                                  child: Icon(Icons.movie_creation_outlined, color: Colors.white30, size: 36),
+                                ),
+                              )
+                            : const Center(
+                                child: Icon(Icons.movie_creation_outlined, color: Colors.white30, size: 36),
+                              ),
+                      ),
+
+                      // Dark bottom shade for badges
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.black.withValues(alpha: 0.2),
+                                Colors.transparent,
+                                Colors.black.withValues(alpha: 0.8),
+                              ],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              stops: const [0.0, 0.4, 1.0],
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // Duration Pill (Top Left)
+                      Positioned(
+                        top: 8,
+                        left: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.65),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.timer_outlined, size: 10, color: Colors.white70),
+                              const SizedBox(width: 3),
+                              Text(
+                                '${durationSec}s',
+                                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // Slots Pill (Top Right)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.65),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '${tmpl.clipsCount} clips',
+                            style: const TextStyle(color: Colors.white70, fontSize: 9, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ),
+
+                      // Center Play Icon Indicator
+                      Center(
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.black.withValues(alpha: 0.4),
+                            border: Border.all(color: Colors.white30, width: 1),
+                          ),
+                          child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 24),
+                        ),
+                      ),
+
+                      // Free or Pro Badge (Bottom Left)
+                      Positioned(
+                        bottom: 8,
+                        left: 8,
+                        child: !tmpl.isPro
+                            ? Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF00D2D3), Color(0xFF0891B2)],
+                                  ),
+                                  borderRadius: BorderRadius.circular(4),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF00D2D3).withValues(alpha: 0.5),
+                                      blurRadius: 6,
+                                    ),
+                                  ],
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.bolt, color: Colors.black, size: 10),
+                                    SizedBox(width: 2),
+                                    Text(
+                                      'FREE',
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                                  ),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.star, color: Colors.black, size: 10),
+                                    SizedBox(width: 2),
+                                    Text(
+                                      'PRO',
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                      ),
+
+                      // Aspect Ratio Pill (Bottom Right)
+                      Positioned(
+                        bottom: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.65),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            tmpl.aspectRatio.label,
+                            style: const TextStyle(color: Colors.white70, fontSize: 9, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Card Info Footer
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Category Tag
+                      Text(
+                        tmpl.category.toUpperCase(),
+                        style: const TextStyle(
+                          color: Color(0xFF00D2D3),
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+
+                      // Title
+                      Text(
+                        tmpl.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+
+                      // Author & Use Button Row
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'by ${tmpl.author}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => _onUseTemplate(tmpl),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF00D2D3), Color(0xFF0891B2)],
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.auto_fix_high, color: Colors.black, size: 10),
+                                  SizedBox(width: 3),
+                                  Text(
+                                    'Use',
+                                    style: TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -1075,7 +1427,7 @@ class _TemplateFeedScreenState extends ConsumerState<TemplateFeedScreen>
                       ),
                     ),
 
-                  // PRO Badge
+                  // PRO or FREE Badge
                   if (tmpl.isPro)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
@@ -1092,6 +1444,37 @@ class _TemplateFeedScreenState extends ConsumerState<TemplateFeedScreen>
                           SizedBox(width: 2),
                           Text(
                             'PRO',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF00D2D3), Color(0xFF0891B2)],
+                        ),
+                        borderRadius: BorderRadius.circular(4),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF00D2D3).withValues(alpha: 0.4),
+                            blurRadius: 6,
+                          ),
+                        ],
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.bolt, color: Colors.black, size: 10),
+                          SizedBox(width: 2),
+                          Text(
+                            'FREE',
                             style: TextStyle(
                               color: Colors.black,
                               fontSize: 9,
@@ -1411,63 +1794,102 @@ class _TemplateVideoPlayerState extends State<_TemplateVideoPlayer> {
     final id = template.id.toLowerCase();
 
     // Specific template IDs mapping to unique videos
-    if (id == 'tmpl-birthday' || id == 'tmpl-birthday-slideshow') {
+    if (id == 'tmpl-birthday' || id == 'tmpl-birthday-slideshow' || id == 'tmpl-party-confetti-pop') {
       return 'assets/demo/overlay_vid.mp4';
     }
-    if (id == 'tmpl-wedding' || id == 'tmpl-love-story' || id == 'tmpl-photo-memories' || id == 'tmpl-sunset-acoustic' || id == 'tmpl-sample-3') {
+    if (id == 'tmpl-wedding' ||
+        id == 'tmpl-love-story' ||
+        id == 'tmpl-photo-memories' ||
+        id == 'tmpl-sunset-acoustic' ||
+        id == 'tmpl-sample-3' ||
+        id == 'tmpl-photo-parallax' ||
+        id == 'tmpl-romantic-love-story' ||
+        id == 'tmpl-aesthetic-color-splash' ||
+        id == 'tmpl-reels') {
       return 'assets/demo/alps_sunrise.mp4';
     }
-    if (id == 'tmpl-travel' || id == 'tmpl-nature' || id == 'tmpl-ocean-dive') {
+    if (id == 'tmpl-travel' ||
+        id == 'tmpl-nature' ||
+        id == 'tmpl-ocean-dive' ||
+        id == 'tmpl-travel-golden-hour' ||
+        id == 'tmpl-nature-wild-wander') {
       return 'assets/demo/alps_drone.mp4';
     }
-    if (id == 'tmpl-cinematic' || id == 'tmpl-80s-retro' || id == 'tmpl-sample-5' || id == 'tmpl-gaming-stream') {
+    if (id == 'tmpl-cinematic' ||
+        id == 'tmpl-80s-retro' ||
+        id == 'tmpl-sample-5' ||
+        id == 'tmpl-gaming-stream' ||
+        id == 'tmpl-business' ||
+        id == 'tmpl-cinematic-epic-trailer' ||
+        id == 'tmpl-cyberpunk-neon-city' ||
+        id == 'tmpl-business-tech-pitch') {
       return 'assets/demo/cyberpunk_arcade.mp4';
     }
-    if (id == 'tmpl-family' || id == 'tmpl-food' || id == 'tmpl-sample-1' || id == 'tmpl-vlog-daily') {
+    if (id == 'tmpl-family' ||
+        id == 'tmpl-food' ||
+        id == 'tmpl-sample-1' ||
+        id == 'tmpl-vlog-daily' ||
+        id == 'tmpl-minimalist-vlog' ||
+        id == 'tmpl-gourmet-street-food' ||
+        id == 'tmpl-family-holiday-joy') {
       return 'assets/demo/ramen_bar.mp4';
     }
-    if (id == 'tmpl-friends' || id == 'tmpl-festival' || id == 'tmpl-celebration' || id == 'tmpl-sample-4') {
+    if (id == 'tmpl-friends' ||
+        id == 'tmpl-festival' ||
+        id == 'tmpl-celebration' ||
+        id == 'tmpl-sample-4' ||
+        id == 'tmpl-fashion' ||
+        id == 'tmpl-anime-sakura-chill' ||
+        id == 'tmpl-friends-party-vibe' ||
+        id == 'tmpl-festival-fireworks') {
       return 'assets/demo/tokyo_shinjuku.mp4';
     }
-    if (id == 'tmpl-before-after' || id == 'tmpl-motivation' || id == 'tmpl-fast-transitions' || id == 'tmpl-sample-2' || id == 'tmpl-cyber-neon') {
+    if (id == 'tmpl-before-after' ||
+        id == 'tmpl-motivation' ||
+        id == 'tmpl-fast-transitions' ||
+        id == 'tmpl-sample-2' ||
+        id == 'tmpl-cyber-neon' ||
+        id == 'tmpl-tokyo-drift-phonk' ||
+        id == 'tmpl-graduation' ||
+        id == 'tmpl-graduation-triumph') {
       return 'assets/demo/tokyo_street.mp4';
     }
-    if (id == 'tmpl-reels' || id == 'tmpl-fashion') {
-      return 'assets/demo/alps_sunrise.mp4';
-    }
-    if (id == 'tmpl-business' || id == 'tmpl-graduation') {
-      return 'assets/demo/cyberpunk_arcade.mp4';
-    }
-    if (id == 'tmpl-fitness' || id == 'tmpl-beat-sync' || id == 'tmpl-trending' || id == 'tmpl-viral-short') {
+    if (id == 'tmpl-fitness' ||
+        id == 'tmpl-beat-sync' ||
+        id == 'tmpl-trending' ||
+        id == 'tmpl-viral-short' ||
+        id == 'tmpl-velocity-glow' ||
+        id == 'tmpl-gym-beast-grind' ||
+        id == 'tmpl-7sec-viral-hook') {
       return 'assets/demo/urban_skate.mp4';
     }
 
     // Category based mapping
     if (cat.contains('wedding') || cat.contains('love') || cat.contains('photo') || cat.contains('acoustic')) {
-      return 'assets/demo/alps_sunrise.mp4'; // Flower blooming / romance
-    }
-    if (cat.contains('cinematic') || cat.contains('retro') || cat.contains('tech') || cat.contains('80s') || cat.contains('gaming')) {
-      return 'assets/demo/cyberpunk_arcade.mp4'; // Sintel 1080p Action
-    }
-    if (cat.contains('travel') || cat.contains('nature') || cat.contains('ocean')) {
-      return 'assets/demo/alps_drone.mp4'; // Underwater Jellyfish / Nature
-    }
-    if (cat.contains('music') || cat.contains('party') || cat.contains('dance') || cat.contains('festival') || cat.contains('celebration')) {
-      return 'assets/demo/tokyo_shinjuku.mp4'; // Concert stage performance
-    }
-    if (cat.contains('car') || cat.contains('drive') || cat.contains('transition') || cat.contains('motivation') || cat.contains('speed')) {
-      return 'assets/demo/tokyo_street.mp4'; // Highway speed car drive
-    }
-    if (cat.contains('food') || cat.contains('family') || cat.contains('sweet') || cat.contains('vlog') || cat.contains('pet')) {
-      return 'assets/demo/ramen_bar.mp4'; // Playful corgi / pet lifestyle
-    }
-    if (cat.contains('birthday') || cat.contains('slideshow')) {
-      return 'assets/demo/overlay_vid.mp4'; // Friday celebration animation
-    }
-    if (cat.contains('fashion') || cat.contains('runway') || cat.contains('lookbook')) {
       return 'assets/demo/alps_sunrise.mp4';
     }
-    return 'assets/demo/urban_skate.mp4'; // Big Buck Bunny / Viral
+    if (cat.contains('cinematic') || cat.contains('retro') || cat.contains('tech') || cat.contains('80s') || cat.contains('gaming')) {
+      return 'assets/demo/cyberpunk_arcade.mp4';
+    }
+    if (cat.contains('travel') || cat.contains('nature') || cat.contains('ocean')) {
+      return 'assets/demo/alps_drone.mp4';
+    }
+    if (cat.contains('music') || cat.contains('party') || cat.contains('dance') || cat.contains('festival') || cat.contains('celebration')) {
+      return 'assets/demo/tokyo_shinjuku.mp4';
+    }
+    if (cat.contains('car') || cat.contains('drive') || cat.contains('transition') || cat.contains('motivation') || cat.contains('speed')) {
+      return 'assets/demo/tokyo_street.mp4';
+    }
+    if (cat.contains('food') || cat.contains('family') || cat.contains('sweet') || cat.contains('vlog') || cat.contains('pet')) {
+      return 'assets/demo/ramen_bar.mp4';
+    }
+    if (cat.contains('birthday') || cat.contains('slideshow')) {
+      return 'assets/demo/overlay_vid.mp4';
+    }
+    if (cat.contains('fashion') || cat.contains('runway') || cat.contains('lookbook')) {
+      return 'assets/demo/tokyo_shinjuku.mp4';
+    }
+    return 'assets/demo/urban_skate.mp4';
   }
 
   @override

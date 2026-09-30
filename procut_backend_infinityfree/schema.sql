@@ -373,11 +373,31 @@ ON DUPLICATE KEY UPDATE title = VALUES(title), display_order = VALUES(display_or
 
 -- 4. Initial Templates
 INSERT INTO templates (id, title, description, author, aspect_ratio, duration_ms, clips_count, downloads_count, preview_gradient_start, preview_gradient_end, audio_title, audio_url, tags, is_pro, is_enabled, display_order) VALUES
-('tmpl-viral-phonk', '🔥 Viral Phonk Drift Reel', 'Fast rhythmic cuts, heavy bass drop transitions, and neon subtitle styling.', 'ProCut Originals', 'ratio9_16', 10000, 6, 38400, '0xFF7C3AED', '0xFFEC4899', 'Phonk Bass Boosted (130 BPM)', 'assets/demo/phonk_beat.mp3', 'Trending, Phonk, Reels, TikTok, Viral', 0, 1, 1),
-('tmpl-summer-tropical', '🌴 Summer Tropical Vlog', 'Warm film grain, upbeat tropical rhythm, and smooth cross-fade slide transitions.', 'Nordic Visuals', 'ratio9_16', 14000, 7, 29800, '0xFFF59E0B', '0xFF10B981', 'Sunset Tropical House Beats', 'assets/demo/tropical_beat.mp3', 'Vlog, Summer, Travel, Aesthetic', 0, 1, 2),
-('tmpl-hype-reel', '⚡ Fast Cuts Cyberpunk Reel', 'High-energy glitch cuts with neon subtitle animations and beat drops.', 'Cyber Studio', 'ratio9_16', 9000, 6, 14200, '0xFF8B5CF6', '0xFF06B6D4', 'Neon Synthwave Drive', 'assets/demo/synthwave_beat.mp3', 'Cyberpunk, Glitch, Edits, FastCuts', 0, 1, 3),
-('tmpl-vlog-minimal', '✨ Minimalist Day-in-the-Life', 'Aesthetic typography, subtle film texture, and relaxing lofi rhythm.', 'Minimal Co', 'ratio9_16', 15000, 5, 19800, '0xFFD97706', '0xFFB45309', 'Midnight LoFi Chillout', 'assets/demo/lofi_beat.mp3', 'Minimalist, DailyVlog, LoFi, Aesthetic', 0, 1, 4),
-('tmpl-cinematic-youtube', '🎬 Cinematic Widescreen Intro', 'Epic letterbox 16:9 presentation with orchestral crescendo and bold title.', 'Studio Horizon', 'ratio16_9', 12000, 4, 22100, '0xFF1E3A8A', '0xFF065F46', 'Orchestral Cinematic Crescendo', 'assets/demo/cinematic_audio.mp3', 'YouTube, 16:9, Cinematic, Intro', 1, 1, 5)
+('tmpl-viral-phonk', '🔥 Viral Phonk Drift Reel', 'Fast rhythmic cuts, heavy bass drop transitions, and neon subtitle styling.', 'ProCut Originals', 'ratio9_16', 10000, 6, 38400, '0xFF7C3AED', '0xFFEC4899', 'Phonk Bass Boosted (130 BPM)', 'assets/demo/phonk_beat.wav', 'Trending, Phonk, Reels, TikTok, Viral', 0, 1, 1),
+('tmpl-summer-tropical', '🌴 Summer Tropical Vlog', 'Warm film grain, upbeat tropical rhythm, and smooth cross-fade slide transitions.', 'Nordic Visuals', 'ratio9_16', 14000, 7, 29800, '0xFFF59E0B', '0xFF10B981', 'Sunset Tropical House Beats', 'assets/demo/tropical_beat.wav', 'Vlog, Summer, Travel, Aesthetic', 0, 1, 2),
+('tmpl-hype-reel', '⚡ Fast Cuts Cyberpunk Reel', 'High-energy glitch cuts with neon subtitle animations and beat drops.', 'Cyber Studio', 'ratio9_16', 9000, 6, 14200, '0xFF8B5CF6', '0xFF06B6D4', 'Neon Synthwave Drive', 'assets/demo/synthwave_beat.wav', 'Cyberpunk, Glitch, Edits, FastCuts', 0, 1, 3),
+('tmpl-vlog-minimal', '✨ Minimalist Day-in-the-Life', 'Aesthetic typography, subtle film texture, and relaxing lofi rhythm.', 'Minimal Co', 'ratio9_16', 15000, 5, 19800, '0xFFD97706', '0xFFB45309', 'Midnight LoFi Chillout', 'assets/demo/lofi_beat.wav', 'Minimalist, DailyVlog, LoFi, Aesthetic', 0, 1, 4),
+('tmpl-cinematic-youtube', '🎬 Cinematic Widescreen Intro', 'Epic letterbox 16:9 presentation with orchestral crescendo and bold title.', 'Studio Horizon', 'ratio16_9', 12000, 4, 22100, '0xFF1E3A8A', '0xFF065F46', 'Orchestral Cinematic Crescendo', 'assets/demo/cinematic_audio.wav', 'YouTube, 16:9, Cinematic, Intro', 1, 1, 5),
+('tmpl-free-velocity-sync', '⚡ Velocity Beat Sync Reel', 'Explosive speed ramps, beat drops, flash transitions, and high-energy music sync.', 'SyncWave', 'ratio9_16', 8000, 4, 45200, '0xFF00D2D3', '0xFF5F27CD', 'Phonk Bass Boosted (130 BPM)', 'assets/demo/phonk_beat.wav', 'Velocity, BeatSync, TikTok, Reels, Free', 0, 1, 6),
+('tmpl-free-photo-3d', '📸 3D Photo Parallax Zoom', 'Transform still photos into dynamic 3D depth zooms with subtle camera drift.', 'DepthFX', 'ratio9_16', 10000, 5, 38100, '0xFF0984E3', '0xFF6C5CE7', 'Midnight LoFi Chillout', 'assets/demo/lofi_beat.wav', 'Photo, 3D, Parallax, Aesthetic, Free', 0, 1, 7),
+('tmpl-free-daily-vlog', '☕ Aesthetic Mini Daily Vlog', 'Clean minimal layout, aesthetic captions, warm cinematic grain, and chill acoustic vibe.', 'DailyAura', 'ratio9_16', 15000, 6, 29400, '0xFFF39C12', '0xFFE74C3C', 'Sunset Tropical House Beats', 'assets/demo/tropical_beat.wav', 'Vlog, Daily, Aesthetic, Minimal, Free', 0, 1, 8),
+('tmpl-free-tokyo-drift', '🏎️ Tokyo Night Drift Phonk', 'Neon cyberpunk street vibes, rhythmic flashes, glitch pulses, and heavy bass.', 'TokyoSpeed', 'ratio9_16', 9000, 5, 52300, '0xFFFF007A', '0xFF7928CA', 'Phonk Bass Boosted (130 BPM)', 'assets/demo/phonk_beat.wav', 'Tokyo, Phonk, Drift, Cyberpunk, Free', 0, 1, 9),
+('tmpl-free-anime-vibes', '🌸 Anime Aesthetic Edit', 'Pastel color tones, soft glow lighting, smooth pan zooms, and lofi dream beat.', 'SakuraMotion', 'ratio9_16', 12000, 4, 33700, '0xFFFF7675', '0xFFFD79A8', 'Midnight LoFi Chillout', 'assets/demo/lofi_beat.wav', 'Anime, Sakura, LoFi, Aesthetic, Free', 0, 1, 10),
+('tmpl-free-cinematic-drone', '🏔️ Mountain Drone Cinematic', 'Epic sweeping landscape shots, teal & orange color grading, and orchestral rise.', 'HorizonAero', 'ratio16_9', 14000, 4, 21900, '0xFF00CEC9', '0xFF0984E3', 'Orchestral Cinematic Crescendo', 'assets/demo/cinematic_audio.wav', 'Cinematic, Drone, Travel, Nature, Free', 0, 1, 11),
+('tmpl-free-gym-motivation', '🔥 Heavy Grind Gym Motivation', 'High contrast monochrome to color punch, fast cuts, and powerful trap beats.', 'BeastMode', 'ratio9_16', 10000, 5, 41200, '0xFFD63031', '0xFF2D3436', 'Urban Trap Anthem (140 BPM)', 'assets/demo/urban_trap.wav', 'Gym, Fitness, Motivation, Workout, Free', 0, 1, 12),
+('tmpl-free-confetti-party', '🎉 Confetti Celebration Pop', 'Explosion of confetti, vibrant party gradient, bouncing texts, and cheerful groove.', 'FestiveCrew', 'ratio9_16', 11000, 4, 28700, '0xFFFFA801', '0xFFFF3838', 'Sunset Tropical House Beats', 'assets/demo/tropical_beat.wav', 'Party, Celebration, Birthday, Fun, Free', 0, 1, 13),
+('tmpl-free-vintage-cam', '📼 90s Camcorder VHS Tape', 'Authentic VHS tracking noise, timestamp overlay, retro color tint, and nostalgic fuzz.', 'RetroVault', 'ratio9_16', 13000, 5, 36500, '0xFFB53471', '0xFF833471', 'Midnight LoFi Chillout', 'assets/demo/lofi_beat.wav', 'VHS, Retro, 90s, Vintage, Free', 0, 1, 14),
+('tmpl-free-speed-ramp', '⚡ Smooth Speed Ramp Transition', 'Ultra-fluid fast forward into slow-mo impact ramps synced to snare hits.', 'FlowState', 'ratio9_16', 8000, 4, 48900, '0xFF10AC84', '0xFF1DD1A1', 'Neon Synthwave Drive', 'assets/demo/synthwave_beat.wav', 'SpeedRamp, Transition, Smooth, Action, Free', 0, 1, 15),
+('tmpl-free-travel-passport', '✈️ Wanderlust Travel Stamp', 'Passport stamp animations, scenic postcard layout, and breezy tropical rhythm.', 'GlobeTrotter', 'ratio9_16', 16000, 6, 27400, '0xFF48DBFB', '0xFF0ABDE3', 'Sunset Tropical House Beats', 'assets/demo/tropical_beat.wav', 'Travel, Vacation, Wanderlust, Summer, Free', 0, 1, 16),
+('tmpl-free-fashion-lookbook', '👗 Streetwear Style Lookbook', 'Split screen magazine cutouts, bold serif typography, and urban trap cadence.', 'VogueStreet', 'ratio9_16', 12000, 5, 31000, '0xFF2C3E50', '0xFFBDC3C7', 'Urban Trap Anthem (140 BPM)', 'assets/demo/urban_trap.wav', 'Fashion, Streetwear, Lookbook, Style, Free', 0, 1, 17),
+('tmpl-free-food-recipe', '🍳 Tasty Food & Recipe Reel', 'Appetizing warm filters, quick step-by-step cuts, and playful bouncy soundtrack.', 'ChefTable', 'ratio9_16', 14000, 5, 23500, '0xFFE67E22', '0xFFD35400', 'Sunset Tropical House Beats', 'assets/demo/tropical_beat.wav', 'Food, Recipe, Cooking, Delicious, Free', 0, 1, 18),
+('tmpl-free-game-highlights', '🎮 Pro Gaming Clutch Montage', 'RGB shake flashes, impact zoom kills, HUD overlays, and heavy phonk drop.', 'PixelClan', 'ratio16_9', 11000, 4, 39600, '0xFF8E44AD', '0xFF2980B9', 'Phonk Bass Boosted (130 BPM)', 'assets/demo/phonk_beat.wav', 'Gaming, Clutch, Montage, Esports, Free', 0, 1, 19),
+('tmpl-free-sunset-golden', '🌅 Golden Hour Sunset Aesthetic', 'Dreamy lens flares, warm honey tones, gentle slow-mo, and heartfelt melody.', 'GoldenDays', 'ratio9_16', 13000, 4, 34800, '0xFFF1C40F', '0xFFE67E22', 'Midnight LoFi Chillout', 'assets/demo/lofi_beat.wav', 'Sunset, GoldenHour, Aesthetic, Warm, Free', 0, 1, 20),
+('tmpl-free-podcast-quote', '🎙️ Viral Podcast Soundbite', 'Waveform visualizer, kinetic subtitles, speaker spotlight, and punchy speech intro.', 'AudioCast', 'ratio9_16', 15000, 3, 26700, '0xFF16A085', '0xFF2C3E50', 'Neon Synthwave Drive', 'assets/demo/synthwave_beat.wav', 'Podcast, Soundbite, Quotes, Talking, Free', 0, 1, 21),
+('tmpl-free-fyp-loop', '♾️ Seamless 7-Second FYP Loop', 'Engineered to loop perfectly on TikTok/Reels with seamless end-to-start match.', 'LoopHacker', 'ratio9_16', 7000, 3, 67200, '0xFFEE5253', '0xFF0ABDE3', 'Phonk Bass Boosted (130 BPM)', 'assets/demo/phonk_beat.wav', 'Loop, FYP, Viral, TikTok, Seamless, Free', 0, 1, 22),
+('tmpl-free-product-promo', '✨ Minimal Product Showcase', 'Clean studio lighting, elegant smooth slide reveals, and modern ambient groove.', 'DesignForge', 'ratio9_16', 10000, 4, 18900, '0xFF34495E', '0xFF1ABC9C', 'Sunset Tropical House Beats', 'assets/demo/tropical_beat.wav', 'Product, Promo, Business, Minimal, Free', 0, 1, 23),
+('tmpl-free-cinematic-trailer', '🎥 Hollywood Cinematic Teaser', 'Dramatic title cards, deep rumbling bass drops, lens flares, and epic orchestral crescendo.', 'CinemaScope', 'ratio16_9', 16000, 5, 25800, '0xFF1E272C', '0xFFE74C3C', 'Orchestral Cinematic Crescendo', 'assets/demo/cinematic_audio.wav', 'Trailer, Hollywood, Cinematic, Movie, Free', 0, 1, 24),
+('tmpl-free-chill-coffee', '☕ Cozy Coffee & Study Beats', 'Soft morning light, rain on window, relaxing cozy aesthetic, and chill lofi beats.', 'CozyCorner', 'ratio9_16', 15000, 4, 31400, '0xFF795548', '0xFF8D6E63', 'Midnight LoFi Chillout', 'assets/demo/lofi_beat.wav', 'Coffee, Study, Cozy, LoFi, Relaxing, Free', 0, 1, 25)
 ON DUPLICATE KEY UPDATE title = VALUES(title), is_enabled = VALUES(is_enabled);
 
 -- 5. Video Effects
@@ -468,3 +488,29 @@ INSERT INTO app_settings (setting_key, setting_value, setting_group, description
 ('default_export_fps', '30', 'export', 'Default video export frame rate'),
 ('allow_user_registration', '1', 'auth', 'Allow new user registration from app')
 ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value);
+
+-- 13. AI Presets Table (Photo & Video Prompts Studio)
+CREATE TABLE IF NOT EXISTS ai_presets (
+    id VARCHAR(64) PRIMARY KEY,
+    type ENUM('photo', 'video') NOT NULL DEFAULT 'photo',
+    title VARCHAR(255) NOT NULL,
+    category VARCHAR(100) NOT NULL DEFAULT 'Trending',
+    prompt TEXT NOT NULL,
+    negative_prompt TEXT NULL,
+    reference_image_url VARCHAR(500) NULL,
+    preview_video_url VARCHAR(500) NULL,
+    model_name VARCHAR(100) NULL,
+    style VARCHAR(100) NULL,
+    camera_movement VARCHAR(100) NULL,
+    lighting VARCHAR(100) NULL,
+    seed VARCHAR(64) NULL,
+    duration_text VARCHAR(50) NULL,
+    tags VARCHAR(500) NULL,
+    is_active TINYINT(1) DEFAULT 1,
+    display_order INT DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_ai_type (type),
+    INDEX idx_ai_order (display_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

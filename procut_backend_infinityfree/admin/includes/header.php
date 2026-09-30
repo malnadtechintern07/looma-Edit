@@ -4,12 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($pageTitle ?? 'Admin Console') ?> — ProCut Studio</title>
+    <!-- Favicon & Touch Icons (App Logo) -->
+    <link rel="icon" type="image/x-icon" href="<?= defined('APP_BASE_URL') ? APP_BASE_URL : '' ?>/favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="<?= defined('APP_BASE_URL') ? APP_BASE_URL : '' ?>/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="<?= defined('APP_BASE_URL') ? APP_BASE_URL : '' ?>/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="<?= defined('APP_BASE_URL') ? APP_BASE_URL : '' ?>/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="<?= defined('APP_BASE_URL') ? APP_BASE_URL : '' ?>/apple-touch-icon.png">
+    <link rel="manifest" href="<?= defined('APP_BASE_URL') ? APP_BASE_URL : '' ?>/site.webmanifest">
+    <meta name="theme-color" content="#0D6EFD">
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
-    <!-- Bootstrap 5.3 CSS -->
+    <!-- Bootstrap 5.3 CSS & JS Bundle -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <!-- Chart.js -->

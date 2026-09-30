@@ -46,3 +46,6 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Firebase service account private key – NEVER COMMIT
+procut_backend_infinityfree/config/firebase-service-account.json

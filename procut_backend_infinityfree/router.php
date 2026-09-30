@@ -21,6 +21,7 @@ if ($ext !== 'php' && $uri !== '/' && file_exists($staticFile) && !is_dir($stati
         'css'   => 'text/css',
         'js'    => 'application/javascript',
         'json'  => 'application/json',
+        'webmanifest' => 'application/manifest+json',
         'png'   => 'image/png',
         'jpg'   => 'image/jpeg',
         'jpeg'  => 'image/jpeg',
@@ -136,6 +137,10 @@ if (str_starts_with($uri, '/api/')) {
     }
     if ($uri === '/api/app/notifications') {
         require __DIR__ . '/api/app/notifications.php';
+        exit;
+    }
+    if ($uri === '/api/app/register-fcm-token') {
+        require __DIR__ . '/api/app/register-fcm-token.php';
         exit;
     }
     if ($uri === '/api/app/support-ticket') {

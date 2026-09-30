@@ -1,6 +1,55 @@
 import 'dart:io' show Platform;
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+
+/// Safe observer that delegates to FirebaseAnalyticsObserver only when Firebase is initialized.
+class SafeFirebaseAnalyticsObserver extends NavigatorObserver {
+  FirebaseAnalyticsObserver? _delegate;
+
+  FirebaseAnalyticsObserver? get _activeDelegate {
+    if (_delegate != null) return _delegate;
+    try {
+      if (Firebase.apps.isNotEmpty) {
+        _delegate = FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance);
+      }
+    } catch (_) {}
+    return _delegate;
+  }
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    try {
+      _activeDelegate?.didPush(route, previousRoute);
+    } catch (_) {}
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPop(route, previousRoute);
+    try {
+      _activeDelegate?.didPop(route, previousRoute);
+    } catch (_) {}
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+    try {
+      _activeDelegate?.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+    } catch (_) {}
+  }
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didRemove(route, previousRoute);
+    try {
+      _activeDelegate?.didRemove(route, previousRoute);
+    } catch (_) {}
+  }
+}
 
 /// Service providing typed methods for tracking user events, conversions, and screens in Firebase Analytics
 class FirebaseAnalyticsService {
@@ -9,11 +58,18 @@ class FirebaseAnalyticsService {
   FirebaseAnalyticsService._internal();
 
   FirebaseAnalytics? _analytics;
-  FirebaseAnalytics get analytics => _analytics ??= FirebaseAnalytics.instance;
+  FirebaseAnalytics? get analytics {
+    if (_analytics != null) return _analytics;
+    try {
+      if (Firebase.apps.isNotEmpty) {
+        _analytics = FirebaseAnalytics.instance;
+      }
+    } catch (_) {}
+    return _analytics;
+  }
 
-  FirebaseAnalyticsObserver? _observer;
-  FirebaseAnalyticsObserver get observer =>
-      _observer ??= FirebaseAnalyticsObserver(analytics: analytics);
+  NavigatorObserver? _safeObserver;
+  NavigatorObserver get observer => _safeObserver ??= SafeFirebaseAnalyticsObserver();
 
   bool _initialized = false;
   bool get isInitialized => _initialized;
@@ -27,11 +83,12 @@ class FirebaseAnalyticsService {
     }
 
     try {
-      _analytics ??= FirebaseAnalytics.instance;
-      _observer ??= FirebaseAnalyticsObserver(analytics: _analytics!);
-      await _analytics!.setAnalyticsCollectionEnabled(true);
-      _initialized = true;
-      debugPrint('FirebaseAnalyticsService: Successfully initialized.');
+      if (Firebase.apps.isNotEmpty) {
+        _analytics ??= FirebaseAnalytics.instance;
+        await _analytics!.setAnalyticsCollectionEnabled(true);
+        _initialized = true;
+        debugPrint('FirebaseAnalyticsService: Successfully initialized.');
+      }
     } catch (e) {
       debugPrint('FirebaseAnalyticsService init failed: $e');
     }

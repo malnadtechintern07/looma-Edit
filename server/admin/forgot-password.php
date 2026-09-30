@@ -84,6 +84,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reset Admin Password — ProCut</title>
+    <!-- Favicon & Touch Icons (App Logo) -->
+    <link rel="icon" type="image/x-icon" href="<?= defined('APP_BASE_URL') ? APP_BASE_URL : '' ?>/favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="<?= defined('APP_BASE_URL') ? APP_BASE_URL : '' ?>/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="<?= defined('APP_BASE_URL') ? APP_BASE_URL : '' ?>/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="<?= defined('APP_BASE_URL') ? APP_BASE_URL : '' ?>/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="<?= defined('APP_BASE_URL') ? APP_BASE_URL : '' ?>/apple-touch-icon.png">
+    <link rel="manifest" href="<?= defined('APP_BASE_URL') ? APP_BASE_URL : '' ?>/site.webmanifest">
+    <meta name="theme-color" content="#0D6EFD">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
@@ -126,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="card-custom">
         <div class="text-center mb-4">
             <div class="d-inline-flex align-items-center gap-2 mb-2">
-                <i class="bi bi-shield-lock-fill fs-2 text-primary"></i>
+                <img src="<?= defined('APP_BASE_URL') ? APP_BASE_URL : '' ?>/favicon-32x32.png" width="32" height="32" style="border-radius: 8px; box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);" alt="ProCut Logo" onerror="this.src='favicon-32x32.png'">
                 <span class="fs-4 fw-bold text-white">Reset Admin Password</span>
             </div>
             <p class="text-secondary small">Verify identity and regain administrative access</p>

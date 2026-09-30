@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app_remote_config_service.dart';
@@ -17,6 +19,9 @@ class LiveAdminSyncService with WidgetsBindingObserver {
 
   LiveAdminSyncService(this.ref) {
     WidgetsBinding.instance.addObserver(this);
+    if (!kIsWeb && Platform.environment.containsKey('FLUTTER_TEST')) {
+      return;
+    }
     _startSyncLoop();
   }
 
@@ -36,12 +41,14 @@ class LiveAdminSyncService with WidgetsBindingObserver {
   }
 
   void _startSyncLoop() {
-    // Initial sync on app launch
-    Future.microtask(() => syncNow());
+    // Delay initial background sync by 5 seconds so app startup and first frame render are instantaneous
+    Future.delayed(const Duration(seconds: 5), () {
+      syncNow();
+    });
 
-    // Continuous background sync every 12 seconds
+    // Sensible background sync every 60 seconds (prevents hammering mobile network/battery)
     _pollingTimer?.cancel();
-    _pollingTimer = Timer.periodic(const Duration(seconds: 12), (_) {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 60), (_) {
       syncNow();
     });
   }
@@ -61,11 +68,11 @@ class LiveAdminSyncService with WidgetsBindingObserver {
       // 3. Invalidate and re-fetch Music Catalog
       ref.invalidate(musicCatalogFutureProvider);
 
-      // 4. Fetch latest AI Photo Presets from server
-      await AiPhotoPresetsData.fetchServerPresets();
-
-      // 5. Fetch latest AI Video Presets from server
-      await AiVideoPresetsData.fetchServerPresets();
+      // 4. Fetch latest AI Photo & Video Presets in parallel
+      await Future.wait([
+        AiPhotoPresetsData.fetchServerPresets(),
+        AiVideoPresetsData.fetchServerPresets(),
+      ]);
     } catch (_) {
       // Offline-resilient: keep existing cached data without throwing errors
     } finally {

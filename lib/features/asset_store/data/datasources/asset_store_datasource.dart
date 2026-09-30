@@ -122,67 +122,103 @@ class AssetStoreDataSourceImpl implements AssetStoreDataSource {
     final cat = category.toLowerCase();
     final idLower = id.toLowerCase();
 
-    // Specific template IDs mapping to unique videos
-    if (idLower == 'tmpl-birthday' || idLower == 'tmpl-birthday-slideshow') {
+    // Specific template IDs mapping to unique verified working videos
+    if (idLower == 'tmpl-birthday' || idLower == 'tmpl-birthday-slideshow' || idLower == 'tmpl-party-confetti-pop') {
       return 'assets/demo/overlay_vid.mp4';
     }
-    if (idLower == 'tmpl-wedding' || idLower == 'tmpl-love-story' || idLower == 'tmpl-photo-memories' || idLower == 'tmpl-sunset-acoustic' || idLower == 'tmpl-sample-3') {
+    if (idLower == 'tmpl-wedding' ||
+        idLower == 'tmpl-love-story' ||
+        idLower == 'tmpl-photo-memories' ||
+        idLower == 'tmpl-sunset-acoustic' ||
+        idLower == 'tmpl-sample-3' ||
+        idLower == 'tmpl-photo-parallax' ||
+        idLower == 'tmpl-romantic-love-story' ||
+        idLower == 'tmpl-aesthetic-color-splash' ||
+        idLower == 'tmpl-reels') {
       return 'assets/demo/alps_sunrise.mp4';
     }
-    if (idLower == 'tmpl-travel' || idLower == 'tmpl-nature' || idLower == 'tmpl-ocean-dive') {
+    if (idLower == 'tmpl-travel' ||
+        idLower == 'tmpl-nature' ||
+        idLower == 'tmpl-ocean-dive' ||
+        idLower == 'tmpl-travel-golden-hour' ||
+        idLower == 'tmpl-nature-wild-wander') {
       return 'assets/demo/alps_drone.mp4';
     }
-    if (idLower == 'tmpl-cinematic' || idLower == 'tmpl-80s-retro' || idLower == 'tmpl-sample-5' || idLower == 'tmpl-gaming-stream') {
+    if (idLower == 'tmpl-cinematic' ||
+        idLower == 'tmpl-80s-retro' ||
+        idLower == 'tmpl-sample-5' ||
+        idLower == 'tmpl-gaming-stream' ||
+        idLower == 'tmpl-business' ||
+        idLower == 'tmpl-cinematic-epic-trailer' ||
+        idLower == 'tmpl-cyberpunk-neon-city' ||
+        idLower == 'tmpl-business-tech-pitch') {
       return 'assets/demo/cyberpunk_arcade.mp4';
     }
-    if (idLower == 'tmpl-family' || idLower == 'tmpl-food' || idLower == 'tmpl-sample-1' || idLower == 'tmpl-vlog-daily') {
+    if (idLower == 'tmpl-family' ||
+        idLower == 'tmpl-food' ||
+        idLower == 'tmpl-sample-1' ||
+        idLower == 'tmpl-vlog-daily' ||
+        idLower == 'tmpl-minimalist-vlog' ||
+        idLower == 'tmpl-gourmet-street-food' ||
+        idLower == 'tmpl-family-holiday-joy') {
       return 'assets/demo/ramen_bar.mp4';
     }
-    if (idLower == 'tmpl-friends' || idLower == 'tmpl-festival' || idLower == 'tmpl-celebration' || idLower == 'tmpl-sample-4') {
+    if (idLower == 'tmpl-friends' ||
+        idLower == 'tmpl-festival' ||
+        idLower == 'tmpl-celebration' ||
+        idLower == 'tmpl-sample-4' ||
+        idLower == 'tmpl-fashion' ||
+        idLower == 'tmpl-anime-sakura-chill' ||
+        idLower == 'tmpl-friends-party-vibe' ||
+        idLower == 'tmpl-festival-fireworks') {
       return 'assets/demo/tokyo_shinjuku.mp4';
     }
-    if (idLower == 'tmpl-before-after' || idLower == 'tmpl-motivation' || idLower == 'tmpl-fast-transitions' || idLower == 'tmpl-sample-2' || idLower == 'tmpl-cyber-neon') {
+    if (idLower == 'tmpl-before-after' ||
+        idLower == 'tmpl-motivation' ||
+        idLower == 'tmpl-fast-transitions' ||
+        idLower == 'tmpl-sample-2' ||
+        idLower == 'tmpl-cyber-neon' ||
+        idLower == 'tmpl-tokyo-drift-phonk' ||
+        idLower == 'tmpl-graduation' ||
+        idLower == 'tmpl-graduation-triumph') {
       return 'assets/demo/tokyo_street.mp4';
     }
-    if (idLower == 'tmpl-reels' || idLower == 'tmpl-fashion') {
-      return 'https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/face-demographics-walking.mp4';
-    }
-    if (idLower == 'tmpl-business') {
-      return 'https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/store-aisle-detection.mp4';
-    }
-    if (idLower == 'tmpl-graduation') {
-      return 'https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/classroom.mp4';
-    }
-    if (idLower == 'tmpl-fitness') {
-      return 'https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/person-bicycle-car-detection.mp4';
+    if (idLower == 'tmpl-fitness' ||
+        idLower == 'tmpl-beat-sync' ||
+        idLower == 'tmpl-trending' ||
+        idLower == 'tmpl-viral-short' ||
+        idLower == 'tmpl-velocity-glow' ||
+        idLower == 'tmpl-gym-beast-grind' ||
+        idLower == 'tmpl-7sec-viral-hook') {
+      return 'assets/demo/urban_skate.mp4';
     }
 
     // Category based mapping
     if (cat.contains('wedding') || cat.contains('love') || cat.contains('photo') || cat.contains('acoustic')) {
-      return 'assets/demo/alps_sunrise.mp4'; // Flower blooming / romance
-    }
-    if (cat.contains('cinematic') || cat.contains('retro') || cat.contains('tech') || cat.contains('80s') || cat.contains('gaming')) {
-      return 'assets/demo/cyberpunk_arcade.mp4'; // Sintel 1080p Action
-    }
-    if (cat.contains('travel') || cat.contains('nature') || cat.contains('ocean')) {
-      return 'assets/demo/alps_drone.mp4'; // Underwater Jellyfish / Nature
-    }
-    if (cat.contains('music') || cat.contains('party') || cat.contains('dance') || cat.contains('festival') || cat.contains('celebration')) {
-      return 'assets/demo/tokyo_shinjuku.mp4'; // Concert stage performance
-    }
-    if (cat.contains('car') || cat.contains('drive') || cat.contains('transition') || cat.contains('motivation') || cat.contains('speed')) {
-      return 'assets/demo/tokyo_street.mp4'; // Highway speed car drive
-    }
-    if (cat.contains('food') || cat.contains('family') || cat.contains('sweet') || cat.contains('vlog') || cat.contains('pet')) {
-      return 'assets/demo/ramen_bar.mp4'; // Playful corgi / pet lifestyle
-    }
-    if (cat.contains('birthday') || cat.contains('slideshow')) {
-      return 'assets/demo/overlay_vid.mp4'; // Friday celebration animation
-    }
-    if (cat.contains('fashion') || cat.contains('runway') || cat.contains('lookbook')) {
       return 'assets/demo/alps_sunrise.mp4';
     }
-    return 'assets/demo/urban_skate.mp4'; // Big Buck Bunny / Viral
+    if (cat.contains('cinematic') || cat.contains('retro') || cat.contains('tech') || cat.contains('80s') || cat.contains('gaming')) {
+      return 'assets/demo/cyberpunk_arcade.mp4';
+    }
+    if (cat.contains('travel') || cat.contains('nature') || cat.contains('ocean')) {
+      return 'assets/demo/alps_drone.mp4';
+    }
+    if (cat.contains('music') || cat.contains('party') || cat.contains('dance') || cat.contains('festival') || cat.contains('celebration')) {
+      return 'assets/demo/tokyo_shinjuku.mp4';
+    }
+    if (cat.contains('car') || cat.contains('drive') || cat.contains('transition') || cat.contains('motivation') || cat.contains('speed')) {
+      return 'assets/demo/tokyo_street.mp4';
+    }
+    if (cat.contains('food') || cat.contains('family') || cat.contains('sweet') || cat.contains('vlog') || cat.contains('pet')) {
+      return 'assets/demo/ramen_bar.mp4';
+    }
+    if (cat.contains('birthday') || cat.contains('slideshow')) {
+      return 'assets/demo/overlay_vid.mp4';
+    }
+    if (cat.contains('fashion') || cat.contains('runway') || cat.contains('lookbook')) {
+      return 'assets/demo/tokyo_shinjuku.mp4';
+    }
+    return 'assets/demo/urban_skate.mp4';
   }
 
   /// Maps every template ID and category to its matching unique audio soundtrack
@@ -195,13 +231,13 @@ class AssetStoreDataSourceImpl implements AssetStoreDataSource {
     if (cat.contains('retro') || cat.contains('80s') || cat.contains('tech') || idLower.contains('cyber') || idLower.contains('synth')) {
       return 'assets/demo/synthwave_beat.wav';
     }
-    if (cat.contains('beat') || cat.contains('viral') || cat.contains('fitness') || idLower.contains('beat')) {
+    if (cat.contains('beat') || cat.contains('viral') || cat.contains('fitness') || idLower.contains('beat') || idLower.contains('phonk') || idLower.contains('drift') || idLower.contains('velocity')) {
       return 'assets/demo/phonk_beat.wav';
     }
-    if (cat.contains('love') || cat.contains('family') || cat.contains('nature') || cat.contains('photo')) {
+    if (cat.contains('love') || cat.contains('family') || cat.contains('nature') || cat.contains('photo') || cat.contains('aesthetic')) {
       return 'assets/demo/lofi_beat.wav';
     }
-    if (cat.contains('friends') || cat.contains('reels') || cat.contains('transition')) {
+    if (cat.contains('friends') || cat.contains('reels') || cat.contains('transition') || cat.contains('trap') || cat.contains('grind')) {
       return 'assets/demo/urban_trap.wav';
     }
     return 'assets/demo/tropical_beat.wav';
@@ -407,7 +443,7 @@ class AssetStoreDataSourceImpl implements AssetStoreDataSource {
         downloadsCount: 59100,
         previewGradientStart: '0xFFE1306C',
         previewGradientEnd: '0xFFF77737',
-        previewVideoUrl: 'https://github.com/intel-iot-devkit/sample-videos/raw/master/face-demographics-walking.mp4',
+        previewVideoUrl: 'assets/demo/alps_sunrise.mp4',
         previewImageUrl: 'assets/demo/tmpl-hype-reel.jpg',
         tags: const ['Reels', 'Instagram', 'TikTok', 'Viral', 'Hook'],
         audioTrackTitle: 'Viral Reels Hit',
@@ -447,7 +483,7 @@ class AssetStoreDataSourceImpl implements AssetStoreDataSource {
         downloadsCount: 24800,
         previewGradientStart: '0xFF1D976C',
         previewGradientEnd: '0xFF93F9B9',
-        previewVideoUrl: 'https://github.com/intel-iot-devkit/sample-videos/raw/master/classroom.mp4',
+        previewVideoUrl: 'assets/demo/tokyo_street.mp4',
         previewImageUrl: 'assets/demo/tmpl-summer-tropical.jpg',
         tags: const ['Graduation', 'College', 'School', 'Diploma', 'Success'],
         audioTrackTitle: 'Triumphant March Score',
@@ -547,7 +583,7 @@ class AssetStoreDataSourceImpl implements AssetStoreDataSource {
         downloadsCount: 42900,
         previewGradientStart: '0xFF232526',
         previewGradientEnd: '0xFF414345',
-        previewVideoUrl: 'https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/face-demographics-walking.mp4',
+        previewVideoUrl: 'assets/demo/tokyo_shinjuku.mp4',
         previewImageUrl: 'assets/demo/tmpl-urban-street.jpg',
         isPro: true,
         tags: const ['Fashion', 'Lookbook', 'OOTD', 'Runway', 'Vogue'],
@@ -588,7 +624,7 @@ class AssetStoreDataSourceImpl implements AssetStoreDataSource {
         downloadsCount: 27800,
         previewGradientStart: '0xFF1E3C72',
         previewGradientEnd: '0xFF2A5298',
-        previewVideoUrl: 'https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/store-aisle-detection.mp4',
+        previewVideoUrl: 'assets/demo/cyberpunk_arcade.mp4',
         previewImageUrl: 'assets/demo/tmpl-cinematic-youtube.jpg',
         isPro: true,
         tags: const ['Business', 'Corporate', 'Startup', 'Enterprise', 'Tech'],
@@ -669,7 +705,7 @@ class AssetStoreDataSourceImpl implements AssetStoreDataSource {
         downloadsCount: 51200,
         previewGradientStart: '0xFFED213A',
         previewGradientEnd: '0xFF93291E',
-        previewVideoUrl: 'https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/person-bicycle-car-detection.mp4',
+        previewVideoUrl: 'assets/demo/urban_skate.mp4',
         previewImageUrl: 'assets/demo/tmpl-hype-reel.jpg',
         tags: const ['Fitness', 'Gym', 'Workout', 'Bodybuilding', 'Sweat'],
         audioTrackTitle: 'High BPM Gym Motivation',
@@ -689,7 +725,7 @@ class AssetStoreDataSourceImpl implements AssetStoreDataSource {
         downloadsCount: 63700,
         previewGradientStart: '0xFFFC5C7D',
         previewGradientEnd: '0xFF6A82FB',
-        previewVideoUrl: 'https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/car-detection.mp4',
+        previewVideoUrl: 'assets/demo/tokyo_street.mp4',
         previewImageUrl: 'assets/demo/tmpl-urban-street.jpg',
         isPro: true,
         tags: const ['FastTransitions', 'WhipPan', 'ZoomCut', 'Kinetic'],
@@ -831,7 +867,7 @@ class AssetStoreDataSourceImpl implements AssetStoreDataSource {
         downloadsCount: 39400,
         previewGradientStart: '0xFF8A2387',
         previewGradientEnd: '0xFFE94057',
-        previewVideoUrl: 'https://test-videos.co.uk/vids/sintel/mp4/h264/720/Sintel_720_10s_1MB.mp4',
+        previewVideoUrl: 'assets/demo/cyberpunk_arcade.mp4',
         previewImageUrl: 'assets/demo/tmpl-retro-90s.jpg',
         isPro: true,
         tags: const ['Gaming', 'Esports', 'Cyberpunk', 'Stream', 'Twitch'],
@@ -919,6 +955,450 @@ class AssetStoreDataSourceImpl implements AssetStoreDataSource {
         audioTrackTitle: 'Forest Ambient Waves',
         audioPath: 'assets/demo/lofi_beat.wav',
         isDownloaded: _downloadedIds.contains('tmpl-ocean-dive'),
+      ),
+
+      // ══════════════════════════════════════════════════════════════════════════
+      // ── 🔥 Top Trending FREE Working Templates (Verified 100% Offline & Online)
+      // ══════════════════════════════════════════════════════════════════════════
+      StoreTemplateEntity(
+        id: 'tmpl-velocity-glow',
+        title: '⚡ Velocity Glow Beat Drop',
+        category: 'Beat Sync',
+        badge: 'Viral Trend',
+        description: 'CapCut velocity speed ramps, neon edge glow flash bursts, punchy camera shakes, and heavy 808 bass drops.',
+        author: 'VelocityFX',
+        aspectRatio: AspectRatioType.ratio9_16,
+        durationMs: 9000,
+        clipsCount: 4,
+        downloadsCount: 94500,
+        previewGradientStart: '0xFF8A2387',
+        previewGradientEnd: '0xFFE94057',
+        previewVideoUrl: 'assets/demo/urban_skate.mp4',
+        previewImageUrl: 'assets/demo/tmpl-viral-phonk.jpg',
+        isPro: false,
+        isTrending: true,
+        tags: const ['Velocity', 'BeatSync', 'CapCut', 'Glow', 'Phonk', 'Reels'],
+        audioTrackTitle: 'Phonk Bass Boosted (130 BPM)',
+        audioPath: 'assets/demo/phonk_beat.wav',
+        isDownloaded: _downloadedIds.contains('tmpl-velocity-glow'),
+      ),
+      StoreTemplateEntity(
+        id: 'tmpl-photo-parallax',
+        title: '📸 3D Parallax Photo Flow',
+        category: 'Photo Memories',
+        badge: '3D Depth',
+        description: 'Smooth 3D perspective floating photos, subtle optical light leaks, clean polaroid borders, and ambient Lo-Fi.',
+        author: 'ParallaxLab',
+        aspectRatio: AspectRatioType.ratio9_16,
+        durationMs: 14000,
+        clipsCount: 5,
+        downloadsCount: 67200,
+        previewGradientStart: '0xFF654EA3',
+        previewGradientEnd: '0xFFEAAFC8',
+        previewVideoUrl: 'assets/demo/alps_sunrise.mp4',
+        previewImageUrl: 'assets/demo/tmpl-golden-hour.jpg',
+        isPro: false,
+        isPopular: true,
+        tags: const ['3DZoom', 'Parallax', 'Photos', 'Memories', 'Aesthetic'],
+        audioTrackTitle: 'Midnight Coffee LoFi Chill',
+        audioPath: 'assets/demo/lofi_beat.wav',
+        isDownloaded: _downloadedIds.contains('tmpl-photo-parallax'),
+      ),
+      StoreTemplateEntity(
+        id: 'tmpl-minimalist-vlog',
+        title: '☕ Warm Coffee & Morning Routine',
+        category: 'Trending',
+        badge: 'Aesthetic',
+        description: 'Slow gentle pan cuts, warm amber tones, clean minimalist typography, and cozy midnight cafe beats.',
+        author: 'Nordic Chill',
+        aspectRatio: AspectRatioType.ratio9_16,
+        durationMs: 13000,
+        clipsCount: 4,
+        downloadsCount: 82100,
+        previewGradientStart: '0xFFB79891',
+        previewGradientEnd: '0xFF94716B',
+        previewVideoUrl: 'assets/demo/ramen_bar.mp4',
+        previewImageUrl: 'assets/demo/tmpl-vlog-minimal.jpg',
+        isPro: false,
+        isTrending: true,
+        tags: const ['Vlog', 'Coffee', 'Minimal', 'Aesthetic', 'DailyRoutine'],
+        audioTrackTitle: 'Midnight Coffee LoFi Chill',
+        audioPath: 'assets/demo/lofi_beat.wav',
+        isDownloaded: _downloadedIds.contains('tmpl-minimalist-vlog'),
+      ),
+      StoreTemplateEntity(
+        id: 'tmpl-tokyo-drift-phonk',
+        title: '🏎️ Tokyo Night Drift 808',
+        category: 'Fast Transitions',
+        badge: 'High Octane',
+        description: 'Midnight highway speed blur, RGB split glitch transitions, aggressive 808 cowbell phonk, and strobe lighting.',
+        author: 'DriftCore',
+        aspectRatio: AspectRatioType.ratio9_16,
+        durationMs: 10000,
+        clipsCount: 5,
+        downloadsCount: 105000,
+        previewGradientStart: '0xFFFF0055',
+        previewGradientEnd: '0xFF7A00FF',
+        previewVideoUrl: 'assets/demo/tokyo_street.mp4',
+        previewImageUrl: 'assets/demo/tmpl-urban-street.jpg',
+        isPro: false,
+        isTrending: true,
+        tags: const ['Phonk', 'Drift', 'Tokyo', 'FastTransitions', 'Speed'],
+        audioTrackTitle: 'Phonk Bass Boosted (130 BPM)',
+        audioPath: 'assets/demo/phonk_beat.wav',
+        isDownloaded: _downloadedIds.contains('tmpl-tokyo-drift-phonk'),
+      ),
+      StoreTemplateEntity(
+        id: 'tmpl-anime-sakura-chill',
+        title: '🌸 Anime Sakura Lofi Aesthetic',
+        category: 'Aesthetic',
+        badge: 'Dreamy',
+        description: 'Pastel magenta grading, soft dream blur cross-fades, Japanese manga subtitle typography, and relaxing chillhop.',
+        author: 'Tokyo Dream',
+        aspectRatio: AspectRatioType.ratio9_16,
+        durationMs: 12000,
+        clipsCount: 4,
+        downloadsCount: 73800,
+        previewGradientStart: '0xFFFF9A9E',
+        previewGradientEnd: '0xFFFECFEF',
+        previewVideoUrl: 'assets/demo/tokyo_shinjuku.mp4',
+        previewImageUrl: 'assets/demo/ai_anime_art.jpg',
+        isPro: false,
+        isNew: true,
+        tags: const ['Anime', 'Sakura', 'LoFi', 'Aesthetic', 'Japanese'],
+        audioTrackTitle: 'Midnight Coffee LoFi Chill',
+        audioPath: 'assets/demo/lofi_beat.wav',
+        isDownloaded: _downloadedIds.contains('tmpl-anime-sakura-chill'),
+      ),
+      StoreTemplateEntity(
+        id: 'tmpl-travel-golden-hour',
+        title: '🏝️ Tropical Island Drone Horizon',
+        category: 'Travel',
+        badge: '4K Drone',
+        description: 'Sweeping coastal drone shots, golden sun rays, smooth push-in speed ramps, and uplifting tropical house.',
+        author: 'RoamVisuals',
+        aspectRatio: AspectRatioType.ratio9_16,
+        durationMs: 15000,
+        clipsCount: 4,
+        downloadsCount: 89400,
+        previewGradientStart: '0xFFFA709A',
+        previewGradientEnd: '0xFFFEE140',
+        previewVideoUrl: 'assets/demo/alps_drone.mp4',
+        previewImageUrl: 'assets/demo/tmpl-summer-tropical.jpg',
+        isPro: false,
+        isPopular: true,
+        tags: const ['Travel', 'Drone', 'Summer', 'Island', 'Wanderlust'],
+        audioTrackTitle: 'Sunset Island Tropical House',
+        audioPath: 'assets/demo/tropical_beat.wav',
+        isDownloaded: _downloadedIds.contains('tmpl-travel-golden-hour'),
+      ),
+      StoreTemplateEntity(
+        id: 'tmpl-gym-beast-grind',
+        title: '💥 Iron Beast Workout Motivation',
+        category: 'Fitness',
+        badge: 'Heavy Bass',
+        description: 'Monochrome high-contrast grit, barbell drop sync, heavy trap bass, and motivational typography.',
+        author: 'BeastLab',
+        aspectRatio: AspectRatioType.ratio9_16,
+        durationMs: 11000,
+        clipsCount: 4,
+        downloadsCount: 91200,
+        previewGradientStart: '0xFF232526',
+        previewGradientEnd: '0xFF414345',
+        previewVideoUrl: 'assets/demo/urban_skate.mp4',
+        previewImageUrl: 'assets/demo/tmpl-hype-reel.jpg',
+        isPro: false,
+        isTrending: true,
+        tags: const ['Fitness', 'Workout', 'Gym', 'Motivation', 'BeastMode'],
+        audioTrackTitle: 'Tokyo Street Trap 808',
+        audioPath: 'assets/demo/urban_trap.wav',
+        isDownloaded: _downloadedIds.contains('tmpl-gym-beast-grind'),
+      ),
+      StoreTemplateEntity(
+        id: 'tmpl-party-confetti-pop',
+        title: '🎉 Neon Confetti Celebration Blast',
+        category: 'Birthday',
+        badge: 'Celebration',
+        description: 'Vibrant party sparklers, bursting 3D confetti pops, colorful celebration text overlays, and high-energy party music.',
+        author: 'PartyRock',
+        aspectRatio: AspectRatioType.ratio9_16,
+        durationMs: 12000,
+        clipsCount: 4,
+        downloadsCount: 62400,
+        previewGradientStart: '0xFFFF512F',
+        previewGradientEnd: '0xFFDD2476',
+        previewVideoUrl: 'assets/demo/overlay_vid.mp4',
+        previewImageUrl: 'assets/demo/tmpl-golden-hour.jpg',
+        isPro: false,
+        isNew: true,
+        tags: const ['Birthday', 'Party', 'Celebration', 'Confetti', 'Cheer'],
+        audioTrackTitle: 'Sunset Island Tropical House',
+        audioPath: 'assets/demo/tropical_beat.wav',
+        isDownloaded: _downloadedIds.contains('tmpl-party-confetti-pop'),
+      ),
+      StoreTemplateEntity(
+        id: 'tmpl-cinematic-epic-trailer',
+        title: '🎥 Hollywood Blockbuster Trailer 16:9',
+        category: 'Cinematic',
+        badge: 'Epic 16:9',
+        description: 'Dramatic wide letterbox cinema aspect ratio, low-frequency sub-bass hits, slow-motion reveals, and orchestral strings.',
+        author: 'CinemaScore',
+        aspectRatio: AspectRatioType.ratio16_9,
+        durationMs: 15000,
+        clipsCount: 4,
+        downloadsCount: 76500,
+        previewGradientStart: '0xFF000428',
+        previewGradientEnd: '0xFF004E92',
+        previewVideoUrl: 'assets/demo/cyberpunk_arcade.mp4',
+        previewImageUrl: 'assets/demo/tmpl-cinematic-youtube.jpg',
+        isPro: false,
+        isPopular: true,
+        tags: const ['Cinematic', 'Trailer', 'Widescreen', 'Epic', 'YouTube'],
+        audioTrackTitle: 'Epic Orchestral Horizon',
+        audioPath: 'assets/demo/cinematic_audio.wav',
+        isDownloaded: _downloadedIds.contains('tmpl-cinematic-epic-trailer'),
+      ),
+      StoreTemplateEntity(
+        id: 'tmpl-aesthetic-color-splash',
+        title: '🎨 B&W to Color Splash Transformation',
+        category: 'Before & After',
+        badge: 'Color Splash',
+        description: 'Vintage black-and-white opening that bursts into vivid hyper-saturated color with impact bass drop.',
+        author: 'ChromaStudio',
+        aspectRatio: AspectRatioType.ratio9_16,
+        durationMs: 10000,
+        clipsCount: 3,
+        downloadsCount: 58900,
+        previewGradientStart: '0xFF1D2671',
+        previewGradientEnd: '0xFFC33764',
+        previewVideoUrl: 'assets/demo/alps_sunrise.mp4',
+        previewImageUrl: 'assets/demo/tmpl-urban-street.jpg',
+        isPro: false,
+        isTrending: true,
+        tags: const ['ColorSplash', 'BeforeAfter', 'Reveal', 'Aesthetic', 'Chroma'],
+        audioTrackTitle: 'Tokyo Street Trap 808',
+        audioPath: 'assets/demo/urban_trap.wav',
+        isDownloaded: _downloadedIds.contains('tmpl-aesthetic-color-splash'),
+      ),
+      StoreTemplateEntity(
+        id: 'tmpl-cyberpunk-neon-city',
+        title: '🌆 Cyberpunk Neo-Tokyo City',
+        category: '80s Retro',
+        badge: 'Synthwave',
+        description: 'Holographic neon wireframes, CRT scanline overlay, VHS glitch drop, and analog retro synthesizer chords.',
+        author: 'NeonWave',
+        aspectRatio: AspectRatioType.ratio9_16,
+        durationMs: 12000,
+        clipsCount: 4,
+        downloadsCount: 69800,
+        previewGradientStart: '0xFF654EA3',
+        previewGradientEnd: '0xFFEAAFC8',
+        previewVideoUrl: 'assets/demo/cyberpunk_arcade.mp4',
+        previewImageUrl: 'assets/demo/ai_cyberpunk_neon.jpg',
+        isPro: false,
+        isPopular: true,
+        tags: const ['Cyberpunk', '80sRetro', 'Synthwave', 'Neon', 'Retro'],
+        audioTrackTitle: '1985 Neon Synthwave Drive',
+        audioPath: 'assets/demo/synthwave_beat.wav',
+        isDownloaded: _downloadedIds.contains('tmpl-cyberpunk-neon-city'),
+      ),
+      StoreTemplateEntity(
+        id: 'tmpl-7sec-viral-hook',
+        title: '🚀 7-Second FYP Infinite Loop',
+        category: 'Viral/Short Video',
+        badge: '100% Loop',
+        description: 'Designed for viral TikTok & Reels algorithm. Seamless loop point, instant hook caption, high viewer retention.',
+        author: 'GrowthAlgorithm',
+        aspectRatio: AspectRatioType.ratio9_16,
+        durationMs: 7000,
+        clipsCount: 3,
+        downloadsCount: 112000,
+        previewGradientStart: '0xFF00C9FF',
+        previewGradientEnd: '0xFF92FE9D',
+        previewVideoUrl: 'assets/demo/urban_skate.mp4',
+        previewImageUrl: 'assets/demo/tmpl-viral-phonk.jpg',
+        isPro: false,
+        isTrending: true,
+        tags: const ['Viral', 'Shorts', 'Loop', 'TikTok', 'Retention'],
+        audioTrackTitle: 'Phonk Bass Boosted (130 BPM)',
+        audioPath: 'assets/demo/phonk_beat.wav',
+        isDownloaded: _downloadedIds.contains('tmpl-7sec-viral-hook'),
+      ),
+      StoreTemplateEntity(
+        id: 'tmpl-gourmet-street-food',
+        title: '🍜 Sizzling Gourmet Street Eats',
+        category: 'Food',
+        badge: 'Foodie',
+        description: 'Appetizing slow-motion sizzling pans, warm amber color grade, snappy jump cuts, and cheerful acoustic vibes.',
+        author: 'FoodieFeed',
+        aspectRatio: AspectRatioType.ratio9_16,
+        durationMs: 11000,
+        clipsCount: 4,
+        downloadsCount: 51200,
+        previewGradientStart: '0xFFFF8008',
+        previewGradientEnd: '0xFFFFC837',
+        previewVideoUrl: 'assets/demo/ramen_bar.mp4',
+        previewImageUrl: 'assets/demo/tmpl-golden-hour.jpg',
+        isPro: false,
+        isNew: true,
+        tags: const ['Food', 'StreetFood', 'Cooking', 'ASMR', 'Delicious'],
+        audioTrackTitle: 'Sunset Island Tropical House',
+        audioPath: 'assets/demo/tropical_beat.wav',
+        isDownloaded: _downloadedIds.contains('tmpl-gourmet-street-food'),
+      ),
+      StoreTemplateEntity(
+        id: 'tmpl-romantic-love-story',
+        title: '💍 Sweet Moments Love Story',
+        category: 'Love Story',
+        badge: 'Romance',
+        description: 'Dreamy soft pastel glows, gentle cross-fade dissolves, heartfelt candid snapshots, and emotional acoustic strings.',
+        author: 'EverAfter',
+        aspectRatio: AspectRatioType.ratio9_16,
+        durationMs: 14000,
+        clipsCount: 4,
+        downloadsCount: 64100,
+        previewGradientStart: '0xFFFF758C',
+        previewGradientEnd: '0xFFFF7EB3',
+        previewVideoUrl: 'assets/demo/alps_sunrise.mp4',
+        previewImageUrl: 'assets/demo/tmpl-golden-hour.jpg',
+        isPro: false,
+        isPopular: true,
+        tags: const ['LoveStory', 'Couple', 'Romantic', 'Sweet', 'Anniversary'],
+        audioTrackTitle: 'Midnight Coffee LoFi Chill',
+        audioPath: 'assets/demo/lofi_beat.wav',
+        isDownloaded: _downloadedIds.contains('tmpl-romantic-love-story'),
+      ),
+      StoreTemplateEntity(
+        id: 'tmpl-friends-party-vibe',
+        title: '👯 Weekend Squad Memories',
+        category: 'Friends',
+        badge: 'Squad Vibe',
+        description: 'Fast snap cuts with friends, retro film grain, flash strobe frames, and bouncy modern trap rhythm.',
+        author: 'SquadGoals',
+        aspectRatio: AspectRatioType.ratio9_16,
+        durationMs: 10000,
+        clipsCount: 4,
+        downloadsCount: 71300,
+        previewGradientStart: '0xFFFF0844',
+        previewGradientEnd: '0xFFFFB199',
+        previewVideoUrl: 'assets/demo/tokyo_shinjuku.mp4',
+        previewImageUrl: 'assets/demo/tmpl-urban-street.jpg',
+        isPro: false,
+        isTrending: true,
+        tags: const ['Friends', 'Squad', 'Weekend', 'Party', 'Vlog'],
+        audioTrackTitle: 'Tokyo Street Trap 808',
+        audioPath: 'assets/demo/urban_trap.wav',
+        isDownloaded: _downloadedIds.contains('tmpl-friends-party-vibe'),
+      ),
+      StoreTemplateEntity(
+        id: 'tmpl-graduation-triumph',
+        title: '🎓 Future Leaders Graduation Film',
+        category: 'Graduation',
+        badge: 'Milestone',
+        description: 'Inspiring diploma throw milestone, proud campus memories timeline, clean typography, and triumphant cinematic brass.',
+        author: 'HonorGrad',
+        aspectRatio: AspectRatioType.ratio9_16,
+        durationMs: 13000,
+        clipsCount: 4,
+        downloadsCount: 43200,
+        previewGradientStart: '0xFF1D976C',
+        previewGradientEnd: '0xFF93F9B9',
+        previewVideoUrl: 'assets/demo/tokyo_street.mp4',
+        previewImageUrl: 'assets/demo/tmpl-summer-tropical.jpg',
+        isPro: false,
+        isNew: true,
+        tags: const ['Graduation', 'Milestone', 'College', 'Success', 'Memories'],
+        audioTrackTitle: 'Epic Orchestral Horizon',
+        audioPath: 'assets/demo/cinematic_audio.wav',
+        isDownloaded: _downloadedIds.contains('tmpl-graduation-triumph'),
+      ),
+      StoreTemplateEntity(
+        id: 'tmpl-nature-wild-wander',
+        title: '🌲 Deep Forest Wilderness Trek',
+        category: 'Nature',
+        badge: 'Serenity',
+        description: 'Calming emerald green pine forest, slow camera pan, ambient stream sounds, and peaceful acoustic meditation.',
+        author: 'WildernessLife',
+        aspectRatio: AspectRatioType.ratio16_9,
+        durationMs: 16000,
+        clipsCount: 4,
+        downloadsCount: 52400,
+        previewGradientStart: '0xFF134E5E',
+        previewGradientEnd: '0xFF71B280',
+        previewVideoUrl: 'assets/demo/alps_drone.mp4',
+        previewImageUrl: 'assets/demo/tmpl-cinematic-youtube.jpg',
+        isPro: false,
+        isPopular: true,
+        tags: const ['Nature', 'Forest', 'Wilderness', 'Mountains', 'Peaceful'],
+        audioTrackTitle: 'Midnight Coffee LoFi Chill',
+        audioPath: 'assets/demo/lofi_beat.wav',
+        isDownloaded: _downloadedIds.contains('tmpl-nature-wild-wander'),
+      ),
+      StoreTemplateEntity(
+        id: 'tmpl-business-tech-pitch',
+        title: '💡 Modern Tech Startup Showcase',
+        category: 'Business',
+        badge: 'Startup',
+        description: 'Clean minimalist lower-thirds, modern blue accents, sleek product presentation cuts, and inspiring corporate sound.',
+        author: 'InnovateMedia',
+        aspectRatio: AspectRatioType.ratio16_9,
+        durationMs: 14000,
+        clipsCount: 4,
+        downloadsCount: 48900,
+        previewGradientStart: '0xFF1E3C72',
+        previewGradientEnd: '0xFF2A5298',
+        previewVideoUrl: 'assets/demo/cyberpunk_arcade.mp4',
+        previewImageUrl: 'assets/demo/tmpl-cinematic-youtube.jpg',
+        isPro: false,
+        isNew: true,
+        tags: const ['Business', 'Tech', 'Startup', 'Product', 'Pitch'],
+        audioTrackTitle: 'Epic Orchestral Horizon',
+        audioPath: 'assets/demo/cinematic_audio.wav',
+        isDownloaded: _downloadedIds.contains('tmpl-business-tech-pitch'),
+      ),
+      StoreTemplateEntity(
+        id: 'tmpl-festival-fireworks',
+        title: '🎆 Midnight Fireworks Celebration',
+        category: 'Festival',
+        badge: 'Spectacular',
+        description: 'Exploding night sky fireworks, sparkling glow filters, festive crowd excitement, and grand celebratory orchestral hits.',
+        author: 'SparkVisuals',
+        aspectRatio: AspectRatioType.ratio9_16,
+        durationMs: 12000,
+        clipsCount: 4,
+        downloadsCount: 56700,
+        previewGradientStart: '0xFFFF512F',
+        previewGradientEnd: '0xFFDD2476',
+        previewVideoUrl: 'assets/demo/tokyo_shinjuku.mp4',
+        previewImageUrl: 'assets/demo/tmpl-golden-hour.jpg',
+        isPro: false,
+        isTrending: true,
+        tags: const ['Festival', 'Fireworks', 'NewYear', 'Celebration', 'Party'],
+        audioTrackTitle: 'Sunset Island Tropical House',
+        audioPath: 'assets/demo/tropical_beat.wav',
+        isDownloaded: _downloadedIds.contains('tmpl-festival-fireworks'),
+      ),
+      StoreTemplateEntity(
+        id: 'tmpl-family-holiday-joy',
+        title: '🏡 Cozy Family Holiday Reunion',
+        category: 'Family',
+        badge: 'Heartfelt',
+        description: 'Warm fireplace glow, smiling candid faces, nostalgic film frame dissolves, and relaxing holiday acoustic warmth.',
+        author: 'Hearthside',
+        aspectRatio: AspectRatioType.ratio9_16,
+        durationMs: 13000,
+        clipsCount: 4,
+        downloadsCount: 41800,
+        previewGradientStart: '0xFFF7971E',
+        previewGradientEnd: '0xFFFFD200',
+        previewVideoUrl: 'assets/demo/ramen_bar.mp4',
+        previewImageUrl: 'assets/demo/tmpl-golden-hour.jpg',
+        isPro: false,
+        isPopular: true,
+        tags: const ['Family', 'Holiday', 'Reunion', 'Home', 'Memories'],
+        audioTrackTitle: 'Midnight Coffee LoFi Chill',
+        audioPath: 'assets/demo/lofi_beat.wav',
+        isDownloaded: _downloadedIds.contains('tmpl-family-holiday-joy'),
       ),
     ];
   }
