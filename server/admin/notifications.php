@@ -1,6 +1,18 @@
 <?php
+// Enable diagnostics to prevent generic HTTP 500 pages on shared hosting
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
+
 $pageTitle = 'In-App Notifications';
 require_once __DIR__ . '/includes/auth_check.php';
+
+// Safe optional inclusion of FCM push notification helper
+if (file_exists(__DIR__ . '/../helpers/fcm_helper.php')) {
+    @require_once __DIR__ . '/../helpers/fcm_helper.php';
+} elseif (file_exists(__DIR__ . '/helpers/fcm_helper.php')) {
+    @require_once __DIR__ . '/helpers/fcm_helper.php';
+}
 
 $error = '';
 $success = '';
@@ -18,9 +30,23 @@ try {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             INDEX idx_notif_target (target_user_id),
             INDEX idx_notif_active (is_active)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     ");
-} catch (\Throwable $e) {}
+} catch (\Throwable $e) {
+    try {
+        Database::query("
+            CREATE TABLE IF NOT EXISTS notifications (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                title VARCHAR(255) NOT NULL,
+                message TEXT NOT NULL,
+                type VARCHAR(50) NOT NULL DEFAULT 'info',
+                target_user_id VARCHAR(64) NULL,
+                is_active TINYINT(1) DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ");
+    } catch (\Throwable $e2) {}
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrf = $_POST['csrf_token'] ?? '';
@@ -41,26 +67,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (empty($title) || empty($message)) {
                 $error = 'Title and message are required.';
             } else {
-                Database::query(
-                    "INSERT INTO notifications (title, message, type, target_user_id, is_active)
-                     VALUES (?, ?, ?, ?, 1)",
-                    [$title, $message, $type, !empty($targetUserId) ? $targetUserId : null]
-                );
-                $targetLabel = !empty($targetUserId) ? "user {$targetUserId}" : 'all users';
-                Auth::logActivity('admin', (string)$currentAdmin['id'], $currentAdmin['name'], 'notification_sent', "Dispatched announcement '{$title}' to {$targetLabel}");
-                $success = "Notification sent successfully to {$targetLabel}.";
+                try {
+                    Database::query(
+                        "INSERT INTO notifications (title, message, type, target_user_id, is_active)
+                         VALUES (?, ?, ?, ?, 1)",
+                        [$title, $message, $type, !empty($targetUserId) ? $targetUserId : null]
+                    );
+                    $targetLabel = !empty($targetUserId) ? "user {$targetUserId}" : 'all users';
+                    Auth::logActivity('admin', (string)$currentAdmin['id'], $currentAdmin['name'], 'notification_sent', "Dispatched announcement '{$title}' to {$targetLabel}");
+
+                    // Optional real device push notification via FCM
+                    if (class_exists('FcmHelper')) {
+                        try {
+                            if (!empty($targetUserId)) {
+                                $fcmResult = FcmHelper::sendToUser($targetUserId, $title, $message, $type);
+                            } else {
+                                $fcmResult = FcmHelper::send($title, $message, $type, 'all_users');
+                            }
+
+                            if (!empty($fcmResult['success'])) {
+                                $success = "Notification dispatched to {$targetLabel} and device push sent ✓";
+                            } else {
+                                $pushErr = $fcmResult['error'] ?? 'Service account not configured';
+                                $success = "Notification saved for {$targetLabel}. (Device push: {$pushErr})";
+                            }
+                        } catch (\Throwable $fcmEx) {
+                            $success = "Notification dispatched successfully to {$targetLabel}.";
+                        }
+                    } else {
+                        $success = "Notification dispatched successfully to {$targetLabel}.";
+                    }
+                } catch (\Throwable $ex) {
+                    $error = "Failed to dispatch notification: " . $ex->getMessage();
+                }
             }
         } elseif ($action === 'delete_notification') {
             $id = (int)($_POST['id'] ?? 0);
-            Database::query("DELETE FROM notifications WHERE id = ?", [$id]);
-            Auth::logActivity('admin', (string)$currentAdmin['id'], $currentAdmin['name'], 'notification_deleted', "Deleted notification ID {$id}");
-            $success = "Notification removed.";
+            try {
+                Database::query("DELETE FROM notifications WHERE id = ?", [$id]);
+                Auth::logActivity('admin', (string)$currentAdmin['id'], $currentAdmin['name'], 'notification_deleted', "Deleted notification ID {$id}");
+                $success = "Notification removed.";
+            } catch (\Throwable $ex) {
+                $error = "Failed to delete notification: " . $ex->getMessage();
+            }
         }
     }
 }
 
-$notifications = Database::fetchAll("SELECT * FROM notifications ORDER BY created_at DESC LIMIT 50");
-$users = Database::fetchAll("SELECT id, email, display_name FROM users ORDER BY display_name ASC LIMIT 100");
+$notifications = [];
+try {
+    $notifications = Database::fetchAll("SELECT * FROM notifications ORDER BY created_at DESC LIMIT 50") ?: [];
+} catch (\Throwable $e) {
+    $notifications = [];
+}
+
+$users = [];
+try {
+    $users = Database::fetchAll("SELECT id, email, display_name FROM users ORDER BY display_name ASC LIMIT 100") ?: [];
+} catch (\Throwable $e) {
+    try {
+        $users = Database::fetchAll("SELECT id, email, name AS display_name FROM users ORDER BY name ASC LIMIT 100") ?: [];
+    } catch (\Throwable $e2) {
+        try {
+            $users = Database::fetchAll("SELECT id, email FROM users ORDER BY id ASC LIMIT 100") ?: [];
+        } catch (\Throwable $e3) {
+            $users = [];
+        }
+    }
+}
 
 require_once __DIR__ . '/includes/header.php';
 require_once __DIR__ . '/includes/sidebar.php';
@@ -130,7 +204,7 @@ require_once __DIR__ . '/includes/navbar.php';
                             <?php endif; ?>
                         </td>
                         <td class="small text-muted">
-                            <?= date('M d, Y H:i', strtotime($n['created_at'])) ?>
+                            <?= !empty($n['created_at']) ? date('M d, Y H:i', strtotime($n['created_at'])) : 'Recent' ?>
                         </td>
                         <td class="text-end">
                             <form method="POST" action="" onsubmit="return confirm('Remove this notification?');">
@@ -167,9 +241,12 @@ require_once __DIR__ . '/includes/navbar.php';
                         <label class="form-label small fw-semibold">Target Audience</label>
                         <select name="target_user_id" class="form-select">
                             <option value="">Broadcast to All Users (Global)</option>
-                            <?php foreach ($users as $usr): ?>
+                            <?php foreach ($users as $usr): 
+                                $uName = !empty($usr['display_name']) ? $usr['display_name'] : (!empty($usr['name']) ? $usr['name'] : (!empty($usr['email']) ? $usr['email'] : 'User ' . $usr['id']));
+                                $uEmail = !empty($usr['email']) ? ' (' . htmlspecialchars($usr['email']) . ')' : '';
+                            ?>
                                 <option value="<?= htmlspecialchars($usr['id']) ?>">
-                                    <?= htmlspecialchars($usr['display_name']) ?> (<?= htmlspecialchars($usr['email']) ?>)
+                                    <?= htmlspecialchars($uName) ?><?= $uEmail ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>

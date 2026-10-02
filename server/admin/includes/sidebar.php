@@ -97,6 +97,13 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             <i class="bi bi-shield-check"></i>
             <span>Watermark & Export</span>
         </a>
+        <a href="<?= APP_BASE_URL ?>/admin/privacy-policy.php" class="sidebar-nav-link <?= $currentPage === 'privacy-policy.php' ? 'active' : '' ?>">
+            <i class="bi bi-shield-lock-fill"></i>
+            <div class="d-flex align-items-center justify-content-between w-100">
+                <span>Privacy Policy &amp; Terms</span>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size:9px;padding:2px 6px;">LIVE</span>
+            </div>
+        </a>
         <a href="<?= APP_BASE_URL ?>/admin/settings.php" class="sidebar-nav-link <?= $currentPage === 'settings.php' ? 'active' : '' ?>">
             <i class="bi bi-gear-fill"></i>
             <span>App Settings & Version</span>

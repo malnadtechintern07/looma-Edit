@@ -31,85 +31,102 @@ final GoRouter appRouter = GoRouter(
       FirebaseService.analytics.observer,
   ],
   routes: [
-    GoRoute(
-      path: RoutePaths.home,
-      name: RouteNames.home,
-      builder: (context, state) => PusherHubMessageHost(
+    // ─── ShellRoute ────────────────────────────────────────────────────────────
+    // PusherHubMessageHost MUST be inside the Navigator so that its calls to
+    // showDialog / showModalBottomSheet / Overlay.of(context) find a valid
+    // Navigator and Overlay ancestor.
+    //
+    // A plain GoRoute builder is torn down whenever the user navigates away,
+    // which resets the message queue and kills any pending overlay.
+    //
+    // A ShellRoute creates a persistent shell widget that stays mounted for the
+    // entire app lifetime while its child slot switches between the routes
+    // below — giving PusherHubMessageHost a stable home inside the Navigator
+    // and across every screen transition.
+    ShellRoute(
+      builder: (context, state, child) => PusherHubMessageHost(
         pusherHub: pusherHub,
-        child: const HomeScreen(),
+        child: child,
       ),
-    ),
-    GoRoute(
-      path: RoutePaths.settings,
-      name: RouteNames.settings,
-      builder: (context, state) => const SettingsScreen(),
-    ),
-    GoRoute(
-      path: RoutePaths.aiPhotoEdit,
-      name: RouteNames.aiPhotoEdit,
-      builder: (context, state) => const AiPhotoEditScreen(),
-    ),
-    GoRoute(
-      path: RoutePaths.aiVideoEdit,
-      name: RouteNames.aiVideoEdit,
-      builder: (context, state) => const AiVideoEditScreen(),
-    ),
-    GoRoute(
-      path: RoutePaths.auth,
-      name: RouteNames.auth,
-      builder: (context, state) => const AuthScreen(),
-    ),
-    GoRoute(
-      path: RoutePaths.editor,
-      name: RouteNames.editor,
-      builder: (context, state) {
-        final projectId = state.pathParameters['projectId'] ?? '';
-        return EditorScreen(projectId: projectId);
-      },
-    ),
-    GoRoute(
-      path: RoutePaths.photoEditor,
-      name: 'photoEditor',
-      builder: (context, state) {
-        final extraProj = state.extra;
-        if (extraProj != null) {
-          return PhotoEditorScreen(project: extraProj as dynamic);
-        }
-        return const SizedBox.shrink();
-      },
-    ),
-    GoRoute(
-      path: RoutePaths.store,
-      name: RouteNames.store,
-      builder: (context, state) => const AssetStoreScreen(),
-    ),
-    GoRoute(
-      path: RoutePaths.cloud,
-      name: RouteNames.cloud,
-      builder: (context, state) => const CloudSyncScreen(),
-    ),
-    GoRoute(
-      path: RoutePaths.export,
-      name: RouteNames.export,
-      builder: (context, state) {
-        final projectId = state.pathParameters['projectId'] ?? '';
-        return ExportScreen(projectId: projectId);
-      },
-    ),
-    GoRoute(
-      path: RoutePaths.privacyPolicy,
-      name: RouteNames.privacyPolicy,
-      builder: (context, state) => const PrivacyPolicyScreen(),
-    ),
-    GoRoute(
-      path: RoutePaths.helpCenter,
-      name: RouteNames.helpCenter,
-      builder: (context, state) => const HelpCenterScreen(),
-    ),
-    GoRoute(
-      path: RoutePaths.contactSupport,
-      name: RouteNames.contactSupport,
-      builder: (context, state) => const ContactSupportScreen(),
+      routes: [
+        GoRoute(
+          path: RoutePaths.home,
+          name: RouteNames.home,
+          builder: (context, state) => const HomeScreen(),
+        ),
+        GoRoute(
+          path: RoutePaths.settings,
+          name: RouteNames.settings,
+          builder: (context, state) => const SettingsScreen(),
+        ),
+        GoRoute(
+          path: RoutePaths.aiPhotoEdit,
+          name: RouteNames.aiPhotoEdit,
+          builder: (context, state) => const AiPhotoEditScreen(),
+        ),
+        GoRoute(
+          path: RoutePaths.aiVideoEdit,
+          name: RouteNames.aiVideoEdit,
+          builder: (context, state) => const AiVideoEditScreen(),
+        ),
+        GoRoute(
+          path: RoutePaths.auth,
+          name: RouteNames.auth,
+          builder: (context, state) => const AuthScreen(),
+        ),
+        GoRoute(
+          path: RoutePaths.editor,
+          name: RouteNames.editor,
+          builder: (context, state) {
+            final projectId = state.pathParameters['projectId'] ?? '';
+            return EditorScreen(projectId: projectId);
+          },
+        ),
+        GoRoute(
+          path: RoutePaths.photoEditor,
+          name: 'photoEditor',
+          builder: (context, state) {
+            final extraProj = state.extra;
+            if (extraProj != null) {
+              return PhotoEditorScreen(project: extraProj as dynamic);
+            }
+            return const SizedBox.shrink();
+          },
+        ),
+        GoRoute(
+          path: RoutePaths.store,
+          name: RouteNames.store,
+          builder: (context, state) => const AssetStoreScreen(),
+        ),
+        GoRoute(
+          path: RoutePaths.cloud,
+          name: RouteNames.cloud,
+          builder: (context, state) => const CloudSyncScreen(),
+        ),
+        GoRoute(
+          path: RoutePaths.export,
+          name: RouteNames.export,
+          builder: (context, state) {
+            final projectId = state.pathParameters['projectId'] ?? '';
+            return ExportScreen(projectId: projectId);
+          },
+        ),
+        GoRoute(
+          path: RoutePaths.privacyPolicy,
+          name: RouteNames.privacyPolicy,
+          builder: (context, state) => const PrivacyPolicyScreen(),
+        ),
+        GoRoute(
+          path: RoutePaths.helpCenter,
+          name: RouteNames.helpCenter,
+          builder: (context, state) => const HelpCenterScreen(),
+        ),
+        GoRoute(
+          path: RoutePaths.contactSupport,
+          name: RouteNames.contactSupport,
+          builder: (context, state) => const ContactSupportScreen(),
+        ),
+      ],
     ),
   ],
 );

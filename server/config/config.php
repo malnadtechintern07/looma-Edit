@@ -24,6 +24,27 @@ if ($isLocalhost) {
 }
 error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED);
 
+// Graceful Error & Exception Handler (prevents opaque HTTP 500 errors on free hosting)
+set_exception_handler(function(Throwable $e) {
+    if (str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/')) {
+        http_response_code(200);
+        echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Admin Error — ProCut</title></head><body style="background:#f8f9fe;margin:0;padding:20px;">';
+        echo '<div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;padding:30px;background:#fff;border:1.5px solid #fed7d7;border-radius:14px;margin:30px auto;max-width:850px;box-shadow:0 10px 30px rgba(0,0,0,0.06);">';
+        echo '<h3 style="color:#c53030;margin-top:0;display:flex;align-items:center;gap:10px;">⚠️ ProCut Admin Error</h3>';
+        echo '<p style="color:#4a5568;font-size:14px;line-height:1.5;">An error occurred while executing this administrative action:</p>';
+        echo '<pre style="background:#1a202c;color:#f7fafc;padding:16px;border-radius:8px;overflow-x:auto;font-size:13px;line-height:1.6;">' . htmlspecialchars($e->getMessage()) . "\n\nFile: " . htmlspecialchars($e->getFile()) . ' (Line ' . $e->getLine() . ')' . '</pre>';
+        echo '<div style="margin-top:20px;display:flex;gap:10px;">';
+        echo '<a href="dashboard.php" style="padding:10px 18px;background:#0d6efd;color:#fff;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600;">Return to Dashboard</a>';
+        echo '<a href="javascript:history.back()" style="padding:10px 18px;background:#e2e8f0;color:#334155;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600;">Go Back</a>';
+        echo '</div></div></body></html>';
+        exit;
+    }
+    http_response_code(500);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    exit;
+});
+
 // Timezone
 date_default_timezone_set('UTC');
 
@@ -102,3 +123,11 @@ $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
 $protocol = $isHttps ? 'https' : 'http';
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost:5050';
 define('APP_BASE_URL', "{$protocol}://{$host}");
+
+// ============================================================
+// Firebase Cloud Messaging – Service Account Key
+// ============================================================
+// Download from: Firebase Console → Project Settings → Service Accounts
+//                → Generate new private key  → save as firebase-service-account.json
+// Then upload the file to: procut_backend_infinityfree/config/firebase-service-account.json
+define('FCM_SERVICE_ACCOUNT_PATH', BASE_PATH . '/config/firebase-service-account.json');

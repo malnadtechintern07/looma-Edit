@@ -1,7 +1,11 @@
 <?php
 $pageTitle = 'Music Library';
 require_once __DIR__ . '/includes/auth_check.php';
-require_once __DIR__ . '/../helpers/uploader.php';
+if (file_exists(__DIR__ . '/../helpers/uploader.php')) {
+    require_once __DIR__ . '/../helpers/uploader.php';
+} elseif (file_exists(__DIR__ . '/helpers/uploader.php')) {
+    require_once __DIR__ . '/helpers/uploader.php';
+}
 
 $error = '';
 $success = '';

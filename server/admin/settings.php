@@ -6,6 +6,10 @@ $error   = '';
 $success = '';
 $activeTab = $_GET['tab'] ?? 'branding';
 
+$defaultPrivacyPolicy = "PROCut PRIVACY COMMITMENT\n\nYour media belongs to you. ProCut is engineered with a strict offline-first architecture: your source videos, voiceovers, photos, and project timelines are processed directly on your device and never uploaded to public clouds without your explicit direction.\n\n1. OFFLINE-FIRST PROCESSING & MEDIA STORAGE\nAll video trimming, timeline slicing, multi-track layering, filter rendering, and audio ducking take place strictly within your mobile device's native hardware. ProCut does not transmit your source video clips, photos, or voiceover recordings to our servers for processing.\n\n2. DEVICE PERMISSIONS & PURPOSE\n• Photos, Media & Storage: Required solely to import video clips into your editing timeline and export rendered MP4 videos into your camera roll (DCIM/Movies).\n• Microphone: Requested only when you intentionally record a custom voiceover track in the audio timeline.\n• Camera: Used only if you choose to record new footage directly inside the media picker.\n• Notifications: Used to notify you when background video rendering or cloud backup is completed.\nWe never access, index, or scan any files, photos, or audio recordings outside of what you explicitly select for your project.\n\n3. OPTIONAL CLOUD SYNC & ACCOUNT DATA\nIf you register for a ProCut Cloud account, we store your account email, securely hashed password, and project metadata. When you choose to back up a project, your project JSON draft is transmitted over TLS 1.3 encryption and stored in a private storage vault accessible only by your authenticated session.\n\n4. CACHE & TEMPORARY VIDEO FRAGMENTS\nDuring video playback, preview thumbnails and audio waveform caches are saved in your app temporary sandbox for stutter-free performance. You can purge this cache anytime in the app settings under \"Clear Temporary Cache\" without losing any saved project drafts.\n\n5. ZERO ADVERTISING & NO THIRD-PARTY DATA SELLING\nProCut contains no advertising tracking SDKs, no behavioral trackers, and no third-party data brokers. We never sell, rent, or monetize your creative media, exported clips, email addresses, or personal information under any circumstance.\n\n6. USER RIGHTS & COMPLETE DATA DELETION\nYou retain full ownership of your content. You have the right to export your data, clear all cloud backups, or delete your ProCut account and associated data entirely at any time. Deleting a cloud project immediately purges its files from our cloud storage servers.\n\n7. POLICY UPDATES & CONTACT\nWe may occasionally update this Privacy Policy to reflect app enhancements or legal requirements. Any modifications will be updated directly in this app.\nFor questions, data requests, or privacy inquiries, please contact our support team at support@procut.app.";
+
+$defaultTermsConditions = "TERMS & CONDITIONS\n\n1. ACCEPTANCE OF TERMS\nBy downloading, installing, or using ProCut (\"the App\"), you agree to be bound by these Terms and Conditions. If you do not agree, please do not use the App.\n\n2. LICENSE & USAGE RIGHTS\nProCut grants you a personal, non-exclusive, non-transferable, revocable license to use the App for personal or commercial video editing and creation in accordance with these Terms.\n\n3. USER CONTENT & OWNERSHIP\nYou retain 100% intellectual property ownership of all videos, audio files, images, and projects created or edited within ProCut. You are solely responsible for ensuring you have the legal right to use any third-party copyrighted music, audio, or footage in your projects.\n\n4. SUBSCRIPTIONS & IN-APP PURCHASES\nProCut offers optional Pro features, including watermark removal, 4K 60FPS export, and premium AI tools. Subscriptions and one-time purchases are processed securely through Google Play Billing and are subject to Google Play store refund policies.\n\n5. PROHIBITED USES\nYou agree not to reverse engineer, decompile, or tamper with the App's binary code, circumvent DRM or licensing protections, or use the App to produce or distribute unlawful, harmful, or infringing content.\n\n6. DISCLAIMER OF WARRANTIES & LIMITATION OF LIABILITY\nProCut is provided on an \"as-is\" and \"as-available\" basis. While we strive for seamless multi-track performance, we are not liable for any lost data, corrupt project files, or hardware rendering failures. Always maintain backups of your vital media.\n\n7. TERMINATION & MODIFICATIONS\nWe reserve the right to modify these Terms at any time. Continued use of the App following updates constitutes your acceptance of the updated Terms.\n\n8. CONTACT US\nFor questions or support regarding these Terms, contact us at support@procut.app.";
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrf = $_POST['csrf_token'] ?? '';
     if (!Auth::validateCsrfToken($csrf)) {
@@ -74,13 +78,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $supportFields = ['support_email','support_phone','support_whatsapp','support_website','help_center_url','about_app_description','about_company_name','about_copyright_text'];
             foreach ($supportFields as $k) {
                 if (isset($_POST[$k])) {
-                    Database::query("UPDATE app_settings SET setting_value = ? WHERE setting_key = ?", [trim($_POST[$k]), $k]);
+                    $val = trim($_POST[$k]);
+                    Database::query(
+                        "INSERT INTO app_settings (setting_key, setting_value, setting_group) 
+                         VALUES (?, ?, 'support') 
+                         ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)",
+                        [$k, $val]
+                    );
                 }
             }
-            // Long-text legal fields
+            // Long-text legal fields (upsert into app_settings)
             foreach (['privacy_policy_content','terms_conditions_content'] as $k) {
                 if (isset($_POST[$k])) {
-                    Database::query("UPDATE app_settings SET setting_value = ? WHERE setting_key = ?", [$_POST[$k], $k]);
+                    $val = $_POST[$k];
+                    Database::query(
+                        "INSERT INTO app_settings (setting_key, setting_value, setting_group) 
+                         VALUES (?, ?, 'legal') 
+                         ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)",
+                        [$k, $val]
+                    );
                 }
             }
 
@@ -116,6 +132,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $settingsRows = Database::fetchAll("SELECT setting_key, setting_value FROM app_settings");
 $s = [];
 foreach ($settingsRows as $row) $s[$row['setting_key']] = $row['setting_value'];
+
+// Auto-seed legal settings if empty in DB (fail-safe)
+try {
+    if (empty($s['privacy_policy_content'])) {
+        Database::query(
+            "INSERT INTO app_settings (setting_key, setting_value, setting_group, description) 
+             VALUES ('privacy_policy_content', ?, 'legal', 'App Privacy Policy plain text content') 
+             ON DUPLICATE KEY UPDATE setting_value = IF(setting_value = '' OR setting_value IS NULL, VALUES(setting_value), setting_value)",
+            [$defaultPrivacyPolicy]
+        );
+        $s['privacy_policy_content'] = $defaultPrivacyPolicy;
+    }
+    if (empty($s['terms_conditions_content'])) {
+        Database::query(
+            "INSERT INTO app_settings (setting_key, setting_value, setting_group, description) 
+             VALUES ('terms_conditions_content', ?, 'legal', 'App Terms & Conditions plain text content') 
+             ON DUPLICATE KEY UPDATE setting_value = IF(setting_value = '' OR setting_value IS NULL, VALUES(setting_value), setting_value)",
+            [$defaultTermsConditions]
+        );
+        $s['terms_conditions_content'] = $defaultTermsConditions;
+    }
+} catch (\Throwable $e) {
+    if (empty($s['privacy_policy_content'])) $s['privacy_policy_content'] = $defaultPrivacyPolicy;
+    if (empty($s['terms_conditions_content'])) $s['terms_conditions_content'] = $defaultTermsConditions;
+}
 
 // Parse video/photo tools
 $videoTools = json_decode($s['video_editor_tools_json'] ?? '[]', true) ?: [];
@@ -561,16 +602,132 @@ function checked_if($s, $key, $expected = '1') {
         </div>
     </div>
     <div class="col-lg-6">
+        <!-- ── Privacy Policy ── -->
         <div class="pro-card p-4">
-            <h5 class="fw-bold mb-3"><i class="bi bi-shield-lock me-2"></i>Privacy Policy</h5>
-            <textarea name="privacy_policy_content" class="form-control" rows="8" placeholder="Write or paste your full Privacy Policy here. Supports plain text."><?= htmlspecialchars($s['privacy_policy_content']??'') ?></textarea>
-            <small class="text-muted">Displayed inside the app when users tap "Privacy Policy".</small>
+            <div class="d-flex align-items-center justify-content-between mb-1">
+                <h5 class="fw-bold mb-0"><i class="bi bi-shield-lock me-2 text-primary"></i>Privacy Policy</h5>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="loadDefaultPrivacyPolicy()" style="font-size:12px; padding:3px 10px;">
+                        <i class="bi bi-magic me-1"></i>Insert Standard ProCut Policy
+                    </button>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:11px;">
+                        <i class="bi bi-phone me-1"></i>Live in App
+                    </span>
+                </div>
+            </div>
+            <p class="text-muted small mb-3">
+                This text appears word-for-word inside the app when users tap <strong>Privacy Policy</strong>.
+                Separate sections with a blank line — each blank line creates a new paragraph in the app.
+            </p>
+
+            <!-- Formatting Tips -->
+            <div class="alert alert-info py-2 px-3 small mb-3" style="border-radius:10px;">
+                <i class="bi bi-lightbulb me-1"></i>
+                <strong>Tips:</strong> Use a blank line between sections. You can write section headings in ALL CAPS or with numbered prefixes (e.g. <code>1. Data We Collect</code>).
+            </div>
+
+            <div class="position-relative">
+                <textarea
+                    name="privacy_policy_content"
+                    id="privacyPolicyTextarea"
+                    class="form-control font-monospace"
+                    rows="16"
+                    placeholder="Example:&#10;&#10;1. Data We Collect&#10;We collect only the information necessary to provide our services...&#10;&#10;2. How We Use Your Data&#10;Your data is used solely to improve your experience..."
+                    oninput="updateLegalCounter('privacyPolicyTextarea','privacyPolicyCounter','privacyPolicyPreview')"
+                ><?= htmlspecialchars($s['privacy_policy_content']??'') ?></textarea>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-1 mb-3">
+                <small class="text-muted">Plain text · blank line = new paragraph in app</small>
+                <small id="privacyPolicyCounter" class="text-muted font-monospace">0 chars</small>
+            </div>
+
+            <!-- Live preview -->
+            <div class="border rounded-3 p-3 bg-light" style="min-height:80px;">
+                <p class="small text-muted fw-semibold mb-2"><i class="bi bi-eye me-1"></i>App Preview</p>
+                <div id="privacyPolicyPreview" class="small text-dark" style="line-height:1.7; white-space:pre-wrap; word-break:break-word;">
+                    <?= htmlspecialchars($s['privacy_policy_content']??'') ?: '<span class="text-muted fst-italic">Start typing above to see a preview…</span>' ?>
+                </div>
+            </div>
         </div>
+
+        <!-- ── Terms & Conditions ── -->
         <div class="pro-card p-4 mt-4">
-            <h5 class="fw-bold mb-3"><i class="bi bi-file-text me-2"></i>Terms & Conditions</h5>
-            <textarea name="terms_conditions_content" class="form-control" rows="8" placeholder="Write or paste your full Terms & Conditions here."><?= htmlspecialchars($s['terms_conditions_content']??'') ?></textarea>
+            <div class="d-flex align-items-center justify-content-between mb-1">
+                <h5 class="fw-bold mb-0"><i class="bi bi-file-text me-2 text-primary"></i>Terms & Conditions</h5>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="loadDefaultTermsConditions()" style="font-size:12px; padding:3px 10px;">
+                        <i class="bi bi-magic me-1"></i>Insert Standard Terms
+                    </button>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:11px;">
+                        <i class="bi bi-phone me-1"></i>Live in App
+                    </span>
+                </div>
+            </div>
+            <p class="text-muted small mb-3">Displayed inside the app when users tap <strong>Terms & Conditions</strong>. Same formatting rules apply — blank line = new paragraph.</p>
+            <textarea
+                name="terms_conditions_content"
+                id="termsTextarea"
+                class="form-control font-monospace"
+                rows="12"
+                placeholder="Write or paste your full Terms & Conditions here."
+                oninput="updateLegalCounter('termsTextarea','termsCounter','termsPreview')"
+            ><?= htmlspecialchars($s['terms_conditions_content']??'') ?></textarea>
+            <div class="d-flex justify-content-between align-items-center mt-1 mb-3">
+                <small class="text-muted">Plain text · blank line = new paragraph in app</small>
+                <small id="termsCounter" class="text-muted font-monospace">0 chars</small>
+            </div>
+            <div class="border rounded-3 p-3 bg-light" style="min-height:60px;">
+                <p class="small text-muted fw-semibold mb-2"><i class="bi bi-eye me-1"></i>App Preview</p>
+                <div id="termsPreview" class="small text-dark" style="line-height:1.7; white-space:pre-wrap; word-break:break-word;">
+                    <?= htmlspecialchars($s['terms_conditions_content']??'') ?: '<span class="text-muted fst-italic">Start typing above to see a preview…</span>' ?>
+                </div>
+            </div>
         </div>
     </div>
+
+    <script>
+    const defaultPrivacyPolicyText = <?= json_encode($defaultPrivacyPolicy) ?>;
+    const defaultTermsConditionsText = <?= json_encode($defaultTermsConditions) ?>;
+
+    function loadDefaultPrivacyPolicy() {
+        const ta = document.getElementById('privacyPolicyTextarea');
+        if (!ta) return;
+        ta.value = defaultPrivacyPolicyText;
+        updateLegalCounter('privacyPolicyTextarea','privacyPolicyCounter','privacyPolicyPreview');
+    }
+
+    function loadDefaultTermsConditions() {
+        const ta = document.getElementById('termsTextarea');
+        if (!ta) return;
+        ta.value = defaultTermsConditionsText;
+        updateLegalCounter('termsTextarea','termsCounter','termsPreview');
+    }
+
+    function updateLegalCounter(textareaId, counterId, previewId) {
+        const ta = document.getElementById(textareaId);
+        const counter = document.getElementById(counterId);
+        const preview = document.getElementById(previewId);
+        if (!ta || !counter || !preview) return;
+        const len = ta.value.length;
+        counter.textContent = len.toLocaleString() + ' chars';
+        counter.className = 'font-monospace small ' + (len > 4000 ? 'text-danger fw-bold' : 'text-muted');
+        preview.innerHTML = ta.value.trim()
+            ? ta.value.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            : '<span class="text-muted fst-italic">Start typing above to see a preview…</span>';
+    }
+    // Init counters on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        ['privacyPolicyTextarea','termsTextarea'].forEach(function(id) {
+            const ta = document.getElementById(id);
+            if (!ta) return;
+            const map = {
+                'privacyPolicyTextarea': ['privacyPolicyCounter','privacyPolicyPreview'],
+                'termsTextarea':         ['termsCounter','termsPreview']
+            };
+            updateLegalCounter(id, map[id][0], map[id][1]);
+        });
+    });
+    </script>
 </div>
 <div class="d-flex justify-content-end mt-4"><button type="submit" class="btn btn-primary px-5 py-2 fw-semibold">Save Support & Legal</button></div>
 </form></div>
