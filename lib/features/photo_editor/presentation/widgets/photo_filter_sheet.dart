@@ -199,101 +199,142 @@ class _PhotoFilterSheetState extends State<PhotoFilterSheet> {
 
               // Header
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(7),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.18),
-                          borderRadius: BorderRadius.circular(10),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.palette_outlined,
+                            color: AppColors.primaryLight,
+                            size: 18,
+                          ),
                         ),
-                        child: const Icon(
-                          Icons.palette_outlined,
-                          color: AppColors.primaryLight,
-                          size: 18,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'Photo Color Filters',
-                                style: AppTypography.titleMedium.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 1.5,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.secondary.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  '${FilterType.values.length - 1} PRO',
-                                  style: const TextStyle(
-                                    color: AppColors.secondaryLight,
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.bold,
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      'Photo Color Filters',
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppTypography.titleMedium.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                      ),
+                                    ),
                                   ),
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 1.5,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.secondary.withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      '${FilterType.values.length - 1} PRO',
+                                      style: const TextStyle(
+                                        color: AppColors.secondaryLight,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Text(
+                                isNone
+                                    ? 'Tap any filter to preview live'
+                                    : '${_currentFilter.label} • ${(_currentIntensity * 100).round()}% strength',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 11,
                                 ),
                               ),
                             ],
                           ),
-                          Text(
-                            isNone
-                                ? 'Tap any filter to preview live'
-                                : '${_currentFilter.label} • ${(_currentIntensity * 100).round()}% strength',
-                            style: const TextStyle(
-                              color: Colors.white54,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
-
+                  const SizedBox(width: 6),
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       if (!isNone)
-                        TextButton.icon(
-                          onPressed: _removeFilter,
-                          icon: const Icon(
-                            Icons.delete_outline,
-                            size: 15,
-                            color: AppColors.accentRose,
-                          ),
-                          label: const Text(
-                            'Remove',
-                            style: TextStyle(
-                              color: AppColors.accentRose,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                        Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: InkWell(
+                            onTap: _removeFilter,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.accentRose.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: AppColors.accentRose.withValues(alpha: 0.3),
+                                  width: 0.8,
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.delete_outline,
+                                    size: 14,
+                                    color: AppColors.accentRose,
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Remove',
+                                    style: TextStyle(
+                                      color: AppColors.accentRose,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            minimumSize: Size.zero,
                           ),
                         ),
-                      const SizedBox(width: 4),
-                      IconButton(
-                        icon: const Icon(Icons.check, color: AppColors.success),
-                        onPressed: () => Navigator.of(context).pop(),
-                        tooltip: 'Apply & Close',
+                      InkWell(
+                        onTap: () => Navigator.of(context).pop(),
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppColors.success.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: AppColors.success.withValues(alpha: 0.3),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.check,
+                            color: AppColors.success,
+                            size: 18,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -316,44 +357,51 @@ class _PhotoFilterSheetState extends State<PhotoFilterSheet> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.tune,
-                                size: 14,
-                                color: AppColors.primaryLight,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Filter Intensity',
-                                style: AppTypography.labelSmall.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
+                          Flexible(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.tune,
+                                  size: 14,
+                                  color: AppColors.primaryLight,
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  '${(_currentIntensity * 100).round()}%',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    'Filter Intensity',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppTypography.labelSmall.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    '${(_currentIntensity * 100).round()}%',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-
+                          const SizedBox(width: 6),
                           Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               // Hold to Compare Button
                               GestureDetector(
@@ -372,6 +420,7 @@ class _PhotoFilterSheetState extends State<PhotoFilterSheet> {
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Icon(
                                         _isComparing
@@ -397,9 +446,7 @@ class _PhotoFilterSheetState extends State<PhotoFilterSheet> {
                                   ),
                                 ),
                               ),
-
-                              const SizedBox(width: 8),
-
+                              const SizedBox(width: 6),
                               // Quick 100% Reset
                               InkWell(
                                 onTap: () => _onIntensityChanged(1.0),

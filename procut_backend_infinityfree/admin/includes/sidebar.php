@@ -1,5 +1,8 @@
 <?php
 $currentPage = basename($_SERVER['PHP_SELF']);
+if (!isset($currentAdmin) && class_exists('Auth')) {
+    $currentAdmin = Auth::getAdmin();
+}
 ?>
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
@@ -115,6 +118,36 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         <a href="<?= APP_BASE_URL ?>/admin/activity-logs.php" class="sidebar-nav-link <?= $currentPage === 'activity-logs.php' ? 'active' : '' ?>">
             <i class="bi bi-journal-text"></i>
             <span>Audit & Activity Logs</span>
+        </a>
+
+        <div class="sidebar-section-title">Account & Session</div>
+        <a href="<?= APP_BASE_URL ?>/admin/change-password.php" class="sidebar-nav-link <?= $currentPage === 'change-password.php' ? 'active' : '' ?>">
+            <i class="bi bi-key-fill"></i>
+            <span>Change Password</span>
+        </a>
+        <a href="<?= APP_BASE_URL ?>/admin/logout.php" class="sidebar-nav-link logout-link">
+            <i class="bi bi-box-arrow-right"></i>
+            <span>Sign Out / Logout</span>
+        </a>
+    </div>
+
+    <!-- Pinned Sidebar Footer -->
+    <div class="sidebar-footer">
+        <div class="admin-info">
+            <div class="admin-avatar">
+                <?= strtoupper(substr($currentAdmin['name'] ?? 'A', 0, 1)) ?>
+            </div>
+            <div class="text-truncate">
+                <div class="text-white fw-semibold small text-truncate" style="line-height: 1.2;">
+                    <?= htmlspecialchars($currentAdmin['name'] ?? 'Admin') ?>
+                </div>
+                <div class="text-secondary text-uppercase" style="font-size: 10px; letter-spacing: 0.5px;">
+                    <?= htmlspecialchars($currentAdmin['role'] ?? 'admin') ?>
+                </div>
+            </div>
+        </div>
+        <a href="<?= APP_BASE_URL ?>/admin/logout.php" class="logout-btn" title="Sign Out / Logout">
+            <i class="bi bi-box-arrow-right"></i>
         </a>
     </div>
 </aside>

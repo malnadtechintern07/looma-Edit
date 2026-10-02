@@ -165,23 +165,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         } elseif ($action === 'sync_bundled_presets') {
             // ── Sync all bundled presets to database ──
-            if (!defined('SYNC_INCLUDED')) {
-                define('SYNC_INCLUDED', true);
+            $seedFuncFile = dirname(__DIR__) . '/seed_ai_presets_func.php';
+            if (file_exists($seedFuncFile)) {
+                require_once $seedFuncFile;
+                $syncResult  = seedAiPresets();
+                $totalCount  = $syncResult['total'];
+                $photoCount  = (int)(Database::fetchOne("SELECT COUNT(*) as c FROM ai_presets WHERE type = 'photo'")['c'] ?? 0);
+                $videoCount  = (int)(Database::fetchOne("SELECT COUNT(*) as c FROM ai_presets WHERE type = 'video'")['c'] ?? 0);
+                Auth::logActivity('admin', (string)$currentAdmin['id'], $currentAdmin['name'], 'ai_presets_synced', "Synced AI presets: {$totalCount} total ({$photoCount} photos, {$videoCount} videos).");
+                $success = "✅ AI presets synced! Database now has {$totalCount} presets ({$photoCount} photos, {$videoCount} videos). Added: {$syncResult['inserted']}, Updated: {$syncResult['updated']}";
+            } else {
+                $error = 'Seed function file not found. Please upload seed_ai_presets_func.php to the server root.';
             }
-            $syncFile = dirname(__DIR__) . '/sync_ai_presets.php';
-            $seedFile = dirname(__DIR__) . '/database/seed_ai_presets.php';
-            if (file_exists($syncFile)) {
-                include $syncFile;
-            } elseif (file_exists($seedFile)) {
-                ob_start();
-                include $seedFile;
-                ob_end_clean();
-            }
-            $totalCount = (int)(Database::fetchOne("SELECT COUNT(*) as c FROM ai_presets")['c'] ?? 0);
-            $photoCount = (int)(Database::fetchOne("SELECT COUNT(*) as c FROM ai_presets WHERE type = 'photo'")['c'] ?? 0);
-            $videoCount = (int)(Database::fetchOne("SELECT COUNT(*) as c FROM ai_presets WHERE type = 'video'")['c'] ?? 0);
-            Auth::logActivity('admin', (string)$currentAdmin['id'], $currentAdmin['name'], 'ai_presets_synced', "Synced AI presets: {$totalCount} total ({$photoCount} photos, {$videoCount} videos).");
-            $success = "✅ AI presets synced! Database now has {$totalCount} presets ({$photoCount} photos, {$videoCount} videos).";
         }
     }
 }
@@ -191,13 +186,14 @@ $totalPresets = (int)(Database::fetchOne("SELECT COUNT(*) as c FROM ai_presets")
 
 // Auto-seed presets seamlessly if table is currently empty
 if ($totalPresets === 0) {
-    if (!defined('SYNC_INCLUDED')) {
-        define('SYNC_INCLUDED', true);
-    }
-    $syncFile = dirname(__DIR__) . '/sync_ai_presets.php';
-    if (file_exists($syncFile)) {
-        include_once $syncFile;
-        $totalPresets = (int)(Database::fetchOne("SELECT COUNT(*) as c FROM ai_presets")['c'] ?? 0);
+    $seedFuncFile = dirname(__DIR__) . '/seed_ai_presets_func.php';
+    if (file_exists($seedFuncFile)) {
+        require_once $seedFuncFile;
+        $autoSeedResult = seedAiPresets();
+        $totalPresets   = $autoSeedResult['total'];
+        if ($totalPresets > 0 && empty($success)) {
+            $success = "✅ AI presets auto-loaded! {$totalPresets} presets are now ready.";
+        }
     }
 }
 
@@ -262,7 +258,7 @@ require_once __DIR__ . '/includes/navbar.php';
             <i class="bi bi-camera-reels-fill me-1"></i> Add Video Prompt
         </button>
         <form method="POST" action="" style="display:inline;" onsubmit="return confirm('Sync all 108 AI photo and video presets into the database? This is safe to run multiple times.');">
-            <input type="hidden" name="csrf_token" value="<?= Auth::generateCsrfToken() ?>">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
             <input type="hidden" name="action" value="sync_bundled_presets">
             <button type="submit" class="btn rounded-pill px-3 shadow-sm" style="background:linear-gradient(135deg,#7928CA,#FF0080);color:#fff;border:none;">
                 <i class="bi bi-cloud-download-fill me-1"></i> Sync All Presets (108)

@@ -16,6 +16,7 @@ import '../widgets/photo_export_dialog.dart';
 import '../widgets/photo_filter_sheet.dart';
 import '../widgets/photo_hsl_sheet.dart';
 import '../widgets/photo_layout_sheet.dart';
+import '../widgets/photo_ratio_sheet.dart';
 import '../widgets/photo_resize_sheet.dart';
 import '../widgets/photo_sticker_sheet.dart';
 import '../widgets/photo_text_sheet.dart';
@@ -112,6 +113,18 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
       builder: (_) => PhotoCropSheet(
         project: proj,
         selectedFrameId: state.selectedFrameId,
+        controller: controller,
+      ),
+    );
+  }
+
+  void _openRatioSheet(PhotoProjectEntity proj, PhotoEditorController controller) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => PhotoRatioSheet(
+        project: proj,
         controller: controller,
       ),
     );
@@ -457,6 +470,11 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
                       onTap: () => _openCropSheet(proj, state, controller),
                     ),
                     _buildActionButton(
+                      icon: Icons.aspect_ratio_rounded,
+                      label: 'Ratio',
+                      onTap: () => _openRatioSheet(proj, controller),
+                    ),
+                    _buildActionButton(
                       icon: Icons.tune,
                       label: 'Adjust',
                       onTap: () => _openAdjustSheet(proj, state, controller),
@@ -483,7 +501,7 @@ class _PhotoEditorScreenState extends ConsumerState<PhotoEditorScreen> {
                       onTap: () => _openStickerSheet(controller),
                     ),
                     _buildActionButton(
-                      icon: Icons.aspect_ratio,
+                      icon: Icons.photo_size_select_actual_outlined,
                       label: 'Resize',
                       onTap: () => _openResizeSheet(proj, controller),
                     ),

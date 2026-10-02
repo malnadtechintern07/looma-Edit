@@ -139,6 +139,10 @@ if (str_starts_with($uri, '/api/')) {
         require __DIR__ . '/api/app/notifications.php';
         exit;
     }
+    if ($uri === '/api/app/register-fcm-token') {
+        require __DIR__ . '/api/app/register-fcm-token.php';
+        exit;
+    }
     if ($uri === '/api/app/support-ticket') {
         require __DIR__ . '/api/app/support-ticket.php';
         exit;

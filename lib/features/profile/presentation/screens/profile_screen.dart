@@ -893,65 +893,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                     const Divider(height: 1, color: Color(0xFFF3F4F6)),
                     ListTile(
+                      key: const Key('me_about_tile'),
                       leading: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
                         child: Image.asset('assets/icon/app_icon.png', width: 28, height: 28),
                       ),
                       title: const Text('About ProCut Video Editor', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                       subtitle: const Text('Version 2.4.0 (Build 240) • Offline Pro Engine', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+                      trailing: const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
                       onLongPress: _showServerConfigDialog,
-                      onTap: () {
-                        showDialog(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            backgroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                            content: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const SizedBox(height: 8),
-                                Image.asset('assets/icon/app_icon.png', width: 68, height: 68),
-                                const SizedBox(height: 12),
-                                const Text(
-                                  'PROCUT',
-                                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1),
-                                ),
-                                const SizedBox(height: 4),
-                                const Text(
-                                  'Version 2.4.0 (Build 240)',
-                                  style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-                                ),
-                                const SizedBox(height: 12),
-                                const Text(
-                                  'Pro Mobile Video Editor with CapCut-style Multi-Track Timeline, 70+ Effects, Keyframing, Filters, and Cloud Sync.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(fontSize: 13, color: Color(0xFF374151), height: 1.4),
-                                ),
-                              ],
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.of(ctx).pop();
-                                  context.push(RoutePaths.privacyPolicy);
-                                },
-                                child: const Text('Privacy Policy', style: TextStyle(color: AppColors.primary)),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.of(ctx).pop();
-                                  context.push(RoutePaths.helpCenter);
-                                },
-                                child: const Text('Help Center', style: TextStyle(color: AppColors.primary)),
-                              ),
-                              TextButton(
-                                onPressed: () => Navigator.of(ctx).pop(),
-                                child: const Text('Close'),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
+                      onTap: () => context.push(RoutePaths.about),
                     ),
                   ],
                 ),
@@ -1100,6 +1051,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 child: Column(
                   children: [
+                    ListTile(
+                      key: const Key('me_about_legal_tile'),
+                      leading: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0D6EFD).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.info_outline_rounded, color: Color(0xFF0D6EFD), size: 20),
+                      ),
+                      title: const Text(
+                        'About ProCut Video Editor',
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF111827)),
+                      ),
+                      subtitle: const Text(
+                        'Version 2.4.0 • Specs, engine highlights & studio credits',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                      ),
+                      trailing: const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
+                      onTap: () => context.push(RoutePaths.about),
+                    ),
+                    const Divider(height: 1, color: Color(0xFFF3F4F6)),
                     ListTile(
                       key: const Key('me_privacy_policy_tile'),
                       leading: Container(

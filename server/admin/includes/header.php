@@ -152,6 +152,76 @@
             font-weight: 600;
         }
 
+        .sidebar-nav-link.logout-link {
+            color: #F87171;
+            margin-top: 6px;
+        }
+
+        .sidebar-nav-link.logout-link:hover {
+            color: #FFFFFF;
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        .sidebar-footer {
+            padding: 14px 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(8px);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .sidebar-footer .admin-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .sidebar-footer .admin-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--procut-primary), var(--procut-accent));
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+
+        .sidebar-footer .logout-btn {
+            color: #EF4444;
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            border-radius: 8px;
+            padding: 6px 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .sidebar-footer .logout-btn:hover {
+            background: #EF4444;
+            color: #FFFFFF;
+            border-color: #EF4444;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35);
+        }
+
+        .top-navbar .dropdown-menu {
+            z-index: 1050;
+        }
+
         /* Main Content Layout - Strictly Fitted to Screen */
         .main-wrapper {
             margin-left: 260px;

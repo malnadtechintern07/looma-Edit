@@ -12,6 +12,7 @@ abstract class RoutePaths {
   static const String privacyPolicy = '/privacy-policy';
   static const String helpCenter = '/help-center';
   static const String contactSupport = '/contact-support';
+  static const String about = '/about';
 
   /// Helper to format dynamic route paths
   static String editorPath(String projectId) => '/editor/$projectId';

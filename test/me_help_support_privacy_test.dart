@@ -46,30 +46,51 @@ void main() {
   });
 
   group('PrivacyPolicyScreen Widget Tests', () {
-    testWidgets('renders all privacy sections, offline-first badges, and copy email button', (tester) async {
+    testWidgets('renders all privacy sections, DPDP Act badge, and copy email button', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: PrivacyPolicyScreen(),
+        const ProviderScope(
+          child: MaterialApp(
+            home: PrivacyPolicyScreen(),
+          ),
         ),
       );
 
       await tester.pumpAndSettle();
 
       // Title & Hero header
-      expect(find.text('Privacy Policy'), findsOneWidget);
-      expect(find.text('ProCut Privacy Commitment'), findsOneWidget);
-      expect(find.text('100% Offline Engine'), findsOneWidget);
-      expect(find.text('Zero Ad Tracking'), findsOneWidget);
-      expect(find.text('End-to-End Encrypted Cloud'), findsOneWidget);
+      expect(find.text('Privacy Policy'), findsAtLeastNWidgets(1));
+      expect(find.text('Last updated 28 September 2026'), findsOneWidget);
+      expect(find.text('DPDP Act, 2023'), findsOneWidget);
 
       // Key sections
-      expect(find.text('1. Offline-First Processing & Media Storage'), findsOneWidget);
-      expect(find.text('2. Device Permissions & Purpose'), findsOneWidget);
-      expect(find.text('3. Optional Cloud Sync & Account Data'), findsOneWidget);
-      expect(find.text('4. Cache & Temporary Video Fragments'), findsOneWidget);
-      expect(find.text('5. Zero Advertising & Third-Party Selling'), findsOneWidget);
-      expect(find.text('6. User Rights & Complete Data Deletion'), findsOneWidget);
-      expect(find.text('7. Contact Data Privacy Officer'), findsOneWidget);
+      expect(find.text('Two kinds of data'), findsOneWidget);
+      expect(find.text('What we collect about you'), findsOneWidget);
+      expect(find.text('What PusherHub stores about your app users'), findsOneWidget);
+      expect(find.text('How we use data'), findsOneWidget);
+      expect(find.text('Cookies'), findsOneWidget);
+      expect(find.text('Who we share data with'), findsOneWidget);
+      expect(find.text('How long we keep data'), findsOneWidget);
+      expect(find.text('How we protect data'), findsOneWidget);
+      expect(find.text('Your rights'), findsOneWidget);
+      expect(find.text('Children'), findsOneWidget);
+      expect(find.text('Changes to this policy'), findsOneWidget);
+      expect(find.text('Contact and Grievance Officer'), findsOneWidget);
+
+      // Third-party service provider links
+      expect(find.text('Third-Party Services'), findsOneWidget);
+      expect(find.text('Google Play Services'), findsOneWidget);
+      expect(find.text('AdMob'), findsOneWidget);
+      expect(find.text('Google Analytics for Firebase'), findsOneWidget);
+      expect(find.text('Firebase Crashlytics'), findsOneWidget);
+      expect(find.text('Facebook'), findsOneWidget);
+      expect(find.text('PusherHub'), findsOneWidget);
+
+      // Tapping PusherHub link scrolls to the PusherHub section
+      final pusherHubLink = find.text('PusherHub');
+      await tester.ensureVisible(pusherHubLink);
+      await tester.pumpAndSettle();
+      await tester.tap(pusherHubLink);
+      await tester.pumpAndSettle();
 
       // Copy email action
       final copyTile = find.byKey(const Key('privacy_copy_email_tile'));

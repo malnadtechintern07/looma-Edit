@@ -10,6 +10,7 @@ import '../../features/cloud_sync/presentation/screens/cloud_sync_screen.dart';
 import '../../features/editor/presentation/screens/editor_screen.dart';
 import '../../features/photo_editor/presentation/screens/photo_editor_screen.dart';
 import '../../features/export/presentation/screens/export_screen.dart';
+import '../../features/profile/presentation/screens/about_screen.dart';
 import '../../features/profile/presentation/screens/contact_support_screen.dart';
 import '../../features/profile/presentation/screens/help_center_screen.dart';
 import '../../features/profile/presentation/screens/privacy_policy_screen.dart';
@@ -125,6 +126,11 @@ final GoRouter appRouter = GoRouter(
           path: RoutePaths.contactSupport,
           name: RouteNames.contactSupport,
           builder: (context, state) => const ContactSupportScreen(),
+        ),
+        GoRoute(
+          path: RoutePaths.about,
+          name: RouteNames.about,
+          builder: (context, state) => const AboutScreen(),
         ),
       ],
     ),

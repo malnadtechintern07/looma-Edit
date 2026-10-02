@@ -6,15 +6,137 @@ import 'watermark_entity.dart';
 
 enum PhotoAspectRatio {
   square('1:1 Square', 1.0),
+  portrait4x5('4:5 Feed', 4 / 5),
   portrait9x16('9:16 Story', 9 / 16),
   landscape16x9('16:9 Cinema', 16 / 9),
-  portrait4x5('4:5 Feed', 4 / 5),
+  portrait3x4('3:4 Classic', 3 / 4),
+  landscape4x3('4:3 Standard', 4 / 3),
   portrait2x3('2:3 Poster', 2 / 3),
-  portrait3x4('3:4 Classic', 3 / 4);
+  landscape3x2('3:2 Photo', 3 / 2),
+  cinematic21x9('21:9 Ultrawide', 21 / 9),
+  portrait5x4('5:4 Frame', 5 / 4);
 
   final String label;
   final double ratio;
   const PhotoAspectRatio(this.label, this.ratio);
+
+  String get ratioText {
+    switch (this) {
+      case PhotoAspectRatio.square:
+        return '1:1';
+      case PhotoAspectRatio.portrait4x5:
+        return '4:5';
+      case PhotoAspectRatio.portrait9x16:
+        return '9:16';
+      case PhotoAspectRatio.landscape16x9:
+        return '16:9';
+      case PhotoAspectRatio.portrait3x4:
+        return '3:4';
+      case PhotoAspectRatio.landscape4x3:
+        return '4:3';
+      case PhotoAspectRatio.portrait2x3:
+        return '2:3';
+      case PhotoAspectRatio.landscape3x2:
+        return '3:2';
+      case PhotoAspectRatio.cinematic21x9:
+        return '21:9';
+      case PhotoAspectRatio.portrait5x4:
+        return '5:4';
+    }
+  }
+
+  String get platform {
+    switch (this) {
+      case PhotoAspectRatio.square:
+        return 'Instagram';
+      case PhotoAspectRatio.portrait4x5:
+        return 'IG / Facebook';
+      case PhotoAspectRatio.portrait9x16:
+        return 'TikTok / Reels';
+      case PhotoAspectRatio.landscape16x9:
+        return 'YouTube';
+      case PhotoAspectRatio.portrait3x4:
+        return 'Portrait';
+      case PhotoAspectRatio.landscape4x3:
+        return 'Tablet / PC';
+      case PhotoAspectRatio.portrait2x3:
+        return 'Pinterest';
+      case PhotoAspectRatio.landscape3x2:
+        return 'DSLR Camera';
+      case PhotoAspectRatio.cinematic21x9:
+        return 'Cinema';
+      case PhotoAspectRatio.portrait5x4:
+        return 'Print Frame';
+    }
+  }
+
+  String get category {
+    switch (this) {
+      case PhotoAspectRatio.square:
+      case PhotoAspectRatio.portrait4x5:
+      case PhotoAspectRatio.portrait9x16:
+      case PhotoAspectRatio.landscape16x9:
+      case PhotoAspectRatio.portrait2x3:
+        return 'Social';
+      case PhotoAspectRatio.portrait3x4:
+      case PhotoAspectRatio.portrait5x4:
+        return 'Portrait';
+      case PhotoAspectRatio.landscape4x3:
+      case PhotoAspectRatio.landscape3x2:
+      case PhotoAspectRatio.cinematic21x9:
+        return 'Landscape';
+    }
+  }
+
+  String get resolutionEstimate {
+    switch (this) {
+      case PhotoAspectRatio.square:
+        return '1080 × 1080 px';
+      case PhotoAspectRatio.portrait4x5:
+        return '1080 × 1350 px';
+      case PhotoAspectRatio.portrait9x16:
+        return '1080 × 1920 px';
+      case PhotoAspectRatio.landscape16x9:
+        return '1920 × 1080 px';
+      case PhotoAspectRatio.portrait3x4:
+        return '1500 × 2000 px';
+      case PhotoAspectRatio.landscape4x3:
+        return '2000 × 1500 px';
+      case PhotoAspectRatio.portrait2x3:
+        return '1000 × 1500 px';
+      case PhotoAspectRatio.landscape3x2:
+        return '1500 × 1000 px';
+      case PhotoAspectRatio.cinematic21x9:
+        return '2560 × 1080 px';
+      case PhotoAspectRatio.portrait5x4:
+        return '1250 × 1000 px';
+    }
+  }
+
+  String get description {
+    switch (this) {
+      case PhotoAspectRatio.square:
+        return 'Standard 1:1 square canvas, ideal for Instagram feed & profile photos.';
+      case PhotoAspectRatio.portrait4x5:
+        return 'Vertical 4:5 format maximizing screen coverage on Instagram & Facebook feeds.';
+      case PhotoAspectRatio.portrait9x16:
+        return 'Full vertical 9:16 layout, best for TikTok, IG Reels, YouTube Shorts & Stories.';
+      case PhotoAspectRatio.landscape16x9:
+        return 'Standard 16:9 widescreen canvas, perfect for YouTube videos & landscape shots.';
+      case PhotoAspectRatio.portrait3x4:
+        return 'Classic 3:4 portrait photo standard, common in smartphone cameras & prints.';
+      case PhotoAspectRatio.landscape4x3:
+        return 'Classic 4:3 landscape ratio, matching tablet screens & traditional monitors.';
+      case PhotoAspectRatio.portrait2x3:
+        return 'Traditional 2:3 35mm film portrait ratio, ideal for Pinterest pins & posters.';
+      case PhotoAspectRatio.landscape3x2:
+        return 'Standard 3:2 landscape format, the native aspect ratio of DSLR cameras.';
+      case PhotoAspectRatio.cinematic21x9:
+        return 'Ultra-wide 21:9 cinematic ratio for epic panoramic and cinematic edits.';
+      case PhotoAspectRatio.portrait5x4:
+        return 'Classic 5:4 large-format photo portrait ratio, great for artistic prints.';
+    }
+  }
 }
 
 enum CollageLayoutType {
